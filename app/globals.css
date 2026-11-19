@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-display: var(--font-outfit), system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}

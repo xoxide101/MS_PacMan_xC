@@ -1,0 +1,6 @@
+{
+  "name": "Ms. Pac-Man HD",
+  "description": "High-resolution 60fps arcade remaster of Ms. Pac-Man featuring all four classic mazes, authentic ghost AI, roaming bonus fruits, crisp vector lighting, and synthesized arcade audio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
