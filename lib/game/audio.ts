@@ -395,6 +395,116 @@ class ArcadeAudioEngine {
     }
   }
 
+  // --- Classic Arcade Collection Synth SFX ---
+
+  // Crisp laser blaster shot (Centipede, Millipede, Space Invaders 1 & 2)
+  public playLaser(pitch = 960): void {
+    this.unlock();
+    this.playTone(pitch, pitch * 0.24, 0.085, 'square', 0.2);
+    this.playTone(pitch * 1.4, pitch * 0.35, 0.06, 'triangle', 0.12);
+  }
+
+  // Punchy arcade explosion (aliens, bugs, DDT bombs, boulders)
+  public playExplosion(heavy = false): void {
+    this.unlock();
+    const dur = heavy ? 0.42 : 0.19;
+    this.playTone(heavy ? 180 : 320, 38, dur, 'sawtooth', heavy ? 0.32 : 0.24);
+    this.playTone(heavy ? 110 : 210, 32, dur * 1.08, 'square', heavy ? 0.22 : 0.16, 0.02);
+    this.playTone(heavy ? 480 : 620, 75, dur * 0.6, 'triangle', 0.14, 0.01);
+  }
+
+  // Authentic 4-note Space Invaders descending bass march
+  public playInvaderStep(stepIndex: number): void {
+    if (!this.ctx || this.muted) return;
+    const freqs = [98.0, 87.31, 82.41, 73.42];
+    const f = freqs[stepIndex % 4];
+    this.playTone(f, f * 0.92, 0.075, 'square', 0.24);
+    this.playTone(f * 0.5, f * 0.48, 0.08, 'triangle', 0.18);
+  }
+
+  // Warbling UFO saucer / spider shimmer
+  public playUfoPing(high = false): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(high ? 720 : 520, high ? 940 : 680, 0.085, 'sine', 0.12);
+  }
+
+  // Dig Dug harpoon pump hiss & inflation pitch rise
+  public playPump(stage = 1): void {
+    this.unlock();
+    const base = 240 + stage * 115;
+    this.playTone(base, base * 1.45, 0.09, 'sawtooth', 0.22);
+    this.playTone(base * 0.5, base * 0.9, 0.08, 'triangle', 0.16, 0.02);
+  }
+
+  // Dig Dug balloon pop!
+  public playPop(): void {
+    this.unlock();
+    this.playTone(680, 1420, 0.06, 'sine', 0.28);
+    this.playTone(320, 70, 0.14, 'square', 0.26, 0.04);
+  }
+
+  // Dig Dug Fygar flame roar
+  public playFlame(): void {
+    this.unlock();
+    this.playTone(220, 95, 0.24, 'sawtooth', 0.22);
+    this.playTone(390, 140, 0.2, 'triangle', 0.15, 0.03);
+  }
+
+  // Boulder Dash sparkling diamond chime
+  public playDiamond(): void {
+    this.unlock();
+    this.playTone(1046.5, 1318.5, 0.07, 'sine', 0.22);
+    this.playTone(1567.98, 2093.0, 0.1, 'triangle', 0.18, 0.045);
+  }
+
+  // Boulder Dash heavy stone thud
+  public playRockThud(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(135, 48, 0.09, 'triangle', 0.26);
+    this.playTone(95, 42, 0.07, 'square', 0.14);
+  }
+
+  // Digging dirt crunch
+  public playDigStep(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(190, 115, 0.038, 'triangle', 0.12);
+  }
+
+  // Food Fight throw whoosh & cream-pie splat
+  public playThrow(): void {
+    this.unlock();
+    this.playTone(340, 780, 0.085, 'sine', 0.2);
+  }
+
+  public playSplat(): void {
+    this.unlock();
+    this.playTone(460, 110, 0.13, 'sawtooth', 0.25);
+    this.playTone(250, 80, 0.15, 'triangle', 0.22, 0.02);
+  }
+
+  // Millipede inchworm slow-motion shimmer
+  public playSlowMo(): void {
+    this.unlock();
+    this.playTone(880, 260, 0.28, 'sine', 0.22);
+    this.playTone(660, 195, 0.32, 'triangle', 0.18, 0.05);
+  }
+
+  // Upbeat arcade round start chime for classic cabinets
+  public playArcadeStart(): void {
+    this.unlock();
+    if (!this.ctx || this.muted) return;
+    const notes: Array<[number, number, number]> = [
+      [440, 0.0, 0.08],
+      [554.37, 0.09, 0.08],
+      [659.25, 0.18, 0.09],
+      [880, 0.29, 0.22],
+    ];
+    for (const [f, t, d] of notes) {
+      this.playTone(f, f * 1.004, d, 'square', 0.18, t);
+      this.playTone(f * 0.5, f * 0.5, d, 'triangle', 0.14, t);
+    }
+  }
+
   public stopAmbient(): void {
     if (this.ambientOsc) {
       try {

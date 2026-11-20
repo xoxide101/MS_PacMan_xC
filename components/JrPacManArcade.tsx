@@ -426,7 +426,7 @@ export default function JrPacManArcade({ onSwitchGame, onOpenLobby }: JrPacManAr
             {onSwitchGame && (
               <section className="pb-5 border-b border-white/[0.07]">
                 <div className="text-xs font-medium text-slate-400 mb-2">Arcade Cabinets</div>
-                <div className="grid grid-cols-1 gap-1">
+                <div className="grid grid-cols-1 gap-1 max-h-[248px] overflow-y-auto pr-1">
                   {CABINET_LIST.map((cab) => (
                     <button
                       key={cab.id}
@@ -720,7 +720,7 @@ export default function JrPacManArcade({ onSwitchGame, onOpenLobby }: JrPacManAr
                             onClick={onOpenLobby}
                             className="lg:hidden w-full py-2 px-4 rounded-lg border border-white/10 bg-white/[0.04] text-xs font-medium text-slate-200 hover:text-white cursor-pointer"
                           >
-                            All 6 Cabinets
+                            All 13 Cabinets
                           </button>
                         )}
 

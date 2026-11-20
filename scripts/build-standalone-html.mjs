@@ -52,8 +52,8 @@ async function generateStandaloneHtml() {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Pac-Man Arcade Collection — 6 Cabinets in 60fps HD</title>
-  <meta name="description" content="Play 6 classic Pac-Man arcade cabinets in crisp 60fps HiDPI: Pac-Man, Pac-Man Plus, Ms. Pac-Man, Super Pac-Man, Jr. Pac-Man, and 3D Pac-Mania—all in one web page." />
+  <title>Retro Arcade Collection — 13 Classic Cabinets in 60fps HD</title>
+  <meta name="description" content="Play 13 classic arcade cabinets in crisp 60fps HiDPI: Centipede, Millipede, Dig Dug, Boulder Dash, Space Invaders I & II, Food Fight, and the full 6-game Pac-Man collection—all in one web page." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />

@@ -587,3 +587,209 @@ export function JrPacManEmblem({ size = 24, className = '' }: EmblemSizeProps) {
     />
   );
 }
+
+type ClassicIconKind =
+  | 'centipede'
+  | 'millipede'
+  | 'digdug'
+  | 'boulderdash'
+  | 'invaders'
+  | 'invaders2'
+  | 'foodfight';
+
+function ClassicIconCanvas({
+  kind,
+  size = 28,
+  className = '',
+}: EmblemSizeProps & { kind: ClassicIconKind }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    const s = size / 32;
+    ctx.save();
+    ctx.scale(s, s);
+
+    if (kind === 'centipede') {
+      // Three-segment neon lime & red centipede head
+      ctx.fillStyle = '#84CC16';
+      ctx.beginPath();
+      ctx.arc(8, 20, 6.5, 0, Math.PI * 2);
+      ctx.arc(16, 15, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#EF4444';
+      ctx.beginPath();
+      ctx.arc(23, 12, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.arc(25.5, 9.5, 2, 0, Math.PI * 2);
+      ctx.arc(25.5, 14.5, 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === 'millipede') {
+      // Fiery orange millipede + DDT badge accent
+      ctx.fillStyle = '#DC2626';
+      ctx.fillRect(4, 15, 13, 13);
+      ctx.strokeStyle = '#FACC15';
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(4, 15, 13, 13);
+      ctx.fillStyle = '#F97316';
+      ctx.beginPath();
+      ctx.arc(17, 11, 6.5, 0, Math.PI * 2);
+      ctx.arc(24, 9, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#38BDF8';
+      ctx.beginPath();
+      ctx.arc(26.5, 7, 1.8, 0, Math.PI * 2);
+      ctx.arc(26.5, 11, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === 'digdug') {
+      // Iconic red Pooka with yellow goggles
+      ctx.fillStyle = '#EF4444';
+      ctx.beginPath();
+      ctx.arc(16, 17, 11.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FACC15';
+      ctx.beginPath();
+      ctx.roundRect(6, 11, 20, 8, 4);
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(12, 15, 2.8, 0, Math.PI * 2);
+      ctx.arc(20, 15, 2.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0F172A';
+      ctx.beginPath();
+      ctx.arc(12.5, 15, 1.4, 0, Math.PI * 2);
+      ctx.arc(20.5, 15, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === 'boulderdash') {
+      // Sparkling cyan-purple diamond gem
+      ctx.fillStyle = '#A855F7';
+      ctx.beginPath();
+      ctx.moveTo(16, 3);
+      ctx.lineTo(28, 16);
+      ctx.lineTo(16, 29);
+      ctx.lineTo(4, 16);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#38BDF8';
+      ctx.beginPath();
+      ctx.moveTo(16, 8);
+      ctx.lineTo(23, 16);
+      ctx.lineTo(16, 24);
+      ctx.lineTo(9, 16);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.moveTo(16, 11);
+      ctx.lineTo(20, 16);
+      ctx.lineTo(16, 21);
+      ctx.lineTo(12, 16);
+      ctx.closePath();
+      ctx.fill();
+    } else if (kind === 'invaders') {
+      // Classic green Crab Invader
+      ctx.fillStyle = '#4ADE80';
+      ctx.fillRect(6, 10, 20, 10);
+      ctx.fillRect(9, 6, 3, 4);
+      ctx.fillRect(20, 6, 3, 4);
+      ctx.fillRect(3, 8, 3, 9);
+      ctx.fillRect(26, 8, 3, 9);
+      ctx.fillRect(8, 20, 4, 5);
+      ctx.fillRect(20, 20, 4, 5);
+      ctx.fillStyle = '#04060B';
+      ctx.fillRect(10, 13, 3.5, 3.5);
+      ctx.fillRect(18.5, 13, 3.5, 3.5);
+    } else if (kind === 'invaders2') {
+      // Neon Cyan & Crimson Splitter Command Invader
+      ctx.fillStyle = '#F43F5E';
+      ctx.beginPath();
+      ctx.moveTo(16, 4);
+      ctx.lineTo(28, 14);
+      ctx.lineTo(25, 24);
+      ctx.lineTo(7, 24);
+      ctx.lineTo(4, 14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#22D3EE';
+      ctx.fillRect(14.5, 7, 3, 16);
+      ctx.fillStyle = '#FEF08A';
+      ctx.fillRect(9, 13, 3.5, 3.5);
+      ctx.fillRect(19.5, 13, 3.5, 3.5);
+    } else {
+      // Food Fight Giant Ice Cream Cone
+      ctx.fillStyle = '#F59E0B';
+      ctx.beginPath();
+      ctx.moveTo(9, 17);
+      ctx.lineTo(23, 17);
+      ctx.lineTo(16, 30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#F472B6';
+      ctx.beginPath();
+      ctx.arc(16, 14, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FEF3C7';
+      ctx.beginPath();
+      ctx.arc(16, 8, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#EF4444';
+      ctx.beginPath();
+      ctx.arc(16, 3, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }, [kind, size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size }}
+      className={`shrink-0 ${className}`}
+      aria-hidden="true"
+    />
+  );
+}
+
+export function GameEmblem({
+  gameId,
+  size = 28,
+  className = '',
+}: EmblemSizeProps & { gameId: string }) {
+  switch (gameId) {
+    case 'classic':
+      return <ClassicPacManEmblem size={size} className={className} />;
+    case 'plus':
+      return <PacManPlusEmblem size={size} className={className} />;
+    case 'ms':
+      return <MsPacManEmblem size={size} className={className} />;
+    case 'super':
+      return <SuperPacManEmblem size={size} className={className} />;
+    case 'jr':
+      return <JrPacManEmblem size={size} className={className} />;
+    case 'pacmania':
+      return <PacManiaEmblem size={size} className={className} />;
+    case 'centipede':
+    case 'millipede':
+    case 'digdug':
+    case 'boulderdash':
+    case 'invaders':
+    case 'invaders2':
+    case 'foodfight':
+      return <ClassicIconCanvas kind={gameId} size={size} className={className} />;
+    default:
+      return <ClassicPacManEmblem size={size} className={className} />;
+  }
+}

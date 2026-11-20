@@ -3,27 +3,24 @@
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Download, Play } from 'lucide-react';
-import { CABINET_LIST, GameId } from '@/lib/game/arcadeTypes';
+import { CABINET_LIST, CabinetCategory, GameId } from '@/lib/game/arcadeTypes';
 import { arcadeAudio } from '@/lib/game/audio';
 import { CLASSIC_BONUS_ORDER } from '@/lib/game/classicEngine';
+import { isClassicArcadeGameId } from '@/lib/game/classicRegistry';
 import { JR_LEVEL_PRIZE_ORDER } from '@/lib/game/jrTypes';
 import { PLUS_BONUS_ORDER } from '@/lib/game/plusEngine';
 import { SUPER_PRIZE_ORDER } from '@/lib/game/superTypes';
 import { LEVEL_FRUIT_ORDER } from '@/lib/game/types';
 import CabinetPreviewCanvas from './CabinetPreviewCanvas';
+import ClassicArcadeShell from './ClassicArcadeShell';
 import ClassicPacManArcade from './ClassicPacManArcade';
 import JrPacManArcade from './JrPacManArcade';
 import {
   ClassicBonusEmblem,
-  ClassicPacManEmblem,
   FruitEmblem,
-  JrPacManEmblem,
+  GameEmblem,
   JrPrizeEmblem,
-  MsPacManEmblem,
-  PacManiaEmblem,
-  PacManPlusEmblem,
   PlusBonusEmblem,
-  SuperPacManEmblem,
   SuperPrizeEmblem,
 } from './MiniEmblemCanvas';
 import MsPacManArcade from './MsPacManArcade';
@@ -32,7 +29,7 @@ import PacManPlusArcade from './PacManPlusArcade';
 import SuperPacManArcade from './SuperPacManArcade';
 
 type ActiveScreen = 'select' | GameId;
-
+type FilterCategory = 'all' | CabinetCategory;
 type ScoreMap = Record<GameId, number>;
 
 function readStoredScore(key: string): number {
@@ -46,129 +43,257 @@ function readStoredScore(key: string): number {
   }
 }
 
-const VALID_GAME_IDS = new Set<GameId>(['classic', 'plus', 'ms', 'super', 'jr', 'pacmania']);
+const VALID_GAME_IDS = new Set<GameId>(CABINET_LIST.map((c) => c.id));
 
 function parseHashToScreen(hash: string): ActiveScreen {
   const cleaned = hash.replace(/^#\/?/, '').trim().toLowerCase() as GameId;
   return VALID_GAME_IDS.has(cleaned) ? cleaned : 'select';
 }
 
-function loadAllHighScores(): ScoreMap {
+function createZeroScores(): ScoreMap {
   return {
-    classic: readStoredScore('classic_pacman_hd_highscore_v1'),
-    plus: readStoredScore('pacman_plus_hd_highscore_v1'),
-    ms: readStoredScore('ms_pacman_hd_highscore_v1'),
-    super: readStoredScore('super_pacman_hd_highscore_v1'),
-    jr: readStoredScore('jr_pacman_hd_highscore_v1'),
-    pacmania: readStoredScore('pacmania_hd_highscore_v1'),
-  };
-}
-
-interface CabinetCardConfig {
-  id: GameId;
-  title: string;
-  year: number;
-  meta: string;
-  description: string;
-  titleColorClass: string;
-  scoreColorClass: string;
-  borderHoverClass: string;
-  buttonClass: string;
-  shortcut: string;
-}
-
-const CABINET_CARDS: CabinetCardConfig[] = [
-  {
-    id: 'classic',
-    title: 'Pac-Man',
-    year: 1980,
-    meta: '1980 · Original Cobalt Maze · Classic 4 Ghosts',
-    description:
-      'The iconic 1980 arcade original remastered in crisp 60fps vector HD with Blinky, Pinky, Inky, and Clyde plus escalating center bonus items.',
-    titleColorClass: 'text-blue-400',
-    scoreColorClass: 'text-blue-200',
-    borderHoverClass: 'hover:border-blue-400/50',
-    buttonClass: 'bg-blue-500 hover:bg-blue-400 text-white focus-visible:ring-blue-300',
-    shortcut: '1',
-  },
-  {
-    id: 'plus',
-    title: 'Pac-Man Plus',
-    year: 1982,
-    meta: '1982 · Emerald Maze · Wildcard Energizers · 2× Bonus Power',
-    description:
-      'Midway’s faster, trickier sequel: chomp Soda Cans and Pea Pods to turn ghosts invisible for 2× points, and survive vanishing mazes and stubborn hunters.',
-    titleColorClass: 'text-emerald-400',
-    scoreColorClass: 'text-emerald-200',
-    borderHoverClass: 'hover:border-emerald-400/50',
-    buttonClass: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 focus-visible:ring-emerald-200',
-    shortcut: '2',
-  },
-  {
-    id: 'ms',
-    title: 'Ms. Pac-Man',
-    year: 1982,
-    meta: '1982 · 4 Classic Mazes · Dual Warp Tunnels · Roaming Fruits',
-    description:
-      'Outsmart Blinky, Pinky, Inky, and Sue across four vibrant neon mazes with dual warp tunnels and bouncing fruits that sweep through the corridors.',
-    titleColorClass: 'text-amber-300',
-    scoreColorClass: 'text-amber-200',
-    borderHoverClass: 'hover:border-amber-400/50',
-    buttonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
-    shortcut: '3',
-  },
-  {
-    id: 'super',
-    title: 'Super Pac-Man',
-    year: 1982,
-    meta: '1982 · Keys & Locked Vaults · Giant Super Mode · Turbo Dash',
-    description:
-      'Collect golden keys to unlock sealed treasure chambers—or chomp a Green Super Pellet to grow giant, smash straight through locked gates, and turbo dash.',
-    titleColorClass: 'text-green-400',
-    scoreColorClass: 'text-green-200',
-    borderHoverClass: 'hover:border-green-400/50',
-    buttonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
-    shortcut: '4',
-  },
-  {
-    id: 'jr',
-    title: 'Jr. Pac-Man',
-    year: 1983,
-    meta: '1983 · 2× Wide Scrolling Mazes · Mutating Dots · 6 Energizers',
-    description:
-      'Navigate double-wide scrolling labyrinths with zero warp tunnels, 50-point mutating super dots, roaming toys, and a live tactical minimap radar.',
-    titleColorClass: 'text-teal-300',
-    scoreColorClass: 'text-teal-200',
-    borderHoverClass: 'hover:border-teal-400/50',
-    buttonClass: 'bg-teal-400 hover:bg-teal-300 text-slate-950 focus-visible:ring-teal-200',
-    shortcut: '5',
-  },
-  {
-    id: 'pacmania',
-    title: 'Pac-Mania',
-    year: 1987,
-    meta: '1987 · Isometric 3D Worlds · Jump Over Ghosts · Funky & Spunky',
-    description:
-      'Explore four extruded 3D worlds from Block Town to Jungly Steps and leap right over pursuing ghosts—while watching out for synced jumpers Funky and Spunky.',
-    titleColorClass: 'text-pink-400',
-    scoreColorClass: 'text-pink-200',
-    borderHoverClass: 'hover:border-pink-400/50',
-    buttonClass: 'bg-pink-500 hover:bg-pink-400 text-white focus-visible:ring-pink-300',
-    shortcut: '6',
-  },
-];
-
-export default function ArcadeHub() {
-  const [screen, setScreen] = useState<ActiveScreen>('select');
-  const [isStandaloneFile, setIsStandaloneFile] = useState(false);
-  const [highScores, setHighScores] = useState<ScoreMap>({
     classic: 0,
     plus: 0,
     ms: 0,
     super: 0,
     jr: 0,
     pacmania: 0,
-  });
+    centipede: 0,
+    millipede: 0,
+    digdug: 0,
+    boulderdash: 0,
+    invaders: 0,
+    invaders2: 0,
+    foodfight: 0,
+  };
+}
+
+function loadAllHighScores(): ScoreMap {
+  const map = createZeroScores();
+  for (const cab of CABINET_LIST) {
+    map[cab.id] = readStoredScore(cab.storageKey);
+  }
+  return map;
+}
+
+interface CabinetCardConfig {
+  id: GameId;
+  title: string;
+  year: number;
+  category: CabinetCategory;
+  meta: string;
+  description: string;
+  footerLabel: string;
+  footerSummary?: string;
+  titleColorClass: string;
+  scoreColorClass: string;
+  borderHoverClass: string;
+  buttonClass: string;
+}
+
+const CABINET_CARDS: CabinetCardConfig[] = [
+  // Golden Age Classics (7)
+  {
+    id: 'centipede',
+    title: 'Centipede',
+    year: 1981,
+    category: 'classic-arcade',
+    meta: '1981 · Atari · Splitting Chains · Spiders & Scorpions',
+    description:
+      'Blast winding centipede chains through a destructible mushroom garden while fending off bouncing spiders, mushroom-dropping fleas, and poisoning scorpions.',
+    footerLabel: 'Arcade Features',
+    footerSummary: 'Mouse + Keys · Splitting Chains · 4 Color Waves',
+    titleColorClass: 'text-lime-400',
+    scoreColorClass: 'text-lime-200',
+    borderHoverClass: 'hover:border-lime-400/50',
+    buttonClass: 'bg-lime-400 hover:bg-lime-300 text-slate-950 focus-visible:ring-lime-200',
+  },
+  {
+    id: 'millipede',
+    title: 'Millipede',
+    year: 1982,
+    category: 'classic-arcade',
+    meta: '1982 · Atari · DDT Bombs · Inchworm Slow-Mo',
+    description:
+      'Detonate volatile DDT canisters for massive 3× blast clouds, freeze time by shooting inchworms, and survive beetles, mosquitoes, and earwigs.',
+    footerLabel: 'Sequel Upgrades',
+    footerSummary: 'Chain DDT Blasts · Slow-Mo · Swarm Scroll',
+    titleColorClass: 'text-orange-400',
+    scoreColorClass: 'text-orange-200',
+    borderHoverClass: 'hover:border-orange-400/50',
+    buttonClass: 'bg-orange-500 hover:bg-orange-400 text-slate-950 focus-visible:ring-orange-200',
+  },
+  {
+    id: 'digdug',
+    title: 'Dig Dug',
+    year: 1982,
+    category: 'classic-arcade',
+    meta: '1982 · Namco · Air Pump Harpoon · Falling Rocks',
+    description:
+      'Carve tunnels through four stratified soil layers, inflate Pookas and fire-breathing Fygars until they pop, or drop boulders to crush monsters for huge bonuses.',
+    footerLabel: 'Underground Tactics',
+    footerSummary: '4-Stage Pump · Ghost Phasing · Rock Crush',
+    titleColorClass: 'text-sky-400',
+    scoreColorClass: 'text-sky-200',
+    borderHoverClass: 'hover:border-sky-400/50',
+    buttonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
+  },
+  {
+    id: 'boulderdash',
+    title: 'Boulder Dash',
+    year: 1984,
+    category: 'classic-arcade',
+    meta: '1984 · First Star · 5 Caves · Cellular Rock Physics',
+    description:
+      'Guide Rockford through five scrolling underground caves with authentic falling and rolling rock physics, fireflies, diamond-bursting butterflies, and snap-digging.',
+    footerLabel: 'Mine Mechanics',
+    footerSummary: '5 Solvable Caves · Snap-Dig · Butterfly Gems',
+    titleColorClass: 'text-purple-400',
+    scoreColorClass: 'text-purple-200',
+    borderHoverClass: 'hover:border-purple-400/50',
+    buttonClass: 'bg-purple-500 hover:bg-purple-400 text-white focus-visible:ring-purple-300',
+  },
+  {
+    id: 'invaders',
+    title: 'Space Invaders',
+    year: 1978,
+    category: 'classic-arcade',
+    meta: '1978 · Taito · 55-Alien March · Destructible Bunkers',
+    description:
+      'Defend Earth against an accelerating 5×11 alien armada with a throbbing 4-note bass march, pixel-eroding shield bunkers, and the 300-point Red Mystery UFO.',
+    footerLabel: 'Classic Arsenal',
+    footerSummary: '4 Erosive Bunkers · Shot Intercept · 300pt UFO',
+    titleColorClass: 'text-green-400',
+    scoreColorClass: 'text-green-200',
+    borderHoverClass: 'hover:border-green-400/50',
+    buttonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
+  },
+  {
+    id: 'invaders2',
+    title: 'Space Invaders II',
+    year: 1979,
+    category: 'classic-arcade',
+    meta: '1979 · Taito · Splitting Invaders · Dropship UFO',
+    description:
+      'Face full-color splitting Command Invaders that cleave into twin divers, intercept golden reinforcement dropships, and earn the 500-point Rainbow Bonus.',
+    footerLabel: 'Part II Features',
+    footerSummary: 'Split Divers · Cloak & Dropship UFO · Rainbow Bonus',
+    titleColorClass: 'text-cyan-400',
+    scoreColorClass: 'text-cyan-200',
+    borderHoverClass: 'hover:border-cyan-400/50',
+    buttonClass: 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 focus-visible:ring-cyan-200',
+  },
+  {
+    id: 'foodfight',
+    title: 'Food Fight',
+    year: 1983,
+    category: 'classic-arcade',
+    meta: '1983 · Atari · 4 Pursuing Chefs · Melting Cone',
+    description:
+      'Sprint as Charley Chuck across the town square to eat the giant melting ice cream cone before Oscar, Angelo, Jacques, and Zorba catch you—hurling pies and melons back!',
+    footerLabel: 'Plaza Chaos',
+    footerSummary: '7 Food Piles · Chef Holes · Instant Replay Bonus',
+    titleColorClass: 'text-rose-400',
+    scoreColorClass: 'text-rose-200',
+    borderHoverClass: 'hover:border-rose-400/50',
+    buttonClass: 'bg-rose-500 hover:bg-rose-400 text-white focus-visible:ring-rose-300',
+  },
+
+  // Pac-Man Series (6)
+  {
+    id: 'classic',
+    title: 'Pac-Man',
+    year: 1980,
+    category: 'pacman',
+    meta: '1980 · Namco · Original Cobalt Maze · Classic 4 Ghosts',
+    description:
+      'The iconic 1980 arcade original remastered in crisp 60fps vector HD with Blinky, Pinky, Inky, and Clyde plus escalating center bonus items.',
+    footerLabel: 'Bonus Items',
+    titleColorClass: 'text-blue-400',
+    scoreColorClass: 'text-blue-200',
+    borderHoverClass: 'hover:border-blue-400/50',
+    buttonClass: 'bg-blue-500 hover:bg-blue-400 text-white focus-visible:ring-blue-300',
+  },
+  {
+    id: 'plus',
+    title: 'Pac-Man Plus',
+    year: 1982,
+    category: 'pacman',
+    meta: '1982 · Midway · Emerald Maze · Wildcard Energizers',
+    description:
+      'Midway’s faster, trickier sequel: chomp Soda Cans and Pea Pods to turn ghosts invisible for 2× points, and survive vanishing mazes and stubborn hunters.',
+    footerLabel: '2× Power Treats',
+    titleColorClass: 'text-emerald-400',
+    scoreColorClass: 'text-emerald-200',
+    borderHoverClass: 'hover:border-emerald-400/50',
+    buttonClass: 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 focus-visible:ring-emerald-200',
+  },
+  {
+    id: 'ms',
+    title: 'Ms. Pac-Man',
+    year: 1982,
+    category: 'pacman',
+    meta: '1982 · Midway · 4 Classic Mazes · Roaming Fruits',
+    description:
+      'Outsmart Blinky, Pinky, Inky, and Sue across four vibrant neon mazes with dual warp tunnels and bouncing fruits that sweep through the corridors.',
+    footerLabel: 'Bonus Fruits',
+    titleColorClass: 'text-amber-300',
+    scoreColorClass: 'text-amber-200',
+    borderHoverClass: 'hover:border-amber-400/50',
+    buttonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
+  },
+  {
+    id: 'super',
+    title: 'Super Pac-Man',
+    year: 1982,
+    category: 'pacman',
+    meta: '1982 · Namco · Keys & Locked Vaults · Giant Super Mode',
+    description:
+      'Collect golden keys to unlock sealed treasure chambers—or chomp a Green Super Pellet to grow giant, smash straight through locked gates, and turbo dash.',
+    footerLabel: 'Vault Treasures',
+    titleColorClass: 'text-green-400',
+    scoreColorClass: 'text-green-200',
+    borderHoverClass: 'hover:border-green-400/50',
+    buttonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
+  },
+  {
+    id: 'jr',
+    title: 'Jr. Pac-Man',
+    year: 1983,
+    category: 'pacman',
+    meta: '1983 · Midway · 2× Wide Scrolling Mazes · Mutating Dots',
+    description:
+      'Navigate double-wide scrolling labyrinths with zero warp tunnels, 50-point mutating super dots, roaming toys, and a live tactical minimap radar.',
+    footerLabel: 'Roaming Toys',
+    titleColorClass: 'text-teal-300',
+    scoreColorClass: 'text-teal-200',
+    borderHoverClass: 'hover:border-teal-400/50',
+    buttonClass: 'bg-teal-400 hover:bg-teal-300 text-slate-950 focus-visible:ring-teal-200',
+  },
+  {
+    id: 'pacmania',
+    title: 'Pac-Mania',
+    year: 1987,
+    category: 'pacman',
+    meta: '1987 · Namco · Isometric 3D Worlds · Jump Over Ghosts',
+    description:
+      'Explore four extruded 3D worlds from Block Town to Jungly Steps and leap right over pursuing ghosts—while watching out for synced jumpers Funky and Spunky.',
+    footerLabel: '3D Worlds',
+    footerSummary: 'Block Town · Park · Sandbox Land · Jungly Steps',
+    titleColorClass: 'text-pink-400',
+    scoreColorClass: 'text-pink-200',
+    borderHoverClass: 'hover:border-pink-400/50',
+    buttonClass: 'bg-pink-500 hover:bg-pink-400 text-white focus-visible:ring-pink-300',
+  },
+];
+
+const QUICK_NAV_IDS: GameId[] = ['centipede', 'digdug', 'boulderdash', 'invaders', 'foodfight'];
+
+export default function ArcadeHub() {
+  const [screen, setScreen] = useState<ActiveScreen>('select');
+  const [filter, setFilter] = useState<FilterCategory>('all');
+  const [isStandaloneFile, setIsStandaloneFile] = useState(false);
+  const [highScores, setHighScores] = useState<ScoreMap>(createZeroScores);
 
   const handleSelectGame = useCallback((next: ActiveScreen) => {
     arcadeAudio.stopAmbient();
@@ -190,7 +315,6 @@ export default function ArcadeHub() {
     setScreen(next);
   }, []);
 
-  // Sync URL hash navigation (index.html#classic, #plus, #ms, #super, #jr, #pacmania)
   useEffect(() => {
     const rafId = window.requestAnimationFrame(() => {
       setIsStandaloneFile(window.location.protocol === 'file:');
@@ -221,25 +345,23 @@ export default function ArcadeHub() {
 
   useEffect(() => {
     if (screen !== 'select') return;
-
     const rafId = window.requestAnimationFrame(() => {
       setHighScores(loadAllHighScores());
     });
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      const idx = parseInt(e.key, 10) - 1;
-      if (idx >= 0 && idx < CABINET_LIST.length) {
-        handleSelectGame(CABINET_LIST[idx].id);
-      }
-    };
-
-    window.addEventListener('keydown', onKeyDown);
     return () => {
       window.cancelAnimationFrame(rafId);
-      window.removeEventListener('keydown', onKeyDown);
     };
-  }, [screen, handleSelectGame]);
+  }, [screen]);
 
+  if (screen !== 'select' && isClassicArcadeGameId(screen)) {
+    return (
+      <ClassicArcadeShell
+        gameId={screen}
+        onSwitchGame={(g) => handleSelectGame(g)}
+        onOpenLobby={() => handleSelectGame('select')}
+      />
+    );
+  }
   if (screen === 'classic') {
     return (
       <ClassicPacManArcade
@@ -289,28 +411,14 @@ export default function ArcadeHub() {
     );
   }
 
-  const renderEmblem = (id: GameId) => {
-    switch (id) {
-      case 'classic':
-        return <ClassicPacManEmblem size={38} />;
-      case 'plus':
-        return <PacManPlusEmblem size={38} />;
-      case 'ms':
-        return <MsPacManEmblem size={38} />;
-      case 'super':
-        return <SuperPacManEmblem size={40} />;
-      case 'jr':
-        return <JrPacManEmblem size={38} />;
-      case 'pacmania':
-        return <PacManiaEmblem size={40} />;
-    }
-  };
+  const visibleCards =
+    filter === 'all' ? CABINET_CARDS : CABINET_CARDS.filter((c) => c.category === filter);
 
-  const renderFooterRoster = (id: GameId) => {
-    if (id === 'classic') {
+  const renderFooterRoster = (card: CabinetCardConfig) => {
+    if (card.id === 'classic') {
       return (
         <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
-          <span className="text-xs text-slate-400">Bonus Items</span>
+          <span className="text-xs text-slate-400">{card.footerLabel}</span>
           <div className="flex items-center gap-1.5">
             {CLASSIC_BONUS_ORDER.slice(0, 6).map((bt) => (
               <ClassicBonusEmblem key={bt} type={bt} size={20} />
@@ -319,10 +427,10 @@ export default function ArcadeHub() {
         </div>
       );
     }
-    if (id === 'plus') {
+    if (card.id === 'plus') {
       return (
         <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
-          <span className="text-xs text-slate-400">2× Power Treats</span>
+          <span className="text-xs text-slate-400">{card.footerLabel}</span>
           <div className="flex items-center gap-1.5">
             {PLUS_BONUS_ORDER.slice(0, 6).map((bt) => (
               <PlusBonusEmblem key={bt} type={bt} size={20} />
@@ -331,10 +439,10 @@ export default function ArcadeHub() {
         </div>
       );
     }
-    if (id === 'ms') {
+    if (card.id === 'ms') {
       return (
         <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
-          <span className="text-xs text-slate-400">Bonus Fruits</span>
+          <span className="text-xs text-slate-400">{card.footerLabel}</span>
           <div className="flex items-center gap-1.5">
             {LEVEL_FRUIT_ORDER.map((ft) => (
               <FruitEmblem key={ft} type={ft} size={20} />
@@ -343,10 +451,10 @@ export default function ArcadeHub() {
         </div>
       );
     }
-    if (id === 'super') {
+    if (card.id === 'super') {
       return (
         <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
-          <span className="text-xs text-slate-400">Vault Treasures</span>
+          <span className="text-xs text-slate-400">{card.footerLabel}</span>
           <div className="flex items-center gap-1.5">
             {SUPER_PRIZE_ORDER.slice(0, 6).map((pt) => (
               <SuperPrizeEmblem key={pt} type={pt} size={20} />
@@ -355,10 +463,10 @@ export default function ArcadeHub() {
         </div>
       );
     }
-    if (id === 'jr') {
+    if (card.id === 'jr') {
       return (
         <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
-          <span className="text-xs text-slate-400">Roaming Toys</span>
+          <span className="text-xs text-slate-400">{card.footerLabel}</span>
           <div className="flex items-center gap-1.5">
             {JR_LEVEL_PRIZE_ORDER.map((pt) => (
               <JrPrizeEmblem key={pt} type={pt} size={20} />
@@ -368,10 +476,10 @@ export default function ArcadeHub() {
       );
     }
     return (
-      <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
-        <span className="text-xs text-slate-400">3D Worlds</span>
-        <span className="text-xs text-slate-300 font-medium">
-          Block Town · Park · Sandbox Land · Jungly Steps
+      <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/[0.07]">
+        <span className="text-xs text-slate-400 shrink-0">{card.footerLabel}</span>
+        <span className="text-xs text-slate-300 font-medium truncate">
+          {card.footerSummary}
         </span>
       </div>
     );
@@ -379,69 +487,122 @@ export default function ArcadeHub() {
 
   return (
     <div className="min-h-[100dvh] w-full bg-[#060811] text-slate-100 flex flex-col">
-      {/* Clean Single-Row Top Bar */}
+      {/* Clean 3-Zone Top Bar */}
       <header className="w-full border-b border-white/[0.07] bg-[#080B16]/90 backdrop-blur-md">
-        <div className="mx-auto max-w-[1360px] px-5 sm:px-8 h-16 flex items-center justify-between gap-6">
+        <div className="mx-auto max-w-[1360px] px-5 sm:px-8 h-16 flex items-center justify-between gap-8">
           <span
             className="text-lg font-bold tracking-tight text-white whitespace-nowrap shrink-0"
             style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
           >
-            Pac-Man Arcade Collection
+            Retro Arcade Collection
           </span>
 
-          <nav className="hidden xl:flex items-center gap-5 text-sm font-medium text-slate-400">
-            {CABINET_CARDS.map((card) => (
-              <button
-                key={card.id}
-                type="button"
-                onClick={() => handleSelectGame(card.id)}
-                className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                {card.title}
-              </button>
-            ))}
+          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-400">
+            {QUICK_NAV_IDS.map((id) => {
+              const cab = CABINET_CARDS.find((c) => c.id === id)!;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => handleSelectGame(id)}
+                  className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  {cab.title}
+                </button>
+              );
+            })}
           </nav>
 
-          <div className="flex items-center gap-4 shrink-0">
-            <span className="text-xs text-slate-400 whitespace-nowrap hidden sm:inline">
-              6 Cabinets · 60fps HiDPI
-            </span>
-            {!isStandaloneFile && (
+          <div className="flex items-center shrink-0">
+            {!isStandaloneFile ? (
               <a
                 href="/arcade-index.html"
                 download="index.html"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 bg-white/[0.04] hover:bg-white/[0.09] text-xs font-medium text-slate-200 hover:text-white transition-colors whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-white/12 bg-white/[0.05] hover:bg-white/[0.1] text-xs font-medium text-slate-100 transition-colors whitespace-nowrap shrink-0"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download index.html</span>
               </a>
+            ) : (
+              <span className="text-xs text-slate-400 whitespace-nowrap shrink-0">
+                13 Cabinets · 60fps HiDPI
+              </span>
             )}
           </div>
         </div>
       </header>
 
-      {/* Main Selection Arena */}
-      <main className="flex-1 w-full mx-auto max-w-[1360px] px-5 sm:px-8 py-8 sm:py-10 flex flex-col justify-center">
-        <div className="max-w-2xl mb-7 sm:mb-9 space-y-2">
-          <h1
-            className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white text-balance"
-            style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
+      {/* Main Selection Floor */}
+      <main className="flex-1 w-full mx-auto max-w-[1360px] px-5 sm:px-8 py-8 sm:py-10">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-7 sm:mb-9">
+          <div className="max-w-2xl space-y-2">
+            <h1
+              className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white text-balance"
+              style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
+            >
+              Choose Your Cabinet
+            </h1>
+            <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
+              Thirteen Golden Age arcade classics remastered at high resolution and locked 60fps—spanning Centipede, Millipede, Dig Dug, Boulder Dash, Space Invaders I & II, Food Fight, and the full six-game Pac-Man collection.
+            </p>
+          </div>
+
+          {/* Interactive Category Filter Control */}
+          <div
+            role="tablist"
+            aria-label="Filter arcade cabinets"
+            className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#0B0F1D] border border-white/[0.08] self-start md:self-auto shrink-0"
           >
-            Choose Your Cabinet
-          </h1>
-          <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-            Six classic arcade cabinets rebuilt at high resolution and locked 60fps—all running in one self-contained web page from the 1980 original and Pac-Man Plus to Super Pac-Man and 3D Pac-Mania.
-          </p>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={filter === 'all'}
+              onClick={() => setFilter('all')}
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                filter === 'all'
+                  ? 'bg-white text-slate-950'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              All 13 Cabinets
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={filter === 'classic-arcade'}
+              onClick={() => setFilter('classic-arcade')}
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                filter === 'classic-arcade'
+                  ? 'bg-white text-slate-950'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Golden Age Classics (7)
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={filter === 'pacman'}
+              onClick={() => setFilter('pacman')}
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                filter === 'pacman'
+                  ? 'bg-white text-slate-950'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Pac-Man Series (6)
+            </button>
+          </div>
         </div>
 
-        {/* 6 Live Preview Cabinets Grid (Balanced 3 × 2 on desktop) */}
+        {/* Live 60fps Preview Cabinet Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 xl:gap-6 items-stretch">
-          {CABINET_CARDS.map((card, idx) => (
+          {visibleCards.map((card, idx) => (
             <motion.article
               key={card.id}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.26, delay: idx * 0.04, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.22, delay: Math.min(idx, 6) * 0.03, ease: [0.16, 1, 0.3, 1] }}
               className={`group flex flex-col rounded-2xl bg-[#0B0F1D] border border-white/[0.08] ${card.borderHoverClass} transition-colors overflow-hidden`}
             >
               {/* Live 60fps HiDPI Preview */}
@@ -460,7 +621,7 @@ export default function ArcadeHub() {
                 <div className="space-y-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      {renderEmblem(card.id)}
+                      <GameEmblem gameId={card.id} size={38} />
                       <div className="min-w-0">
                         <h2
                           className={`text-xl sm:text-2xl font-bold tracking-tight truncate ${card.titleColorClass}`}
@@ -488,7 +649,7 @@ export default function ArcadeHub() {
                     {card.description}
                   </p>
 
-                  {renderFooterRoster(card.id)}
+                  {renderFooterRoster(card)}
                 </div>
 
                 <button
@@ -504,9 +665,8 @@ export default function ArcadeHub() {
           ))}
         </div>
 
-        <p className="mt-7 text-xs text-slate-500 text-center">
-          Quick launch with keys <span className="font-mono text-slate-300">1</span>–
-          <span className="font-mono text-slate-300">6</span> · Switch cabinets anytime from the left rail or top bar
+        <p className="mt-8 text-xs text-slate-500 text-center">
+          Switch between all 13 cabinets anytime from the left rail or return here via the top bar
         </p>
       </main>
     </div>

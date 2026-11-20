@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { GameId } from '@/lib/game/arcadeTypes';
 import { ClassicPacManEngine } from '@/lib/game/classicEngine';
 import { ClassicPacManRenderer } from '@/lib/game/classicRenderer';
+import { createClassicArcadeGame, isClassicArcadeGameId } from '@/lib/game/classicRegistry';
 import { MsPacManEngine } from '@/lib/game/engine';
 import { JrPacManEngine } from '@/lib/game/jrEngine';
 import { JrPacManRenderer } from '@/lib/game/jrRenderer';
@@ -33,31 +34,20 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const logicalW =
-      game === 'jr'
-        ? JR_VIEWPORT_WIDTH
-        : game === 'pacmania'
-          ? PM_VIEWPORT_WIDTH
-          : CANVAS_LOGICAL_WIDTH;
-    const logicalH =
-      game === 'jr'
-        ? JR_VIEWPORT_HEIGHT
-        : game === 'pacmania'
-          ? PM_VIEWPORT_HEIGHT
-          : CANVAS_LOGICAL_HEIGHT;
-
-    canvas.width = Math.round(logicalW * dpr);
-    canvas.height = Math.round(logicalH * dpr);
-
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     let rafId = 0;
     let lastTime = performance.now();
     let accumulator = 0;
 
     const runLoop = (
+      logicalW: number,
+      logicalH: number,
       stepFn: (dt: number) => void,
       renderFn: () => void
     ) => {
+      canvas.width = Math.round(logicalW * dpr);
+      canvas.height = Math.round(logicalH * dpr);
+
       const tick = (now: number) => {
         const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
         lastTime = now;
@@ -72,10 +62,20 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
       rafId = window.requestAnimationFrame(tick);
     };
 
-    if (game === 'classic') {
+    if (isClassicArcadeGameId(game)) {
+      const instance = createClassicArcadeGame(game);
+      runLoop(
+        instance.logicalWidth,
+        instance.logicalHeight,
+        (dt) => instance.step(dt),
+        () => instance.render(ctx, dpr, 'hd')
+      );
+    } else if (game === 'classic') {
       const engine = new ClassicPacManEngine();
       const renderer = new ClassicPacManRenderer();
       runLoop(
+        CANVAS_LOGICAL_WIDTH,
+        CANVAS_LOGICAL_HEIGHT,
         (dt) => engine.step(dt),
         () => renderer.render(ctx, engine, dpr, 'hd')
       );
@@ -83,6 +83,8 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
       const engine = new PacManPlusEngine();
       const renderer = new PacManPlusRenderer();
       runLoop(
+        CANVAS_LOGICAL_WIDTH,
+        CANVAS_LOGICAL_HEIGHT,
         (dt) => engine.step(dt),
         () => renderer.render(ctx, engine, dpr, 'hd')
       );
@@ -90,6 +92,8 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
       const engine = new MsPacManEngine();
       const renderer = new MsPacManRenderer();
       runLoop(
+        CANVAS_LOGICAL_WIDTH,
+        CANVAS_LOGICAL_HEIGHT,
         (dt) => engine.step(dt),
         () => renderer.render(ctx, engine, dpr, 'hd')
       );
@@ -97,6 +101,8 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
       const engine = new SuperPacManEngine();
       const renderer = new SuperPacManRenderer();
       runLoop(
+        CANVAS_LOGICAL_WIDTH,
+        CANVAS_LOGICAL_HEIGHT,
         (dt) => engine.step(dt),
         () => renderer.render(ctx, engine, dpr, 'hd')
       );
@@ -104,6 +110,8 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
       const engine = new JrPacManEngine();
       const renderer = new JrPacManRenderer();
       runLoop(
+        JR_VIEWPORT_WIDTH,
+        JR_VIEWPORT_HEIGHT,
         (dt) => engine.step(dt),
         () => renderer.render(ctx, engine, dpr, 'hd')
       );
@@ -111,6 +119,8 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
       const engine = new PacManiaEngine();
       const renderer = new PacManiaRenderer();
       runLoop(
+        PM_VIEWPORT_WIDTH,
+        PM_VIEWPORT_HEIGHT,
         (dt) => engine.step(dt),
         () => renderer.render(ctx, engine, dpr, 'hd')
       );
