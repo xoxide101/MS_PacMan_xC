@@ -1,18 +1,30 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { ClassicBonusType } from '@/lib/game/classicEngine';
+import { ClassicPacManRenderer } from '@/lib/game/classicRenderer';
 import { JrPacManRenderer } from '@/lib/game/jrRenderer';
 import { JrPrizeType } from '@/lib/game/jrTypes';
+import { PlusBonusType } from '@/lib/game/plusEngine';
+import { PacManPlusRenderer } from '@/lib/game/plusRenderer';
 import { MsPacManRenderer } from '@/lib/game/renderer';
+import { SuperPacManRenderer } from '@/lib/game/superRenderer';
+import { SuperPrizeType } from '@/lib/game/superTypes';
 import { FruitType } from '@/lib/game/types';
 
 const sharedRenderer = new MsPacManRenderer();
 const sharedJrRenderer = new JrPacManRenderer();
+const sharedClassicRenderer = new ClassicPacManRenderer();
+const sharedSuperRenderer = new SuperPacManRenderer();
+const sharedPlusRenderer = new PacManPlusRenderer();
 
-interface FruitEmblemProps {
-  type: FruitType;
+interface EmblemSizeProps {
   size?: number;
   className?: string;
+}
+
+interface FruitEmblemProps extends EmblemSizeProps {
+  type: FruitType;
 }
 
 export function FruitEmblem({ type, size = 28, className = '' }: FruitEmblemProps) {
@@ -42,10 +54,162 @@ export function FruitEmblem({ type, size = 28, className = '' }: FruitEmblemProp
   );
 }
 
-interface JrPrizeEmblemProps {
+interface ClassicBonusEmblemProps extends EmblemSizeProps {
+  type: ClassicBonusType;
+}
+
+export function ClassicBonusEmblem({
+  type,
+  size = 28,
+  className = '',
+}: ClassicBonusEmblemProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    const scale = size / 28;
+    sharedClassicRenderer.drawBonusItem(ctx, type, size * 0.5, size * 0.52, scale);
+  }, [type, size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size }}
+      className={`shrink-0 ${className}`}
+      aria-hidden="true"
+    />
+  );
+}
+
+interface PlusBonusEmblemProps extends EmblemSizeProps {
+  type: PlusBonusType;
+}
+
+export function PlusBonusEmblem({ type, size = 28, className = '' }: PlusBonusEmblemProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    const scale = size / 28;
+    sharedPlusRenderer.drawPlusBonus(ctx, type, size * 0.5, size * 0.52, scale);
+  }, [type, size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size }}
+      className={`shrink-0 ${className}`}
+      aria-hidden="true"
+    />
+  );
+}
+
+export function PacManPlusEmblem({ size = 24, className = '' }: EmblemSizeProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+
+    const cx = size * 0.44;
+    const cy = size * 0.52;
+    const r = size * 0.36;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    const grad = ctx.createRadialGradient(-r * 0.25, -r * 0.28, 1, 0, 0, r);
+    grad.addColorStop(0, '#FFF8B8');
+    grad.addColorStop(0.58, '#FFD829');
+    grad.addColorStop(1, '#E09200');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, r, 0.42, Math.PI * 2 - 0.42);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Crisp Emerald "+" Badge mark
+    const px = size * 0.78;
+    const py = size * 0.28;
+    const arm = size * 0.16;
+    const thick = Math.max(2, size * 0.085);
+    ctx.fillStyle = '#4ADE80';
+    ctx.fillRect(px - arm, py - thick * 0.5, arm * 2, thick);
+    ctx.fillRect(px - thick * 0.5, py - arm, thick, arm * 2);
+  }, [size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size }}
+      className={`shrink-0 ${className}`}
+      aria-hidden="true"
+    />
+  );
+}
+
+interface SuperPrizeEmblemProps extends EmblemSizeProps {
+  type: SuperPrizeType;
+}
+
+export function SuperPrizeEmblem({
+  type,
+  size = 28,
+  className = '',
+}: SuperPrizeEmblemProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    const scale = size / 28;
+    sharedSuperRenderer.drawPrize(ctx, type, size * 0.5, size * 0.52, scale);
+  }, [type, size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size }}
+      className={`shrink-0 ${className}`}
+      aria-hidden="true"
+    />
+  );
+}
+
+interface JrPrizeEmblemProps extends EmblemSizeProps {
   type: JrPrizeType;
-  size?: number;
-  className?: string;
 }
 
 export function JrPrizeEmblem({ type, size = 28, className = '' }: JrPrizeEmblemProps) {
@@ -75,12 +239,186 @@ export function JrPrizeEmblem({ type, size = 28, className = '' }: JrPrizeEmblem
   );
 }
 
-interface MsPacManEmblemProps {
-  size?: number;
-  className?: string;
+export function ClassicPacManEmblem({ size = 24, className = '' }: EmblemSizeProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+
+    const cx = size * 0.5;
+    const cy = size * 0.5;
+    const r = size * 0.42;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    const grad = ctx.createRadialGradient(-r * 0.25, -r * 0.28, 1, 0, 0, r);
+    grad.addColorStop(0, '#FFF8B8');
+    grad.addColorStop(0.58, '#FFD829');
+    grad.addColorStop(1, '#E09200');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, r, 0.42, Math.PI * 2 - 0.42);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }, [size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size }}
+      className={`shrink-0 ${className}`}
+      aria-hidden="true"
+    />
+  );
 }
 
-export function MsPacManEmblem({ size = 24, className = '' }: MsPacManEmblemProps) {
+export function SuperPacManEmblem({ size = 24, className = '' }: EmblemSizeProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+
+    const cx = size * 0.5;
+    const cy = size * 0.5;
+    const r = size * 0.36;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Emerald Super Power Halo
+    const aura = ctx.createRadialGradient(0, 0, r * 0.7, 0, 0, size * 0.49);
+    aura.addColorStop(0, 'rgba(74, 222, 128, 0.55)');
+    aura.addColorStop(1, 'rgba(74, 222, 128, 0)');
+    ctx.fillStyle = aura;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.49, 0, Math.PI * 2);
+    ctx.fill();
+
+    const grad = ctx.createRadialGradient(-r * 0.25, -r * 0.3, 1, 0, 0, r);
+    grad.addColorStop(0, '#FFFDE0');
+    grad.addColorStop(0.55, '#FFE135');
+    grad.addColorStop(1, '#F59E0B');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, r, 0.38, Math.PI * 2 - 0.38);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#0F172A';
+    ctx.beginPath();
+    ctx.arc(r * 0.14, -r * 0.38, r * 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(r * 0.19, -r * 0.42, r * 0.055, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }, [size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size }}
+      className={`shrink-0 ${className}`}
+      aria-hidden="true"
+    />
+  );
+}
+
+export function PacManiaEmblem({ size = 24, className = '' }: EmblemSizeProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+
+    const cx = size * 0.5;
+    const cy = size * 0.44;
+    const r = size * 0.36;
+
+    ctx.save();
+    // Floating jump drop shadow
+    ctx.fillStyle = 'rgba(236, 72, 153, 0.35)';
+    ctx.beginPath();
+    ctx.ellipse(cx, size * 0.86, r * 0.72, r * 0.22, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.translate(cx, cy);
+    const grad = ctx.createRadialGradient(-r * 0.32, -r * 0.36, 1, 0, 0, r * 1.05);
+    grad.addColorStop(0, '#FFFAC2');
+    grad.addColorStop(0.52, '#FFD829');
+    grad.addColorStop(1, '#D97706');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, r, 0.42, Math.PI * 2 - 0.32);
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner mouth shadow
+    ctx.fillStyle = '#7C2D12';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, r * 0.65, -0.22, 0.3);
+    ctx.closePath();
+    ctx.fill();
+
+    // Expressive 3D eyes
+    ctx.fillStyle = '#0F172A';
+    ctx.beginPath();
+    ctx.ellipse(r * 0.04, -r * 0.34, r * 0.13, r * 0.18, 0, 0, Math.PI * 2);
+    ctx.ellipse(r * 0.36, -r * 0.34, r * 0.13, r * 0.18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(r * 0.01, -r * 0.4, r * 0.05, 0, Math.PI * 2);
+    ctx.arc(r * 0.33, -r * 0.4, r * 0.05, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }, [size]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ width: size, height: size }}
+      className={`shrink-0 ${className}`}
+      aria-hidden="true"
+    />
+  );
+}
+
+export function MsPacManEmblem({ size = 24, className = '' }: EmblemSizeProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -157,7 +495,7 @@ export function MsPacManEmblem({ size = 24, className = '' }: MsPacManEmblemProp
   );
 }
 
-export function JrPacManEmblem({ size = 24, className = '' }: MsPacManEmblemProps) {
+export function JrPacManEmblem({ size = 24, className = '' }: EmblemSizeProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -195,7 +533,6 @@ export function JrPacManEmblem({ size = 24, className = '' }: MsPacManEmblemProp
     ctx.arc(r * 0.18, -r * 0.36, r * 0.14, 0, Math.PI * 2);
     ctx.fill();
 
-    // Striped Propeller Beanie
     ctx.save();
     ctx.translate(-r * 0.22, -r * 0.82);
     ctx.rotate(-0.22);

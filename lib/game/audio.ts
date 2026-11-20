@@ -166,6 +166,139 @@ class ArcadeAudioEngine {
     this.playTone(920, 120, 0.22, 'triangle', 0.2, 0.02);
   }
 
+  // Iconic 1980 Classic Pac-Man opening fanfare
+  public playClassicStartFanfare(): void {
+    this.unlock();
+    if (!this.ctx || this.muted) return;
+    const notes: Array<[number, number, number]> = [
+      [493.88, 0.0, 0.11],  // B4
+      [987.77, 0.12, 0.11], // B5
+      [739.99, 0.24, 0.11], // F#5
+      [622.25, 0.36, 0.11], // D#5
+      [987.77, 0.48, 0.08], // B5
+      [739.99, 0.58, 0.16], // F#5
+      [622.25, 0.76, 0.22], // D#5
+      [523.25, 1.0, 0.11],  // C5
+      [1046.5, 1.12, 0.11], // C6
+      [783.99, 1.24, 0.11], // G5
+      [659.25, 1.36, 0.11], // E5
+      [1046.5, 1.48, 0.08], // C6
+      [783.99, 1.58, 0.16], // G5
+      [659.25, 1.76, 0.24], // E5
+    ];
+    for (const [f, t, d] of notes) {
+      this.playTone(f, f, d, 'square', 0.2, t);
+      this.playTone(f * 0.5, f * 0.5, d, 'triangle', 0.14, t);
+    }
+  }
+
+  // Upbeat Super Pac-Man opening fanfare
+  public playSuperStartFanfare(): void {
+    this.unlock();
+    if (!this.ctx || this.muted) return;
+    const notes: Array<[number, number, number]> = [
+      [523.25, 0.0, 0.1],
+      [659.25, 0.1, 0.1],
+      [783.99, 0.2, 0.12],
+      [1046.5, 0.33, 0.16],
+      [880.0, 0.52, 0.1],
+      [987.77, 0.63, 0.1],
+      [1046.5, 0.75, 0.18],
+      [783.99, 0.96, 0.12],
+      [1046.5, 1.1, 0.12],
+      [1318.5, 1.24, 0.26],
+    ];
+    for (const [f, t, d] of notes) {
+      this.playTone(f, f * 1.005, d, 'square', 0.18, t);
+      this.playTone(f * 0.5, f * 0.5, d, 'triangle', 0.16, t);
+    }
+  }
+
+  // Key pickup & door unlock sparkle
+  public playKeyUnlock(): void {
+    this.unlock();
+    this.playTone(880, 1320, 0.09, 'triangle', 0.26);
+    this.playTone(1320, 1760, 0.12, 'sine', 0.22, 0.06);
+  }
+
+  // Giant Super Pac-Man transformation chord
+  public playSuperTransform(): void {
+    this.unlock();
+    this.playTone(220, 660, 0.22, 'sawtooth', 0.24);
+    this.playTone(330, 990, 0.26, 'square', 0.18, 0.05);
+    this.playTone(440, 1320, 0.3, 'triangle', 0.22, 0.1);
+  }
+
+  // Giant Super Pac-Man smashing through a locked door
+  public playGateSmash(): void {
+    this.unlock();
+    this.playTone(320, 95, 0.16, 'sawtooth', 0.3);
+    this.playTone(540, 160, 0.12, 'square', 0.2, 0.02);
+  }
+
+  // Bouncy 1987 Pac-Mania opening synth-pop fanfare
+  public playPacManiaStartFanfare(): void {
+    this.unlock();
+    if (!this.ctx || this.muted) return;
+    const notes: Array<[number, number, number]> = [
+      [587.33, 0.0, 0.09],  // D5
+      [739.99, 0.1, 0.09],  // F#5
+      [880.0, 0.2, 0.11],   // A5
+      [987.77, 0.32, 0.09], // B5
+      [880.0, 0.42, 0.09],  // A5
+      [1174.66, 0.52, 0.16], // D6
+      [987.77, 0.72, 0.09], // B5
+      [880.0, 0.82, 0.09],  // A5
+      [739.99, 0.92, 0.11], // F#5
+      [880.0, 1.05, 0.11],  // A5
+      [1174.66, 1.18, 0.28], // D6
+    ];
+    for (const [f, t, d] of notes) {
+      this.playTone(f, f * 1.008, d, 'triangle', 0.24, t);
+      this.playTone(f * 2, f * 2, d * 0.7, 'sine', 0.1, t);
+    }
+  }
+
+  // Springy Pac-Mania jump boing!
+  public playJumpBoing(): void {
+    this.unlock();
+    this.playTone(260, 740, 0.15, 'sine', 0.28);
+    this.playTone(390, 920, 0.12, 'triangle', 0.16, 0.02);
+  }
+
+  // Faster, punchy 1982 Pac-Man Plus intro riff
+  public playPlusStartFanfare(): void {
+    this.unlock();
+    if (!this.ctx || this.muted) return;
+    const notes: Array<[number, number, number]> = [
+      [523.25, 0.0, 0.08],
+      [1046.5, 0.09, 0.08],
+      [783.99, 0.18, 0.08],
+      [659.25, 0.27, 0.08],
+      [1046.5, 0.36, 0.07],
+      [783.99, 0.44, 0.12],
+      [659.25, 0.58, 0.14],
+      [587.33, 0.75, 0.08],
+      [1174.66, 0.84, 0.08],
+      [880.0, 0.93, 0.08],
+      [739.99, 1.02, 0.08],
+      [1174.66, 1.11, 0.08],
+      [880.0, 1.2, 0.12],
+      [1046.5, 1.35, 0.24],
+    ];
+    for (const [f, t, d] of notes) {
+      this.playTone(f, f * 1.005, d, 'square', 0.2, t);
+      this.playTone(f * 0.5, f * 0.5, d, 'triangle', 0.14, t);
+    }
+  }
+
+  // Eerie synth shimmer when Pac-Man Plus triggers invisible maze or ghost wildcard
+  public playPlusWildcard(): void {
+    this.unlock();
+    this.playTone(980, 320, 0.22, 'sine', 0.24);
+    this.playTone(640, 1240, 0.2, 'triangle', 0.18, 0.07);
+  }
+
   public playPowerPellet(): void {
     this.unlock();
     this.playTone(220, 880, 0.18, 'sawtooth', 0.22);

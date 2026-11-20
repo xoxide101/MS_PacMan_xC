@@ -7,12 +7,14 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  LayoutGrid,
   Pause,
   Play,
   RotateCcw,
   Volume2,
   VolumeX,
 } from 'lucide-react';
+import { CABINET_LIST, GameId } from '@/lib/game/arcadeTypes';
 import { arcadeAudio } from '@/lib/game/audio';
 import { JrPacManEngine } from '@/lib/game/jrEngine';
 import { JR_MAZES } from '@/lib/game/jrMazes';
@@ -41,10 +43,11 @@ const JR_GHOST_ROSTER = [
 ];
 
 interface JrPacManArcadeProps {
-  onSwitchGame?: (game: 'jr' | 'ms') => void;
+  onSwitchGame?: (game: GameId) => void;
+  onOpenLobby?: () => void;
 }
 
-export default function JrPacManArcade({ onSwitchGame }: JrPacManArcadeProps) {
+export default function JrPacManArcade({ onSwitchGame, onOpenLobby }: JrPacManArcadeProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const minimapRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<JrPacManEngine | null>(null);
@@ -314,10 +317,11 @@ export default function JrPacManArcade({ onSwitchGame }: JrPacManArcadeProps) {
       {/* Clean Single-Row Arcade Header */}
       <header className="w-full border-b border-white/[0.07] bg-[#080B16]/90 backdrop-blur-md">
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 h-14 flex items-center justify-between gap-6">
-          {/* Zone 1: Brand Wordmark */}
+          {/* Zone 1: Brand Wordmark (returns to Game Selection Lobby) */}
           <button
             type="button"
-            onClick={handleReturnTitle}
+            onClick={onOpenLobby ?? handleReturnTitle}
+            title={onOpenLobby ? 'Back to Cabinet Selection' : 'Return to Title'}
             className="flex items-center gap-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-md whitespace-nowrap shrink-0 cursor-pointer"
           >
             <JrPacManEmblem size={25} />
@@ -361,6 +365,16 @@ export default function JrPacManArcade({ onSwitchGame }: JrPacManArcadeProps) {
 
           {/* Zone 3: Sound & Primary Action */}
           <div className="flex items-center gap-2.5 shrink-0">
+            {onOpenLobby && (
+              <button
+                type="button"
+                onClick={onOpenLobby}
+                className="hidden sm:flex h-9 px-3 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 hover:text-white text-xs font-medium items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Cabinets</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleToggleMute}
@@ -411,22 +425,23 @@ export default function JrPacManArcade({ onSwitchGame }: JrPacManArcadeProps) {
             {/* Cabinet Switcher */}
             {onSwitchGame && (
               <section className="pb-5 border-b border-white/[0.07]">
-                <div className="text-xs font-medium text-slate-400 mb-2">Arcade Cabinet</div>
-                <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-white/[0.04] border border-white/[0.06]">
-                  <button
-                    type="button"
-                    onClick={() => onSwitchGame('jr')}
-                    className="py-1.5 px-2.5 text-xs font-semibold rounded-md bg-emerald-400 text-slate-950 whitespace-nowrap cursor-pointer"
-                  >
-                    Jr. Pac-Man
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onSwitchGame('ms')}
-                    className="py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-400 hover:text-slate-100 transition-colors whitespace-nowrap cursor-pointer"
-                  >
-                    Ms. Pac-Man
-                  </button>
+                <div className="text-xs font-medium text-slate-400 mb-2">Arcade Cabinets</div>
+                <div className="grid grid-cols-1 gap-1">
+                  {CABINET_LIST.map((cab) => (
+                    <button
+                      key={cab.id}
+                      type="button"
+                      onClick={() => onSwitchGame(cab.id)}
+                      className={`py-1.5 px-2.5 text-left text-xs rounded-md flex items-center justify-between transition-colors whitespace-nowrap cursor-pointer ${
+                        cab.id === 'jr'
+                          ? 'bg-emerald-400 text-slate-950 font-semibold'
+                          : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      <span>{cab.title}</span>
+                      <span className="font-mono text-[10px] opacity-75">{cab.year}</span>
+                    </button>
+                  ))}
                 </div>
               </section>
             )}
@@ -699,13 +714,13 @@ export default function JrPacManArcade({ onSwitchGame }: JrPacManArcadeProps) {
                           <span>Start Game</span>
                         </button>
 
-                        {onSwitchGame && (
+                        {onOpenLobby && (
                           <button
                             type="button"
-                            onClick={() => onSwitchGame('ms')}
+                            onClick={onOpenLobby}
                             className="lg:hidden w-full py-2 px-4 rounded-lg border border-white/10 bg-white/[0.04] text-xs font-medium text-slate-200 hover:text-white cursor-pointer"
                           >
-                            Switch to Ms. Pac-Man
+                            All 6 Cabinets
                           </button>
                         )}
 
@@ -785,10 +800,10 @@ export default function JrPacManArcade({ onSwitchGame }: JrPacManArcadeProps) {
                         </button>
                         <button
                           type="button"
-                          onClick={handleReturnTitle}
+                          onClick={onOpenLobby ?? handleReturnTitle}
                           className="w-full py-2 px-4 rounded-xl text-slate-400 hover:text-white text-xs font-medium transition-colors cursor-pointer"
                         >
-                          Return to Title
+                          {onOpenLobby ? 'Choose Another Game' : 'Return to Title'}
                         </button>
                       </div>
                     </motion.div>
@@ -865,10 +880,10 @@ export default function JrPacManArcade({ onSwitchGame }: JrPacManArcadeProps) {
                         </button>
                         <button
                           type="button"
-                          onClick={handleReturnTitle}
+                          onClick={onOpenLobby ?? handleReturnTitle}
                           className="w-full py-2 px-4 rounded-xl text-slate-400 hover:text-white text-xs font-medium transition-colors cursor-pointer"
                         >
-                          Return to Title
+                          {onOpenLobby ? 'Choose Another Game' : 'Return to Title'}
                         </button>
                       </div>
                     </motion.div>
