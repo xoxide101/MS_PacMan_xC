@@ -8,6 +8,8 @@ import {
   PM_VIEWPORT_WIDTH,
 } from './pacmaniaTypes';
 import { VisualStyle } from './types';
+import { drawStarGlint } from './arcadeGfx';
+import { renderCrtOverlay } from './classicArcadeInterface';
 
 // Oblique 2.5D Isometric Projection (authentic 1987 Namco Pac-Mania camera angle!)
 const TILE_W = 54;
@@ -382,6 +384,10 @@ export class PacManiaRenderer {
     ctx.beginPath();
     ctx.arc(ground.sx, cy, r, 0, Math.PI * 2);
     ctx.fill();
+    if (isPower) {
+      ctx.shadowBlur = 0;
+      drawStarGlint(ctx, ground.sx - 2, cy - 2, 5.5 + Math.sin(elapsed * 7) * 2, '#FFFBEB', 0.85);
+    }
     ctx.restore();
   }
 
@@ -416,6 +422,8 @@ export class PacManiaRenderer {
     ctx.beginPath();
     ctx.arc(ground.sx, cy, r, 0, Math.PI * 2);
     ctx.fill();
+    ctx.shadowBlur = 0;
+    drawStarGlint(ctx, ground.sx, cy - 2, 7.5, '#FFFFFF', 0.9);
     ctx.restore();
   }
 
@@ -439,6 +447,11 @@ export class PacManiaRenderer {
 
     ctx.save();
     ctx.translate(air.sx, air.sy - r * 0.72);
+    // Subtle 3D jump stretch when airborne
+    if (p.z > 0.04) {
+      const stretch = 1 + Math.min(0.14, p.z * 0.14);
+      ctx.scale(1 / Math.sqrt(stretch), stretch);
+    }
 
     if (engine.phase === 'DYING') {
       const prog = p.deathProgress;
@@ -514,6 +527,12 @@ export class PacManiaRenderer {
       ctx.fill();
     }
 
+    // Top-left 3D specular gloss highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.34)';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.32, -r * 0.44, r * 0.28, r * 0.14, -0.45, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
   }
 
@@ -572,6 +591,12 @@ export class PacManiaRenderer {
       }
       ctx.closePath();
       ctx.fill();
+
+      // 3D glossy dome highlight
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.34, -r * 0.48, r * 0.28, r * 0.14, -0.5, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     // Eyes
@@ -604,6 +629,10 @@ export class PacManiaRenderer {
         ctx.fillStyle = '#1E3A8A';
         ctx.beginPath();
         ctx.arc(ex + lookX, ey + lookY, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(ex + lookX - 0.8, ey + lookY - 0.9, 0.85, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -717,23 +746,6 @@ export class PacManiaRenderer {
   }
 
   private drawCrtOverlay(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    for (let y = 0; y < height; y += 3) {
-      ctx.fillRect(0, y, width, 1);
-    }
-    const vig = ctx.createRadialGradient(
-      width * 0.5,
-      height * 0.5,
-      width * 0.34,
-      width * 0.5,
-      height * 0.5,
-      width * 0.78
-    );
-    vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    vig.addColorStop(1, 'rgba(0, 0, 0, 0.42)');
-    ctx.fillStyle = vig;
-    ctx.fillRect(0, 0, width, height);
-    ctx.restore();
+    renderCrtOverlay(ctx, width, height);
   }
 }

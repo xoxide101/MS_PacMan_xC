@@ -975,31 +975,61 @@ export class DefenderGame implements ArcadeGameInstance {
       }
     }
 
-    // Humanoids
+    // Humanoids with animated waving arms when abducted or falling
     for (const h of this.humanoids) {
       if (h.state === 'dead') continue;
       const sx = this.worldToScreenX(h.x);
       if (sx < -20 || sx > LOGICAL_W + 20) continue;
       ctx.save();
       ctx.translate(sx, h.y);
-      // Head
+      // Helmet/Head
       ctx.fillStyle = '#FDE68A';
-      ctx.fillRect(-2.5, -12, 5, 4.5);
+      ctx.beginPath();
+      ctx.arc(0, -10.5, 3, 0, Math.PI * 2);
+      ctx.fill();
       // Suit torso
       ctx.fillStyle = '#EC4899';
-      ctx.fillRect(-3.5, -7.5, 7, 6);
+      ctx.fillRect(-3.5, -7.5, 7, 6.5);
+      // Waving arms when in distress
+      ctx.strokeStyle = '#FDE68A';
+      ctx.lineWidth = 1.8;
+      const wave = h.state === 'abducted' || h.state === 'falling' ? Math.sin(this.clock * 22 + h.id) * 4 : 0;
+      ctx.beginPath();
+      ctx.moveTo(-3.5, -6);
+      ctx.lineTo(-6.5, h.state === 'walking' ? -2 : -10 + wave);
+      ctx.moveTo(3.5, -6);
+      ctx.lineTo(6.5, h.state === 'walking' ? -2 : -10 - wave);
+      ctx.stroke();
       // Legs
-      const stride = h.state === 'walking' ? Math.sin(this.clock * 8 + h.id) * 2 : 0;
+      const stride = h.state === 'walking' ? Math.sin(this.clock * 8 + h.id) * 2.4 : 0;
       ctx.fillStyle = '#38BDF8';
-      ctx.fillRect(-3, -1.5, 2.5, 5 + stride * 0.4);
-      ctx.fillRect(0.5, -1.5, 2.5, 5 - stride * 0.4);
+      ctx.fillRect(-3, -1, 2.5, 5.5 + stride * 0.45);
+      ctx.fillRect(0.5, -1, 2.5, 5.5 - stride * 0.45);
       ctx.restore();
     }
 
-    // Enemies
+    // Enemies (with abduction tractor beam on Landers carrying humanoids!)
     for (const e of this.enemies) {
       const sx = this.worldToScreenX(e.x);
-      if (sx < -30 || sx > LOGICAL_W + 30) continue;
+      if (sx < -36 || sx > LOGICAL_W + 36) continue;
+      if (e.kind === 'lander' && e.targetHumanoidId !== null) {
+        const targetH = this.humanoids.find((h) => h.id === e.targetHumanoidId && h.state === 'abducted');
+        if (targetH) {
+          ctx.save();
+          const tg = ctx.createLinearGradient(0, e.y + 8, 0, targetH.y + 4);
+          tg.addColorStop(0, 'rgba(74, 222, 128, 0.55)');
+          tg.addColorStop(1, 'rgba(56, 189, 248, 0.1)');
+          ctx.fillStyle = tg;
+          ctx.beginPath();
+          ctx.moveTo(sx - 6, e.y + 8);
+          ctx.lineTo(sx + 6, e.y + 8);
+          ctx.lineTo(sx + 14, targetH.y + 6);
+          ctx.lineTo(sx - 14, targetH.y + 6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+      }
       this.drawEnemy(ctx, e, sx, e.y);
     }
 
@@ -1010,42 +1040,59 @@ export class DefenderGame implements ArcadeGameInstance {
       ctx.save();
       ctx.translate(sx, s.y);
       if (s.isMine) {
-        ctx.rotate(this.clock * 5);
+        ctx.rotate(this.clock * 6);
+        ctx.shadowColor = '#FB923C';
+        ctx.shadowBlur = 10;
         ctx.strokeStyle = '#FB923C';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.4;
         ctx.beginPath();
-        ctx.moveTo(-6, 0);
-        ctx.lineTo(6, 0);
-        ctx.moveTo(0, -6);
-        ctx.lineTo(0, 6);
+        ctx.moveTo(-7, 0);
+        ctx.lineTo(7, 0);
+        ctx.moveTo(0, -7);
+        ctx.lineTo(0, 7);
         ctx.stroke();
-        ctx.fillStyle = '#FEF08A';
-        ctx.fillRect(-2, -2, 4, 4);
-      } else {
         ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(-2.2, -2.2, 4.4, 4.4);
+      } else {
+        ctx.fillStyle = '#F43F5E';
         ctx.shadowColor = '#F43F5E';
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 10;
         ctx.beginPath();
-        ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+        ctx.arc(0, 0, 4.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(0, 0, 2, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
     }
 
-    // Williams Rainbow Streaking Lasers
+    // Iconic Williams Segmented Rainbow Streaking Lasers
     for (const l of this.lasers) {
       const sx = this.worldToScreenX(l.x);
       const tailX = sx - l.dir * l.len;
       ctx.save();
+      ctx.shadowColor = `hsl(${l.hue}, 100%, 60%)`;
+      ctx.shadowBlur = 12;
       const grad = ctx.createLinearGradient(tailX, l.y, sx, l.y);
       grad.addColorStop(0, 'rgba(255,255,255,0)');
-      grad.addColorStop(0.35, `hsl(${(l.hue + 40) % 360}, 95%, 62%)`);
-      grad.addColorStop(0.75, `hsl(${l.hue}, 100%, 65%)`);
+      grad.addColorStop(0.25, `hsl(${(l.hue + 90) % 360}, 100%, 60%)`);
+      grad.addColorStop(0.55, `hsl(${(l.hue + 40) % 360}, 100%, 65%)`);
+      grad.addColorStop(0.85, `hsl(${l.hue}, 100%, 70%)`);
       grad.addColorStop(1, '#FFFFFF');
       ctx.strokeStyle = grad;
-      ctx.lineWidth = 3.2;
+      ctx.lineWidth = 4.2;
       ctx.beginPath();
       ctx.moveTo(tailX, l.y);
+      ctx.lineTo(sx, l.y);
+      ctx.stroke();
+      // White-hot inner filament with iconic Williams dash breaks
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([18, 6, 10, 4]);
+      ctx.beginPath();
+      ctx.moveTo(tailX + l.dir * (l.len * 0.25), l.y);
       ctx.lineTo(sx, l.y);
       ctx.stroke();
       ctx.restore();
@@ -1086,7 +1133,7 @@ export class DefenderGame implements ArcadeGameInstance {
     // Ready / Stage Clear banner
     if (this.phase === 'READY' || this.phase === 'STAGE_CLEAR') {
       ctx.save();
-      ctx.fillStyle = 'rgba(4, 7, 16, 0.72)';
+      ctx.fillStyle = 'rgba(4, 7, 16, 0.78)';
       ctx.fillRect(LOGICAL_W * 0.5 - 190, LOGICAL_H * 0.5 - 38, 380, 76);
       ctx.strokeStyle = this.getAccentColor();
       ctx.lineWidth = 2;
@@ -1121,46 +1168,67 @@ export class DefenderGame implements ArcadeGameInstance {
       ctx.strokeStyle = '#C084FC';
       ctx.lineWidth = 2.5;
       ctx.shadowColor = '#A855F7';
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = 16;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 28, 14, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 30, 15, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    // Thruster flame
-    const thrust = Math.abs(this.shipVx) > 40 ? 14 + Math.random() * 14 : 6;
-    ctx.fillStyle = '#FB923C';
+    // Multi-layered arcade plasma thruster plume
+    const speedRatio = Math.min(1, Math.abs(this.shipVx) / 480);
+    const thrust = 8 + speedRatio * 24 + Math.sin(this.clock * 45) * 4;
+    const plume = ctx.createLinearGradient(-16, 0, -16 - thrust, 0);
+    plume.addColorStop(0, '#FFFFFF');
+    plume.addColorStop(0.3, '#FDE047');
+    plume.addColorStop(0.7, '#F97316');
+    plume.addColorStop(1, 'rgba(239, 68, 68, 0)');
+    ctx.fillStyle = plume;
     ctx.beginPath();
-    ctx.moveTo(-16, -4);
+    ctx.moveTo(-16, -4.5);
     ctx.lineTo(-16 - thrust, 0);
-    ctx.lineTo(-16, 4);
+    ctx.lineTo(-16, 4.5);
     ctx.closePath();
     ctx.fill();
 
-    // Sleek Williams Defender fighter silhouette
-    ctx.fillStyle = '#E2E8F0';
+    // Authentic Williams Defender stepped silver-cyan starfighter
+    const hullGrad = ctx.createLinearGradient(0, -10, 0, 8);
+    hullGrad.addColorStop(0, '#FFFFFF');
+    hullGrad.addColorStop(0.45, '#CBD5E1');
+    hullGrad.addColorStop(1, '#475569');
+    ctx.fillStyle = hullGrad;
     ctx.beginPath();
-    ctx.moveTo(22, 2);
-    ctx.lineTo(4, -5);
-    ctx.lineTo(-14, -9);
-    ctx.lineTo(-18, -3);
-    ctx.lineTo(-15, 6);
-    ctx.lineTo(14, 6);
+    ctx.moveTo(25, 2.5);
+    ctx.lineTo(8, -4);
+    ctx.lineTo(-4, -9.5);
+    ctx.lineTo(-15, -9.5);
+    ctx.lineTo(-19, -3);
+    ctx.lineTo(-16, 6.5);
+    ctx.lineTo(17, 6.5);
     ctx.closePath();
     ctx.fill();
 
-    // Cockpit canopy
-    ctx.fillStyle = this.getAccentColor();
+    // Wing ventral stripe
+    ctx.fillStyle = '#38BDF8';
+    ctx.fillRect(-13, 2, 24, 2.5);
+
+    // Glowing cockpit canopy
+    const canopy = ctx.createLinearGradient(-5, -8, 10, 0);
+    canopy.addColorStop(0, '#FFFFFF');
+    canopy.addColorStop(0.45, this.getAccentColor());
+    canopy.addColorStop(1, '#0F172A');
+    ctx.fillStyle = canopy;
     ctx.beginPath();
-    ctx.moveTo(10, -1);
-    ctx.lineTo(0, -6);
-    ctx.lineTo(-6, -2);
+    ctx.moveTo(11, -0.5);
+    ctx.lineTo(0, -7);
+    ctx.lineTo(-8, -2);
     ctx.closePath();
     ctx.fill();
 
-    // Nose cannon highlight
+    // Glowing red laser barrel nose
     ctx.fillStyle = '#F43F5E';
-    ctx.fillRect(14, 0, 9, 2.5);
+    ctx.shadowColor = '#F43F5E';
+    ctx.shadowBlur = 8;
+    ctx.fillRect(16, 0, 10, 2.8);
     ctx.restore();
   }
 
@@ -1169,83 +1237,122 @@ export class DefenderGame implements ArcadeGameInstance {
     ctx.translate(sx, sy);
 
     if (e.kind === 'lander') {
-      ctx.fillStyle = '#22C55E';
-      ctx.beginPath();
-      ctx.moveTo(0, -13);
-      ctx.lineTo(13, -2);
-      ctx.lineTo(9, 10);
-      ctx.lineTo(4, 5);
-      ctx.lineTo(0, 12);
-      ctx.lineTo(-4, 5);
-      ctx.lineTo(-9, 10);
-      ctx.lineTo(-13, -2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = '#FACC15';
-      ctx.fillRect(-5, -5, 10, 4);
-    } else if (e.kind === 'mutant') {
-      ctx.fillStyle = Math.floor(this.clock * 14) % 2 === 0 ? '#F43F5E' : '#EC4899';
-      ctx.shadowColor = '#F43F5E';
-      ctx.shadowBlur = 10;
+      // Classic green Williams Lander with pulsing golden core & articulated legs
+      const pulse = 0.85 + Math.sin(this.clock * 10 + e.phase) * 0.15;
+      const lg = ctx.createRadialGradient(-2, -4, 1, 0, 0, 14);
+      lg.addColorStop(0, '#BBF7D0');
+      lg.addColorStop(0.45, '#22C55E');
+      lg.addColorStop(1, '#14532D');
+      ctx.fillStyle = lg;
       ctx.beginPath();
       ctx.moveTo(0, -14);
-      ctx.lineTo(14, 0);
-      ctx.lineTo(8, 12);
-      ctx.lineTo(0, 5);
-      ctx.lineTo(-8, 12);
-      ctx.lineTo(-14, 0);
+      ctx.lineTo(13, -3);
+      ctx.lineTo(10, 5);
+      ctx.lineTo(-10, 5);
+      ctx.lineTo(-13, -3);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = '#38BDF8';
-      ctx.fillRect(-5, -3, 10, 4);
-    } else if (e.kind === 'bomber' || e.kind === 'firebomber') {
-      ctx.rotate(this.clock * 2.5);
-      ctx.strokeStyle = e.kind === 'firebomber' ? '#FB923C' : '#C084FC';
-      ctx.lineWidth = 2.8;
-      ctx.strokeRect(-10, -10, 20, 20);
-      ctx.fillStyle = e.kind === 'firebomber' ? '#FDE047' : '#38BDF8';
-      ctx.fillRect(-5, -5, 10, 10);
-    } else if (e.kind === 'pod') {
-      ctx.rotate(this.clock * 3);
-      ctx.strokeStyle = '#38BDF8';
+      // Tripod landing legs
+      ctx.strokeStyle = '#4ADE80';
       ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(-8, 4);
+      ctx.lineTo(-12, 12);
+      ctx.moveTo(0, 5);
+      ctx.lineTo(0, 13);
+      ctx.moveTo(8, 4);
+      ctx.lineTo(12, 12);
+      ctx.stroke();
+      // Glowing sensor visor
+      ctx.fillStyle = '#FEF08A';
+      ctx.shadowColor = '#FACC15';
+      ctx.shadowBlur = 8 * pulse;
+      ctx.fillRect(-6, -5.5, 12, 4.5);
+    } else if (e.kind === 'mutant') {
+      // Crackling unstable Mutant with flashing visor
+      const flash = Math.floor(this.clock * 16) % 2 === 0;
+      ctx.fillStyle = flash ? '#F43F5E' : '#EC4899';
+      ctx.shadowColor = '#F43F5E';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(0, -15);
+      ctx.lineTo(15, -1);
+      ctx.lineTo(9, 13);
+      ctx.lineTo(0, 5);
+      ctx.lineTo(-9, 13);
+      ctx.lineTo(-15, -1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = flash ? '#38BDF8' : '#FEF08A';
+      ctx.fillRect(-6, -4, 12, 4.5);
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+    } else if (e.kind === 'bomber' || e.kind === 'firebomber') {
+      ctx.rotate(this.clock * 2.8);
+      const col = e.kind === 'firebomber' ? '#FB923C' : '#C084FC';
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(-11, -11, 22, 22);
+      ctx.fillStyle = e.kind === 'firebomber' ? '#FDE047' : '#38BDF8';
+      ctx.fillRect(-5.5, -5.5, 11, 11);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(-2, -2, 4, 4);
+    } else if (e.kind === 'pod') {
+      ctx.rotate(this.clock * 3.4);
+      ctx.shadowColor = '#38BDF8';
+      ctx.shadowBlur = 12;
+      ctx.strokeStyle = '#38BDF8';
+      ctx.lineWidth = 2.6;
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
       ctx.beginPath();
       for (let k = 0; k < 8; k++) {
         const a = (k / 8) * Math.PI * 2;
-        const r = k % 2 === 0 ? 14 : 6;
+        const r = k % 2 === 0 ? 15 : 6.5;
         if (k === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
         else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
       }
       ctx.closePath();
+      ctx.fill();
       ctx.stroke();
       ctx.fillStyle = '#EC4899';
       ctx.beginPath();
-      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
       ctx.fill();
     } else if (e.kind === 'swarmer') {
       ctx.fillStyle = '#FACC15';
+      ctx.shadowColor = '#F59E0B';
+      ctx.shadowBlur = 8;
       ctx.beginPath();
-      ctx.moveTo(0, -9);
-      ctx.lineTo(10, 0);
-      ctx.lineTo(0, 9);
-      ctx.lineTo(-10, 0);
+      ctx.moveTo(0, -10);
+      ctx.lineTo(11, 0);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-11, 0);
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = '#EF4444';
-      ctx.fillRect(-3, -2, 6, 4);
-    } else if (e.kind === 'baiter') {
-      ctx.fillStyle = '#22D3EE';
-      ctx.shadowColor = '#22D3EE';
-      ctx.shadowBlur = 10;
       ctx.beginPath();
-      ctx.moveTo(-16, 0);
-      ctx.lineTo(0, -7);
-      ctx.lineTo(16, 0);
-      ctx.lineTo(0, 7);
+      ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (e.kind === 'baiter') {
+      // Iridescent high-speed Williams Baiter saucer
+      const hue = (this.clock * 220) % 360;
+      ctx.fillStyle = `hsl(${hue}, 95%, 60%)`;
+      ctx.shadowColor = '#22D3EE';
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.moveTo(-18, 0);
+      ctx.lineTo(-5, -7);
+      ctx.lineTo(5, -7);
+      ctx.lineTo(18, 0);
+      ctx.lineTo(5, 7);
+      ctx.lineTo(-5, 7);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = '#FDE047';
-      ctx.fillRect(-6, -2, 12, 4);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(-7, -2, 14, 4);
     }
 
     ctx.restore();

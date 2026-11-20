@@ -14,6 +14,17 @@ import {
   spawnBurst,
   stepParticlesAndPopups,
 } from './classicArcadeInterface';
+import {
+  drawPixelMatrixHD,
+  drawStarGlint,
+  TAITO_CRAB_F0,
+  TAITO_CRAB_F1,
+  TAITO_OCTO_F0,
+  TAITO_OCTO_F1,
+  TAITO_SQUID_F0,
+  TAITO_SQUID_F1,
+  TAITO_UFO_MATRIX,
+} from './arcadeGfx';
 
 const WIDTH = 720;
 const HEIGHT = 816;
@@ -599,89 +610,131 @@ export class SpaceInvaders2Game implements ArcadeGameInstance {
   public render(ctx: CanvasRenderingContext2D, dpr: number, visualMode: 'hd' | 'crt'): void {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Rich Part II cosmic twilight starfield
+    // Rich Part II cosmic twilight starfield with subtle nebula horizon
     const bg = ctx.createLinearGradient(0, 0, 0, HEIGHT);
-    bg.addColorStop(0, '#04081A');
-    bg.addColorStop(1, '#070412');
+    bg.addColorStop(0, '#04071B');
+    bg.addColorStop(0.65, '#070518');
+    bg.addColorStop(1, '#051520');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    for (let i = 0; i < 48; i++) {
-      const sx = (i * 211) % WIDTH;
-      const sy = ((i * 337 + this.time * 12) % (HEIGHT - 90)) + 16;
-      ctx.fillStyle = i % 3 === 0 ? 'rgba(56,189,248,0.28)' : 'rgba(255,255,255,0.22)';
-      ctx.fillRect(sx, sy, 2, 2);
+    for (let i = 0; i < 64; i++) {
+      const sx = (i * 211 + 19) % WIDTH;
+      const sy = ((i * 337 + this.time * (10 + (i % 3) * 6)) % (HEIGHT - 90)) + 16;
+      const alpha = 0.16 + 0.28 * (0.5 + 0.5 * Math.sin(this.time * 3 + i));
+      ctx.fillStyle =
+        i % 4 === 0
+          ? `rgba(56,189,248,${alpha})`
+          : i % 7 === 0
+          ? `rgba(244,114,182,${alpha})`
+          : `rgba(255,255,255,${alpha})`;
+      const sz = i % 5 === 0 ? 2.2 : 1.5;
+      ctx.fillRect(sx, sy, sz, sz);
     }
 
-    // Cyan-gold floor line
+    // Cyan-gold floor line with bloom
+    ctx.save();
+    ctx.shadowColor = '#22D3EE';
+    ctx.shadowBlur = 10;
     ctx.fillStyle = '#06B6D4';
-    ctx.fillRect(24, HEIGHT - 36, WIDTH - 48, 3);
+    ctx.fillRect(24, HEIGHT - 36, WIDTH - 48, 3.5);
+    ctx.fillStyle = '#CFFAFE';
+    ctx.fillRect(24, HEIGHT - 36, WIDTH - 48, 1.2);
+    ctx.restore();
 
-    // Shield Bunkers
-    ctx.fillStyle = '#22D3EE';
+    // Beveled Cyan Energy Shield Bunkers
     for (const bk of this.bunkers) {
       for (let r = 0; r < bk.rows; r++) {
         for (let c = 0; c < bk.cols; c++) {
-          if (bk.cells[r][c]) {
-            ctx.fillRect(bk.x + c * bk.cellSize, bk.y + r * bk.cellSize, bk.cellSize - 0.4, bk.cellSize - 0.4);
+          if (!bk.cells[r][c]) continue;
+          const bx = bk.x + c * bk.cellSize;
+          const by = bk.y + r * bk.cellSize;
+          const topExp = r === 0 || !bk.cells[r - 1][c];
+          ctx.fillStyle = topExp ? '#67E8F9' : r >= bk.rows - 2 ? '#0891B2' : '#22D3EE';
+          ctx.fillRect(bx + 0.25, by + 0.25, bk.cellSize - 0.5, bk.cellSize - 0.5);
+          if (topExp) {
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fillRect(bx + 0.5, by + 0.3, bk.cellSize - 1, 1.4);
           }
         }
       }
     }
 
-    // UFO
+    // Part II UFO (Flashing Cloak UFO or Golden Dropship)
     if (this.ufo.active) {
       const cloaked = this.ufo.kind === 'flashing' && Math.sin(this.time * 14) > 0.35;
       ctx.save();
-      ctx.globalAlpha = cloaked ? 0.24 : 1;
-      ctx.translate(this.ufo.x, this.ufo.y);
-      ctx.shadowColor = this.ufo.kind === 'dropship' ? '#FACC15' : '#EC4899';
-      ctx.shadowBlur = 16;
-      ctx.fillStyle = this.ufo.kind === 'dropship' ? '#F59E0B' : '#EC4899';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 28, 9, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.globalAlpha = cloaked ? 0.22 : 1;
+      const ufoCol = this.ufo.kind === 'dropship' ? '#F59E0B' : '#EC4899';
+      drawPixelMatrixHD(ctx, TAITO_UFO_MATRIX, this.ufo.x, this.ufo.y, 3.5, { '#': ufoCol }, ufoCol);
+      // Tractor beam shimmer under golden dropship
+      if (this.ufo.kind === 'dropship') {
+        const beamGrad = ctx.createLinearGradient(0, this.ufo.y + 10, 0, this.ufo.y + 52);
+        beamGrad.addColorStop(0, 'rgba(250, 204, 21, 0.38)');
+        beamGrad.addColorStop(1, 'rgba(250, 204, 21, 0)');
+        ctx.fillStyle = beamGrad;
+        ctx.beginPath();
+        ctx.moveTo(this.ufo.x - 10, this.ufo.y + 10);
+        ctx.lineTo(this.ufo.x + 10, this.ufo.y + 10);
+        ctx.lineTo(this.ufo.x + 24, this.ufo.y + 52);
+        ctx.lineTo(this.ufo.x - 24, this.ufo.y + 52);
+        ctx.closePath();
+        ctx.fill();
+      }
       ctx.fillStyle = '#FEF08A';
-      ctx.beginPath();
-      ctx.arc(0, -5, 12, Math.PI, 0);
-      ctx.fill();
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.arc(this.ufo.x + i * 9.5, this.ufo.y + 0.5, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     }
 
-    // Formation invaders
+    // Formation invaders (authentic Taito matrices in Part II full color!)
     for (const inv of this.invaders) {
       if (!inv.alive) continue;
       this.drawInvader2(ctx, inv, this.marchAnimFrame);
     }
 
-    // Fast split mini-divers
+    // Fast split mini-divers with glowing dive trails
     for (const md of this.miniDivers) {
       ctx.save();
       ctx.translate(md.x, md.y);
+      ctx.shadowColor = md.color;
+      ctx.shadowBlur = 10;
       ctx.fillStyle = md.color;
       ctx.beginPath();
-      ctx.moveTo(0, -10);
-      ctx.lineTo(10, 4);
-      ctx.lineTo(0, 10);
-      ctx.lineTo(-10, 4);
+      ctx.moveTo(0, -11);
+      ctx.lineTo(11, 2);
+      ctx.lineTo(6, 10);
+      ctx.lineTo(0, 6);
+      ctx.lineTo(-6, 10);
+      ctx.lineTo(-11, 2);
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = '#FEF08A';
-      ctx.fillRect(-4, -2, 3, 3);
-      ctx.fillRect(1, -2, 3, 3);
+      ctx.fillRect(-4.5, -2.5, 3, 3.5);
+      ctx.fillRect(1.5, -2.5, 3, 3.5);
       ctx.restore();
     }
 
-    // Enemy shots
+    // Electric pink enemy bolts
     for (const s of this.enemyShots) {
       ctx.save();
+      const zig = Math.sin(s.phase) * 4.5;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = '#F472B6';
+      ctx.shadowBlur = 10;
       ctx.strokeStyle = '#F472B6';
-      ctx.lineWidth = 3;
-      const zig = Math.sin(s.phase) * 4;
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.moveTo(s.x - zig, s.y - 9);
-      ctx.lineTo(s.x + zig, s.y);
-      ctx.lineTo(s.x - zig, s.y + 9);
+      ctx.moveTo(s.x - zig, s.y - 10);
+      ctx.lineTo(s.x + zig, s.y - 3);
+      ctx.lineTo(s.x - zig, s.y + 4);
+      ctx.lineTo(s.x + zig, s.y + 10);
+      ctx.stroke();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.6;
       ctx.stroke();
       ctx.restore();
     }
@@ -689,27 +742,53 @@ export class SpaceInvaders2Game implements ArcadeGameInstance {
     // Player laser
     if (this.playerShot.active) {
       ctx.save();
-      ctx.fillStyle = '#FEF08A';
       ctx.shadowColor = '#22D3EE';
-      ctx.shadowBlur = 12;
-      ctx.fillRect(this.playerShot.x - 2.2, this.playerShot.y - 12, 4.4, 21);
+      ctx.shadowBlur = 14;
+      const beam = ctx.createLinearGradient(0, this.playerShot.y - 14, 0, this.playerShot.y + 10);
+      beam.addColorStop(0, '#FFFFFF');
+      beam.addColorStop(0.5, '#FEF08A');
+      beam.addColorStop(1, 'rgba(34, 211, 238, 0)');
+      ctx.fillStyle = beam;
+      ctx.fillRect(this.playerShot.x - 2.6, this.playerShot.y - 14, 5.2, 24);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(this.playerShot.x - 1.1, this.playerShot.y - 13, 2.2, 16);
       ctx.restore();
     }
 
-    // Player Cannon
+    // Player Deluxe Part II Cannon
     if (this.phase !== 'GAME_OVER') {
       const blink = this.invulnTimer > 0 && Math.floor(this.time * 16) % 2 === 0;
       if (!blink) {
         ctx.save();
         ctx.translate(this.playerX, this.playerY);
-        ctx.fillStyle = '#06B6D4';
         ctx.shadowColor = '#22D3EE';
         ctx.shadowBlur = 12;
-        ctx.fillRect(-23, 0, 46, 14);
-        ctx.fillStyle = '#38BDF8';
-        ctx.fillRect(-15, -7, 30, 7);
+        const grad = ctx.createLinearGradient(0, -17, 0, 14);
+        grad.addColorStop(0, '#CFFAFE');
+        grad.addColorStop(0.45, '#22D3EE');
+        grad.addColorStop(1, '#0E7490');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(-24, 0, 48, 14, [3, 3, 2, 2]);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.roundRect(-16, -7, 32, 8, [3, 3, 0, 0]);
+        ctx.fill();
         ctx.fillStyle = '#FEF08A';
-        ctx.fillRect(-3.5, -17, 7, 12);
+        ctx.beginPath();
+        ctx.roundRect(-4, -18, 8, 12, [2, 2, 0, 0]);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fillRect(-15, -6, 30, 1.8);
+        ctx.fillStyle = '#083344';
+        ctx.fillRect(-13, 5, 7, 4);
+        ctx.fillRect(6, 5, 7, 4);
+        ctx.fillStyle = '#F43F5E';
+        ctx.fillRect(-3, 5, 6, 4);
+        if (this.playerShot.active && this.playerShot.y > this.playerY - 75) {
+          drawStarGlint(ctx, 0, -20, 8, '#FEF08A', this.time * 10);
+        }
         ctx.restore();
       }
     }
@@ -721,8 +800,11 @@ export class SpaceInvaders2Game implements ArcadeGameInstance {
       ctx.font = '800 28px "Outfit", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(4, 6, 13, 0.85)';
+      ctx.fillStyle = 'rgba(4, 6, 13, 0.86)';
       ctx.fillRect(WIDTH * 0.2, HEIGHT * 0.44, WIDTH * 0.6, 56);
+      ctx.strokeStyle = '#22D3EE';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(WIDTH * 0.2, HEIGHT * 0.44, WIDTH * 0.6, 56);
       ctx.fillStyle = '#22D3EE';
       ctx.fillText(this.bannerText, WIDTH * 0.5, HEIGHT * 0.44 + 28);
       ctx.restore();
@@ -732,45 +814,29 @@ export class SpaceInvaders2Game implements ArcadeGameInstance {
   }
 
   private drawInvader2(ctx: CanvasRenderingContext2D, inv: Invader2, frame: number): void {
-    ctx.save();
-    ctx.translate(inv.x, inv.y);
-    ctx.fillStyle = inv.color;
+    const matrix =
+      inv.kind === 'splitter'
+        ? frame === 0
+          ? TAITO_SQUID_F0
+          : TAITO_SQUID_F1
+        : inv.kind === 'crab'
+        ? frame === 0
+          ? TAITO_CRAB_F0
+          : TAITO_CRAB_F1
+        : frame === 0
+        ? TAITO_OCTO_F0
+        : TAITO_OCTO_F1;
+    const cell = inv.kind === 'splitter' ? 3.3 : inv.kind === 'crab' ? 3.05 : 2.95;
+    drawPixelMatrixHD(ctx, matrix, inv.x, inv.y, cell, { '#': inv.color }, inv.color);
 
+    // Pulsing golden split core seam on Splitter Command Invaders!
     if (inv.kind === 'splitter') {
-      // Twin-core Splitter Command Invader
-      ctx.beginPath();
-      ctx.moveTo(0, -14);
-      ctx.lineTo(15, -2);
-      ctx.lineTo(12, 8);
-      ctx.lineTo(-12, 8);
-      ctx.lineTo(-15, -2);
-      ctx.closePath();
-      ctx.fill();
+      ctx.save();
       ctx.fillStyle = '#FEF08A';
-      ctx.fillRect(-2, -10, 4, 16); // Glowing split seam!
-    } else if (inv.kind === 'crab') {
-      ctx.fillRect(-13, -7, 26, 13);
-      ctx.fillRect(-9, -12, 4, 5);
-      ctx.fillRect(5, -12, 4, 5);
-      if (frame === 0) {
-        ctx.fillRect(-17, -10, 4, 11);
-        ctx.fillRect(13, -10, 4, 11);
-      } else {
-        ctx.fillRect(-17, 0, 4, 10);
-        ctx.fillRect(13, 0, 4, 10);
-      }
-    } else {
-      ctx.beginPath();
-      ctx.roundRect(-15, -9, 30, 15, 5);
-      ctx.fill();
-      const s = frame === 0 ? 2 : -2;
-      ctx.fillRect(-13 + s, 6, 6, 6);
-      ctx.fillRect(7 - s, 6, 6, 6);
+      ctx.shadowColor = '#FACC15';
+      ctx.shadowBlur = 8;
+      ctx.fillRect(inv.x - 1.5, inv.y - 9, 3, 15);
+      ctx.restore();
     }
-
-    ctx.fillStyle = '#04060B';
-    ctx.fillRect(-7, -4, 4, 4);
-    ctx.fillRect(3, -4, 4, 4);
-    ctx.restore();
   }
 }

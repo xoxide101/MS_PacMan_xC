@@ -800,13 +800,30 @@ export class CentipedeGame implements ArcadeGameInstance {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const palette = WAVE_PALETTES[(this.level - 1) % WAVE_PALETTES.length];
 
-    // Deep arena backdrop
-    ctx.fillStyle = palette.bg;
+    // Deep atmospheric garden backdrop with subtle nocturnal depth
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+    bgGrad.addColorStop(0, palette.bg);
+    bgGrad.addColorStop(0.75, '#070B18');
+    bgGrad.addColorStop(1, '#09111E');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Subtle player zone boundary line
+    // Subtle enchanted firefly spores drifting in background
+    for (let i = 0; i < 24; i++) {
+      const sx = ((i * 173 + Math.sin(this.time * 0.7 + i) * 18) + WIDTH) % WIDTH;
+      const sy = ((i * 229 + this.time * 8) % HEIGHT);
+      const a = 0.08 + 0.1 * Math.sin(this.time * 2.5 + i);
+      ctx.fillStyle = `rgba(190, 242, 100, ${a})`;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Subtle player zone boundary glow line
     ctx.save();
-    ctx.strokeStyle = 'rgba(132, 204, 22, 0.16)';
+    ctx.fillStyle = 'rgba(132, 204, 22, 0.04)';
+    ctx.fillRect(0, PLAYER_MIN_ROW * TILE, WIDTH, HEIGHT - PLAYER_MIN_ROW * TILE);
+    ctx.strokeStyle = 'rgba(132, 204, 22, 0.24)';
     ctx.setLineDash([6, 6]);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -824,13 +841,19 @@ export class CentipedeGame implements ArcadeGameInstance {
       }
     }
 
-    // Draw bullets
+    // Draw glowing energy darts
     for (const b of this.bullets) {
       ctx.save();
-      ctx.fillStyle = '#FEF08A';
       ctx.shadowColor = '#FACC15';
-      ctx.shadowBlur = 10;
-      ctx.fillRect(b.x - 2.2, b.y - 10, 4.4, 18);
+      ctx.shadowBlur = 12;
+      const dg = ctx.createLinearGradient(0, b.y - 11, 0, b.y + 9);
+      dg.addColorStop(0, '#FFFFFF');
+      dg.addColorStop(0.5, '#FEF08A');
+      dg.addColorStop(1, 'rgba(250, 204, 21, 0)');
+      ctx.fillStyle = dg;
+      ctx.beginPath();
+      ctx.roundRect(b.x - 2.5, b.y - 11, 5, 20, 2.5);
+      ctx.fill();
       ctx.restore();
     }
 
@@ -869,8 +892,11 @@ export class CentipedeGame implements ArcadeGameInstance {
       ctx.font = '800 30px "Outfit", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(4, 6, 13, 0.78)';
-      ctx.fillRect(WIDTH * 0.25, HEIGHT * 0.44, WIDTH * 0.5, 58);
+      ctx.fillStyle = 'rgba(4, 6, 13, 0.84)';
+      ctx.fillRect(WIDTH * 0.24, HEIGHT * 0.44, WIDTH * 0.52, 58);
+      ctx.strokeStyle = '#A3E635';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(WIDTH * 0.24, HEIGHT * 0.44, WIDTH * 0.52, 58);
       ctx.fillStyle = '#A3E635';
       ctx.fillText(this.bannerText, WIDTH * 0.5, HEIGHT * 0.44 + 29);
       ctx.restore();
@@ -890,40 +916,63 @@ export class CentipedeGame implements ArcadeGameInstance {
   ): void {
     const capColor = m.poisoned ? palette.poisonCap : palette.mushCap;
     const dmg = 4 - m.hp;
+    const pulse = m.poisoned ? 0.8 + 0.2 * Math.sin(this.time * 10 + x) : 1;
     ctx.save();
     ctx.translate(x, y);
 
     if (m.poisoned) {
       ctx.shadowColor = palette.poisonCap;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 12 * pulse;
     }
 
-    // Stem
-    ctx.fillStyle = palette.mushStem;
+    // Shaded fluted stem
+    const stemH = Math.max(3, 9.5 - dmg * 1.5);
+    const stemGrad = ctx.createLinearGradient(-4.5, 0, 4.5, 0);
+    stemGrad.addColorStop(0, '#92400E');
+    stemGrad.addColorStop(0.45, palette.mushStem);
+    stemGrad.addColorStop(1, '#B45309');
+    ctx.fillStyle = stemGrad;
     ctx.beginPath();
-    ctx.roundRect(-4.5, 0, 9, 9 - dmg * 1.4, 2);
+    ctx.roundRect(-4.5, -0.5, 9, stemH, [1, 1, 3, 3]);
     ctx.fill();
 
-    // Cap dome
-    ctx.fillStyle = capColor;
+    // Gill underside
+    const capR = 10.2 - dmg * 0.85;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.55)';
     ctx.beginPath();
-    ctx.arc(0, 0, 10 - dmg * 0.8, Math.PI, 0);
+    ctx.ellipse(0, 0.5, capR * 0.92, 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sculpted toadstool cap dome with specular radial shading
+    const capGrad = ctx.createRadialGradient(-3, -6, 1, 0, -2, capR + 2);
+    capGrad.addColorStop(0, '#FFFFFF');
+    capGrad.addColorStop(0.28, capColor);
+    capGrad.addColorStop(1, '#0F172A');
+    ctx.fillStyle = capGrad;
+    ctx.beginPath();
+    ctx.arc(0, 0.5, capR, Math.PI, 0);
     ctx.closePath();
     ctx.fill();
 
-    // Cap highlight spots
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    // Classic arcade rim outline & organic spots
+    ctx.strokeStyle = m.poisoned ? '#FEF08A' : 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = m.poisoned ? '#FEF08A' : 'rgba(255,255,255,0.68)';
     ctx.beginPath();
-    ctx.arc(-3.5, -4, 1.8, 0, Math.PI * 2);
-    ctx.arc(3.5, -5, 1.5, 0, Math.PI * 2);
+    ctx.arc(-3.8, -4.5, 1.8, 0, Math.PI * 2);
+    ctx.arc(3.6, -5.2, 1.5, 0, Math.PI * 2);
+    ctx.arc(0.4, -7.2, 1.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Damage bite notches
+    // Crisp bite notches when damaged
     if (dmg > 0) {
       ctx.fillStyle = palette.bg;
       for (let d = 0; d < dmg; d++) {
         ctx.beginPath();
-        ctx.arc(-6 + d * 6, 6 - d * 2, 3.6, 0, Math.PI * 2);
+        ctx.arc(-5.5 + d * 5.5, 5.5 - d * 2, 3.6, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -934,45 +983,72 @@ export class CentipedeGame implements ArcadeGameInstance {
   private drawSegment(ctx: CanvasRenderingContext2D, seg: Segment, palette: WavePalette): void {
     ctx.save();
     ctx.translate(seg.x, seg.y);
-    const legSwing = Math.sin(seg.wiggle) * 3.5;
+    const legSwing = Math.sin(seg.wiggle) * 4;
 
-    // Animated legs
+    // Articulated chitin legs with knees
     ctx.strokeStyle = palette.legColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(-6, -8);
-    ctx.lineTo(-9, -12 + legSwing);
-    ctx.moveTo(6, -8);
-    ctx.lineTo(9, -12 - legSwing);
-    ctx.moveTo(-6, 8);
-    ctx.lineTo(-9, 12 - legSwing);
-    ctx.moveTo(6, 8);
-    ctx.lineTo(9, 12 + legSwing);
+    ctx.moveTo(-5, -7);
+    ctx.lineTo(-9, -11 + legSwing * 0.6);
+    ctx.lineTo(-11, -13 + legSwing);
+    ctx.moveTo(5, -7);
+    ctx.lineTo(9, -11 - legSwing * 0.6);
+    ctx.lineTo(11, -13 - legSwing);
+    ctx.moveTo(-5, 7);
+    ctx.lineTo(-9, 11 - legSwing * 0.6);
+    ctx.lineTo(-11, 13 - legSwing);
+    ctx.moveTo(5, 7);
+    ctx.lineTo(9, 11 + legSwing * 0.6);
+    ctx.lineTo(11, 13 + legSwing);
     ctx.stroke();
 
-    // Rounded neon carapace
-    const grad = ctx.createRadialGradient(-3, -3, 1, 0, 0, 11);
+    // Glossy segmented carapace with dorsal ridge
+    const grad = ctx.createRadialGradient(-3.5, -3.5, 1, 0, 0, 11.5);
     grad.addColorStop(0, '#FFFFFF');
-    grad.addColorStop(0.35, seg.isHead ? palette.segHead : palette.segBody);
-    grad.addColorStop(1, '#1E293B');
+    grad.addColorStop(0.32, seg.isHead ? palette.segHead : palette.segBody);
+    grad.addColorStop(1, '#0F172A');
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(0, 0, 10.5, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 11, 10, 0, 0, Math.PI * 2);
     ctx.fill();
 
+    // Dorsal stripe ring
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(0, 0, 7.2, -0.7, 0.7);
+    ctx.stroke();
+
     if (seg.isHead) {
-      // Glowing arcade eyes facing travel direction
-      const ex = seg.dir * 4.5;
+      // Snapping mandibles facing direction of travel
+      const mx = seg.dir * 9;
+      const pinch = Math.abs(Math.sin(seg.wiggle * 0.7)) * 2.5;
+      ctx.strokeStyle = '#FEF08A';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(mx, -4);
+      ctx.quadraticCurveTo(mx + seg.dir * 5, -7 + pinch, mx + seg.dir * 6, -2 + pinch);
+      ctx.moveTo(mx, 4);
+      ctx.quadraticCurveTo(mx + seg.dir * 5, 7 - pinch, mx + seg.dir * 6, 2 - pinch);
+      ctx.stroke();
+
+      // Big expressive glowing arcade eyes
+      const ex = seg.dir * 4.2;
       ctx.fillStyle = '#FEF08A';
       ctx.beginPath();
-      ctx.arc(ex, -4, 2.8, 0, Math.PI * 2);
-      ctx.arc(ex, 4, 2.8, 0, Math.PI * 2);
+      ctx.arc(ex, -4.2, 3.2, 0, Math.PI * 2);
+      ctx.arc(ex, 4.2, 3.2, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#0F172A';
       ctx.beginPath();
-      ctx.arc(ex + seg.dir * 1, -4, 1.2, 0, Math.PI * 2);
-      ctx.arc(ex + seg.dir * 1, 4, 1.2, 0, Math.PI * 2);
+      ctx.arc(ex + seg.dir * 1.1, -4.2, 1.4, 0, Math.PI * 2);
+      ctx.arc(ex + seg.dir * 1.1, 4.2, 1.4, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(ex - 0.5, -5.5, 1.2, 1.2);
+      ctx.fillRect(ex - 0.5, 2.8, 1.2, 1.2);
     }
     ctx.restore();
   }
@@ -980,27 +1056,49 @@ export class CentipedeGame implements ArcadeGameInstance {
   private drawSpider(ctx: CanvasRenderingContext2D, sp: Spider, color: string): void {
     ctx.save();
     ctx.translate(sp.x, sp.y);
-    const legOsc = Math.sin(sp.anim) * 4;
+    const legOsc = Math.sin(sp.anim) * 4.5;
     ctx.strokeStyle = '#FDE047';
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     for (const side of [-1, 1]) {
-      for (let i = 0; i < 3; i++) {
-        const yOff = -4 + i * 4;
+      for (let i = 0; i < 4; i++) {
+        const yOff = -5 + i * 3.3;
+        const osc = i % 2 === 0 ? legOsc : -legOsc;
         ctx.beginPath();
         ctx.moveTo(side * 6, yOff);
-        ctx.lineTo(side * 15, yOff - 5 + (i % 2 === 0 ? legOsc : -legOsc));
-        ctx.lineTo(side * 20, yOff + 4 + (i % 2 === 0 ? -legOsc : legOsc));
+        ctx.lineTo(side * 15, yOff - 6 + osc * 0.7);
+        ctx.lineTo(side * 22, yOff + 5 - osc * 0.6);
         ctx.stroke();
       }
     }
-    ctx.fillStyle = color;
+    // Glossy cephalothorax & abdomen
+    const sg = ctx.createRadialGradient(-3, -3, 1, 0, 0, 14);
+    sg.addColorStop(0, '#FFE4E6');
+    sg.addColorStop(0.35, color);
+    sg.addColorStop(1, '#4C0519');
+    ctx.fillStyle = sg;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 12, 8.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 12.5, 9, 0, 0, Math.PI * 2);
     ctx.fill();
+    // Glowing fangs + cluster of eyes
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(-4, -2, 2.2, 0, Math.PI * 2);
-    ctx.arc(4, -2, 2.2, 0, Math.PI * 2);
+    ctx.arc(-4.2, -2, 2.6, 0, Math.PI * 2);
+    ctx.arc(4.2, -2, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#0F172A';
+    ctx.beginPath();
+    ctx.arc(-4.2, -1.6, 1.2, 0, Math.PI * 2);
+    ctx.arc(4.2, -1.6, 1.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FEF08A';
+    ctx.beginPath();
+    ctx.moveTo(-3.5, 5);
+    ctx.lineTo(-1.5, 9.5);
+    ctx.lineTo(0, 5);
+    ctx.lineTo(1.5, 9.5);
+    ctx.lineTo(3.5, 5);
     ctx.fill();
     ctx.restore();
   }
@@ -1008,14 +1106,38 @@ export class CentipedeGame implements ArcadeGameInstance {
   private drawFlea(ctx: CanvasRenderingContext2D, f: Flea): void {
     ctx.save();
     ctx.translate(f.x, f.y);
-    ctx.fillStyle = f.hp === 1 ? '#FB7185' : '#38BDF8';
+    const kick = Math.sin(this.time * 26) * 3;
+    // Springy back legs
+    ctx.strokeStyle = '#FDE047';
+    ctx.lineWidth = 2.2;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 10, 8, 0, 0, Math.PI * 2);
+    ctx.moveTo(-7, 2);
+    ctx.lineTo(-13, -3 + kick);
+    ctx.lineTo(-11, 8);
+    ctx.moveTo(7, 2);
+    ctx.lineTo(13, -3 - kick);
+    ctx.lineTo(11, 8);
+    ctx.stroke();
+
+    const fg = ctx.createRadialGradient(-3, -3, 1, 0, 0, 12);
+    fg.addColorStop(0, '#FFFFFF');
+    fg.addColorStop(0.35, f.hp === 1 ? '#FB7185' : '#38BDF8');
+    fg.addColorStop(1, '#1E293B');
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 10.5, 8.5, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // Big downward-looking arcade eyes
     ctx.fillStyle = '#FDE047';
     ctx.beginPath();
-    ctx.arc(-4, 2, 2.2, 0, Math.PI * 2);
-    ctx.arc(4, 2, 2.2, 0, Math.PI * 2);
+    ctx.arc(-4, 2, 2.8, 0, Math.PI * 2);
+    ctx.arc(4, 2, 2.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#0F172A';
+    ctx.beginPath();
+    ctx.arc(-4, 2.6, 1.2, 0, Math.PI * 2);
+    ctx.arc(4, 2.6, 1.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -1024,26 +1146,56 @@ export class CentipedeGame implements ArcadeGameInstance {
     ctx.save();
     ctx.translate(sc.x, sc.y);
     ctx.scale(sc.dir, 1);
-    ctx.fillStyle = '#EC4899';
+    const stride = Math.sin(sc.anim) * 3;
+
+    // Scuttling armored legs
+    ctx.strokeStyle = '#FDE047';
+    ctx.lineWidth = 2;
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(i * 6, 6);
+      ctx.lineTo(i * 6 + (i % 2 === 0 ? stride : -stride), 12);
+      ctx.stroke();
+    }
+
+    // Segmented chitinous body
+    const bodyG = ctx.createLinearGradient(0, -6, 0, 8);
+    bodyG.addColorStop(0, '#F472B6');
+    bodyG.addColorStop(0.5, '#DB2777');
+    bodyG.addColorStop(1, '#831843');
+    ctx.fillStyle = bodyG;
     ctx.beginPath();
-    ctx.ellipse(0, 2, 14, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 2, 15, 7.5, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Curved stinger tail
+
+    // Segmented venomous stinger tail arching overhead
     ctx.strokeStyle = '#FACC15';
-    ctx.lineWidth = 3.5;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(-12, 1);
-    ctx.quadraticCurveTo(-20, -14, -4, -12);
+    ctx.quadraticCurveTo(-22, -16, -2, -13 + Math.sin(sc.anim * 0.5) * 2);
     ctx.stroke();
-    // Pincers
-    ctx.strokeStyle = '#38BDF8';
-    ctx.lineWidth = 2.5;
+    ctx.fillStyle = '#EF4444';
     ctx.beginPath();
-    ctx.moveTo(12, -2);
-    ctx.lineTo(19, -7);
+    ctx.arc(-1, -13 + Math.sin(sc.anim * 0.5) * 2, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Snapping cyan pincers
+    const snap = Math.abs(Math.sin(sc.anim * 0.8)) * 2.5;
+    ctx.strokeStyle = '#38BDF8';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(12, -1);
+    ctx.lineTo(20, -7 + snap);
     ctx.moveTo(12, 4);
-    ctx.lineTo(19, 8);
+    ctx.lineTo(20, 8 - snap);
     ctx.stroke();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(8, 0, 2.2, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
@@ -1053,25 +1205,44 @@ export class CentipedeGame implements ArcadeGameInstance {
     ctx.shadowColor = '#38BDF8';
     ctx.shadowBlur = 12;
 
-    // Sleek bug-blaster turret
-    ctx.fillStyle = '#F8FAFC';
+    // Classic Atari Elf-Head / Magic Wand Blaster evolved into sculpted crystal turret
+    const hull = ctx.createLinearGradient(-11, -14, 11, 12);
+    hull.addColorStop(0, '#FFFFFF');
+    hull.addColorStop(0.5, '#E2E8F0');
+    hull.addColorStop(1, '#94A3B8');
+    ctx.fillStyle = hull;
     ctx.beginPath();
-    ctx.moveTo(0, -14);
-    ctx.lineTo(11, 5);
-    ctx.lineTo(7, 11);
-    ctx.lineTo(-7, 11);
-    ctx.lineTo(-11, 5);
+    ctx.moveTo(0, -16);
+    ctx.lineTo(12, 4);
+    ctx.lineTo(9, 12);
+    ctx.lineTo(-9, 12);
+    ctx.lineTo(-12, 4);
     ctx.closePath();
     ctx.fill();
 
-    // Glowing plasma core
-    ctx.fillStyle = '#EF4444';
+    // Side stabilizer fins
+    ctx.fillStyle = '#38BDF8';
+    ctx.fillRect(-13, 3, 4, 7);
+    ctx.fillRect(9, 3, 4, 7);
+
+    // Glowing ruby emitter core
+    const core = ctx.createRadialGradient(-1, 1, 0.8, 0, 2, 5.5);
+    core.addColorStop(0, '#FEF08A');
+    core.addColorStop(0.5, '#EF4444');
+    core.addColorStop(1, '#7F1D1D');
+    ctx.fillStyle = core;
     ctx.beginPath();
-    ctx.arc(0, 2, 4.5, 0, Math.PI * 2);
+    ctx.arc(0, 2, 5, 0, Math.PI * 2);
     ctx.fill();
 
+    // Golden emitter crystal tip
     ctx.fillStyle = '#FACC15';
-    ctx.fillRect(-2, -16, 4, 6);
+    ctx.beginPath();
+    ctx.moveTo(0, -19);
+    ctx.lineTo(3, -12);
+    ctx.lineTo(-3, -12);
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
   }
 }

@@ -4,14 +4,18 @@ import { CentipedeGame } from './centipedeGame';
 import { ArcadeGameInstance } from './classicArcadeInterface';
 import { DefenderGame } from './defenderGame';
 import { DigDugGame } from './digdugGame';
+import { DonkeyKongGame } from './donkeyKongGame';
 import { FoodFightGame } from './foodfightGame';
 import { GauntletGame } from './gauntletGame';
 import { SpaceInvaders2Game } from './invaders2Game';
 import { SpaceInvadersGame } from './invadersGame';
 import { MappyGame } from './mappyGame';
+import { MarioBrosGame } from './marioBrosGame';
 import { MillipedeGame } from './millipedeGame';
 import { PolePositionGame } from './polePositionGame';
+import { SonicGame } from './sonicGame';
 import { SprintGame } from './sprintGame';
+import { SuperMarioGame } from './superMarioGame';
 import { TempestGame } from './tempestGame';
 
 export interface ClassicCabinetSpec {
@@ -458,6 +462,210 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
       'Collect matching treasure pairs back-to-back for 2×–6× bonus multipliers, and slam glowing doors to sweep cats!',
     ],
   },
+
+  // --- 10 Classic Platformer Cabinets ---
+  mariobros: {
+    id: 'mariobros',
+    title: 'Mario Bros.',
+    year: 1983,
+    publisher: 'Nintendo',
+    accentTextClass: 'text-red-400',
+    accentButtonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
+    borderHoverClass: 'hover:border-red-400/50',
+    subtitle: '1983 · Arcade Sewer Arena · Bump & Kick · POW Block & Bonus Coins',
+    controls: [
+      { key: 'Left / Right (A / D)', desc: 'Run & wrap across sewer pipes' },
+      { key: 'Space / Up', desc: 'Jump to bump brick floors & POW block' },
+      { key: 'P', desc: 'Pause / resume cabinet' },
+    ],
+    tips: [
+      'Jump beneath Shellcreepers and Fighter Flies to flip them, then run up to kick them off!',
+      'Angry orange Sidesteppers take two head-bumps to flip over.',
+      'Hit the central POW block (3 charges) to flip every grounded enemy at once.',
+    ],
+  },
+  dkong: {
+    id: 'dkong',
+    title: 'Donkey Kong',
+    year: 1981,
+    publisher: 'Nintendo',
+    accentTextClass: 'text-orange-400',
+    accentButtonClass: 'bg-orange-500 hover:bg-orange-400 text-slate-950 focus-visible:ring-orange-200',
+    borderHoverClass: 'hover:border-orange-400/50',
+    subtitle: '1981 · Slanted Girders & Rivets · Rolling Barrels & Golden Hammer',
+    controls: [
+      { key: 'Arrows / WASD', desc: 'Run girders & climb blue ladders' },
+      { key: 'Space / Z', desc: 'Jump over rolling barrels (+100)' },
+      { key: 'P', desc: 'Pause / resume cabinet' },
+    ],
+    tips: [
+      'Grab a suspended Hammer to smash rolling barrels for 300–500 points each.',
+      'Reach Pauline on the top girder to clear 25m, or pull all 8 yellow rivets to collapse 100m!',
+      'Jump cleanly over approaching barrels for quick 100-point leap bonuses.',
+    ],
+  },
+  dkongjr: {
+    id: 'dkongjr',
+    title: 'Donkey Kong Jr.',
+    year: 1982,
+    publisher: 'Nintendo',
+    accentTextClass: 'text-green-400',
+    accentButtonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
+    borderHoverClass: 'hover:border-green-400/50',
+    subtitle: '1982 · Dual-Vine Climbing · Falling Jungle Fruit · Rescue Papa Kong',
+    controls: [
+      { key: 'Arrows / WASD', desc: 'Climb vines (2 vines = fast up, 1 vine = fast down)' },
+      { key: 'Space / Z', desc: 'Leap across jungle vines & gaps' },
+      { key: 'P', desc: 'Pause / resume cabinet' },
+    ],
+    tips: [
+      'Hold between two adjacent vines to climb upward nearly twice as fast!',
+      'Touch suspended tropical fruits to drop them onto Snapjaws climbing below (+800).',
+      'Collect all 3 golden keys at the top deck to unlock Papa Kong’s cage.',
+    ],
+  },
+  dkong3: {
+    id: 'dkong3',
+    title: 'Donkey Kong 3',
+    year: 1983,
+    publisher: 'Nintendo',
+    accentTextClass: 'text-lime-400',
+    accentButtonClass: 'bg-lime-400 hover:bg-lime-300 text-slate-950 focus-visible:ring-lime-200',
+    borderHoverClass: 'hover:border-lime-400/50',
+    subtitle: '1983 · Stanley’s Greenhouse · Bug Spray · Super Spray & 5 Flowers',
+    controls: [
+      { key: 'Arrows / WASD', desc: 'Move Stanley across 3 greenhouse decks' },
+      { key: 'Space / Z', desc: 'Blast upward Bug Spray at DK & insects' },
+      { key: 'P', desc: 'Pause / resume cabinet' },
+    ],
+    tips: [
+      'Spray Donkey Kong upward until his head hits the golden beehive at the top!',
+      'Push DK halfway up to shake loose the flashing Super Spray can for hyper-rapid blasts.',
+      'Intercept Buzzbees and Beespies before they steal your 5 potted flowers.',
+    ],
+  },
+  smb1: {
+    id: 'smb1',
+    title: 'Super Mario Bros.',
+    year: 1985,
+    publisher: 'Nintendo',
+    accentTextClass: 'text-red-400',
+    accentButtonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
+    borderHoverClass: 'hover:border-red-400/50',
+    subtitle: '1985 · Mushroom Kingdom · Super Mushroom · Fire Flower & Bowser',
+    controls: [
+      { key: 'Left / Right (A / D)', desc: 'Run across Mushroom Kingdom' },
+      { key: 'Space / Up', desc: 'Jump & stomp Goombas / Koopas' },
+      { key: 'Shift / X', desc: 'Sprint faster & toss bouncing Fireballs' },
+    ],
+    tips: [
+      'Bump golden ? blocks from below for Coins, Super Mushrooms, and Fire Flowers.',
+      'Stomp a Koopa into its shell, then kick it to bowl down rows of enemies.',
+      'Leap high onto the ending Flagpole for bigger course-clear bonuses!',
+    ],
+  },
+  smb2: {
+    id: 'smb2',
+    title: 'Super Mario Bros. 2',
+    year: 1988,
+    publisher: 'Nintendo',
+    accentTextClass: 'text-pink-400',
+    accentButtonClass: 'bg-pink-500 hover:bg-pink-400 text-white focus-visible:ring-pink-300',
+    borderHoverClass: 'hover:border-pink-400/50',
+    subtitle: '1988 · Subcon Dreamland · Pluck & Throw Veggies · 4 Heroes & Birdo',
+    controls: [
+      { key: 'Left / Right (A / D)', desc: 'Run across Subcon' },
+      { key: 'Space / Up', desc: 'Jump (Hold with Peach to float mid-air!)' },
+      { key: 'Shift / X', desc: 'Pluck turnips, POW blocks, & eggs — press again to throw!' },
+      { key: 'R', desc: 'Switch Hero (Mario, Luigi, Peach, Toad)' },
+    ],
+    tips: [
+      'Stand over grass tufts and press Shift/X to pluck Turnips, then hurl them at Shy Guys & Birdo!',
+      'Jump onto Birdo’s flying eggs to catch them and toss them right back at her (3 hits!).',
+      'Press R anytime to swap between Luigi’s high jump, Peach’s float, and Toad’s speed.',
+    ],
+  },
+  smb3: {
+    id: 'smb3',
+    title: 'Super Mario Bros. 3',
+    year: 1988,
+    publisher: 'Nintendo',
+    accentTextClass: 'text-yellow-400',
+    accentButtonClass: 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 focus-visible:ring-yellow-200',
+    borderHoverClass: 'hover:border-yellow-400/50',
+    subtitle: '1988 · Super Leaf Raccoon Flight · P-Speed Meter · Tail Spin & Note Blocks',
+    controls: [
+      { key: 'Left / Right (A / D)', desc: 'Run & build P-Speed meter' },
+      { key: 'Space / Up', desc: 'Jump — tap repeatedly mid-air to flutter or fly!' },
+      { key: 'Shift / X', desc: 'Sprint & Raccoon Tail Spin attack' },
+    ],
+    tips: [
+      'Hold Shift/X while running to charge P-Speed to 100%, then tap Jump to soar into the sky!',
+      'Tap Shift/X near enemies to whip them away with your Raccoon Tail Spin.',
+      'Bounce off white ♪ Note Blocks to launch high into secret coin arcs.',
+    ],
+  },
+  sonic1: {
+    id: 'sonic1',
+    title: 'Sonic the Hedgehog',
+    year: 1991,
+    publisher: 'SEGA',
+    accentTextClass: 'text-blue-400',
+    accentButtonClass: 'bg-blue-500 hover:bg-blue-400 text-white focus-visible:ring-blue-300',
+    borderHoverClass: 'hover:border-blue-400/50',
+    subtitle: '1991 · Green Hill 360° Loops · Golden Rings · Springs & Dr. Robotnik',
+    controls: [
+      { key: 'Left / Right (A / D)', desc: 'Build supersonic momentum' },
+      { key: 'Space / Up', desc: 'Spin Jump into Badniks & Monitors' },
+      { key: 'Down / Shift', desc: 'Crouch-Roll Spin Attack' },
+    ],
+    tips: [
+      'Build top speed before entering a 360° Loop-de-Loop to rocket clean around the ring!',
+      'Holding at least 1 Golden Ring protects you—if hit, quickly scoop up scattered Rings!',
+      'Jump into Dr. Robotnik’s Eggmobile 5 times to clear each Zone Act.',
+    ],
+  },
+  sonic2: {
+    id: 'sonic2',
+    title: 'Sonic the Hedgehog 2',
+    year: 1992,
+    publisher: 'SEGA',
+    accentTextClass: 'text-sky-400',
+    accentButtonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
+    borderHoverClass: 'hover:border-sky-400/50',
+    subtitle: '1992 · Spin Dash · Tails Sidekick · Chemical Plant & Super Sonic',
+    controls: [
+      { key: 'Left / Right (A / D)', desc: 'Sprint through Emerald Hill & Chemical Plant' },
+      { key: 'Space / Up', desc: 'Spin Jump (Tap mid-air at 50+ Rings for Super Sonic!)' },
+      { key: 'Hold Down + Space/X', desc: 'Rev & launch Super Spin Dash' },
+    ],
+    tips: [
+      'Hold Down and tap Space/Shift to rev your Spin Dash, then release Down to blast forward!',
+      'Tails flies right behind you collecting extra Rings automatically.',
+      'Collect 50+ Rings and double-tap Jump mid-air to transform into golden Super Sonic!',
+    ],
+  },
+  sonic3: {
+    id: 'sonic3',
+    title: 'Sonic the Hedgehog 3',
+    year: 1994,
+    publisher: 'SEGA',
+    accentTextClass: 'text-indigo-400',
+    accentButtonClass: 'bg-indigo-500 hover:bg-indigo-400 text-white focus-visible:ring-indigo-300',
+    borderHoverClass: 'hover:border-indigo-400/50',
+    subtitle: '1994 · Elemental Shields · Insta-Shield · Switch Sonic / Tails / Knuckles',
+    controls: [
+      { key: 'Left / Right (A / D)', desc: 'High-speed Angel Island run' },
+      { key: 'Space / Up', desc: 'Jump — tap again mid-air for Elemental Shield / Insta-Shield!' },
+      { key: 'Hold Down + Space/X', desc: 'Rev & launch Spin Dash' },
+      { key: 'R', desc: 'Switch Hero (Sonic, Tails, Knuckles)' },
+    ],
+    tips: [
+      'Smash Fire (Dash), Electric (Double-Jump + Ring Magnet), and Bubble (Bounce) Monitors!',
+      'Without a shield, tap Jump mid-air for Sonic’s signature Insta-Shield burst.',
+      'Press R anytime to swap between Sonic, flying Tails, and Knuckles.',
+    ],
+  },
 };
 
 export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInstance {
@@ -504,6 +712,26 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
       return new TempestGame('tempest3000');
     case 'mappy':
       return new MappyGame();
+    case 'mariobros':
+      return new MarioBrosGame();
+    case 'dkong':
+      return new DonkeyKongGame('dkong');
+    case 'dkongjr':
+      return new DonkeyKongGame('dkongjr');
+    case 'dkong3':
+      return new DonkeyKongGame('dkong3');
+    case 'smb1':
+      return new SuperMarioGame('smb1');
+    case 'smb2':
+      return new SuperMarioGame('smb2');
+    case 'smb3':
+      return new SuperMarioGame('smb3');
+    case 'sonic1':
+      return new SonicGame('sonic1');
+    case 'sonic2':
+      return new SonicGame('sonic2');
+    case 'sonic3':
+      return new SonicGame('sonic3');
   }
 }
 

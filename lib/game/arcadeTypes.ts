@@ -21,11 +21,21 @@ export type ClassicArcadeGameId =
   | 'tempest'
   | 'tempest2000'
   | 'tempest3000'
-  | 'mappy';
+  | 'mappy'
+  | 'mariobros'
+  | 'dkong'
+  | 'dkongjr'
+  | 'dkong3'
+  | 'smb1'
+  | 'smb2'
+  | 'smb3'
+  | 'sonic1'
+  | 'sonic2'
+  | 'sonic3';
 
 export type GameId = PacManGameId | ClassicArcadeGameId;
 
-export type CabinetCategory = 'pacman' | 'shooters' | 'action' | 'racing';
+export type CabinetCategory = 'platformers' | 'pacman' | 'shooters' | 'action' | 'racing';
 
 export interface CabinetMeta {
   id: GameId;
@@ -287,5 +297,97 @@ export const CABINET_LIST: CabinetMeta[] = [
     tagline: 'Timed Shortcut Gates · Pro Circuits · Water & Oil Hazards',
     accentHex: '#4ADE80',
     storageKey: 'champsprint_hd_highscore_v1',
+  },
+
+  // Classic Platformers (10)
+  {
+    id: 'mariobros',
+    title: 'Mario Bros.',
+    year: 1983,
+    category: 'platformers',
+    tagline: 'Arcade Sewer Arena · Bump & Kick · POW Block & Coins',
+    accentHex: '#EF4444',
+    storageKey: 'mariobros_hd_highscore_v1',
+  },
+  {
+    id: 'dkong',
+    title: 'Donkey Kong',
+    year: 1981,
+    category: 'platformers',
+    tagline: '4 Classic Stages · Barrels, Hammer, Elevators & Rivets',
+    accentHex: '#F97316',
+    storageKey: 'dkong_hd_highscore_v1',
+  },
+  {
+    id: 'dkongjr',
+    title: 'Donkey Kong Jr.',
+    year: 1982,
+    category: 'platformers',
+    tagline: 'Dual-Vine Climbing · Fruit Drops · Free Papa Kong',
+    accentHex: '#4ADE80',
+    storageKey: 'dkongjr_hd_highscore_v1',
+  },
+  {
+    id: 'dkong3',
+    title: 'Donkey Kong 3',
+    year: 1983,
+    category: 'platformers',
+    tagline: 'Greenhouse Bug Spray · Super Spray · Defend The Flowers',
+    accentHex: '#A3E635',
+    storageKey: 'dkong3_hd_highscore_v1',
+  },
+  {
+    id: 'smb1',
+    title: 'Super Mario Bros.',
+    year: 1985,
+    category: 'platformers',
+    tagline: 'Mushroom Kingdom · Super Mushroom · Fire Flower & Bowser',
+    accentHex: '#EF4444',
+    storageKey: 'smb1_hd_highscore_v1',
+  },
+  {
+    id: 'smb2',
+    title: 'Super Mario Bros. 2',
+    year: 1988,
+    category: 'platformers',
+    tagline: 'Subcon Dreamland · Pluck & Throw Veggies · 4 Heroes & Birdo',
+    accentHex: '#EC4899',
+    storageKey: 'smb2_hd_highscore_v1',
+  },
+  {
+    id: 'smb3',
+    title: 'Super Mario Bros. 3',
+    year: 1988,
+    category: 'platformers',
+    tagline: 'Super Leaf Flight · P-Speed Meter · Tail Spin & Airships',
+    accentHex: '#FACC15',
+    storageKey: 'smb3_hd_highscore_v1',
+  },
+  {
+    id: 'sonic1',
+    title: 'Sonic the Hedgehog',
+    year: 1991,
+    category: 'platformers',
+    tagline: 'Green Hill Loops · Golden Rings · Springs & Dr. Robotnik',
+    accentHex: '#3B82F6',
+    storageKey: 'sonic1_hd_highscore_v1',
+  },
+  {
+    id: 'sonic2',
+    title: 'Sonic the Hedgehog 2',
+    year: 1992,
+    category: 'platformers',
+    tagline: 'Spin Dash · Tails Sidekick · Chemical Plant & Super Sonic',
+    accentHex: '#38BDF8',
+    storageKey: 'sonic2_hd_highscore_v1',
+  },
+  {
+    id: 'sonic3',
+    title: 'Sonic the Hedgehog 3',
+    year: 1994,
+    category: 'platformers',
+    tagline: 'Elemental Shields · Sonic/Tails/Knuckles · Insta-Shield',
+    accentHex: '#6366F1',
+    storageKey: 'sonic3_hd_highscore_v1',
   },
 ];

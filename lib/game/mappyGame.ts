@@ -653,29 +653,30 @@ export class MappyGame implements ArcadeGameInstance {
     ctx.save();
     ctx.translate(-this.cameraX, 0);
 
-    // Mansion interior wall panels
+    // Mansion interior Victorian paneled wallpaper
     const wallGrad = ctx.createLinearGradient(0, HUD_TOP, 0, LOGICAL_H);
-    wallGrad.addColorStop(0, '#132145');
+    wallGrad.addColorStop(0, '#172554');
+    wallGrad.addColorStop(0.55, '#132044');
     wallGrad.addColorStop(1, '#0C152F');
     ctx.fillStyle = wallGrad;
     ctx.fillRect(36, HUD_TOP + 8, WORLD_W - 72, LOGICAL_H - HUD_TOP - 16);
 
-    // Subtle striped wallpaper accents
-    ctx.fillStyle = 'rgba(255,255,255,0.025)';
-    for (let x = 52; x < WORLD_W - 52; x += 48) {
-      ctx.fillRect(x, HUD_TOP + 8, 16, LOGICAL_H - HUD_TOP - 28);
+    // Classic Victorian wallpaper damask stripes & baseboard molding
+    ctx.fillStyle = 'rgba(255,255,255,0.032)';
+    for (let x = 52; x < WORLD_W - 52; x += 44) {
+      ctx.fillRect(x, HUD_TOP + 8, 14, LOGICAL_H - HUD_TOP - 28);
     }
 
-    // Draw dark vertical shafts first
+    // Draw dark vertical trampoline shafts with brass trim
     for (const sx of TRAMPOLINE_XS) {
-      ctx.fillStyle = '#050814';
+      ctx.fillStyle = '#040712';
       ctx.fillRect(sx - SHAFT_HALF_W, HUD_TOP + 8, SHAFT_HALF_W * 2, BOTTOM_FLOOR_Y - HUD_TOP);
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.25)';
+      ctx.lineWidth = 2;
       ctx.strokeRect(sx - SHAFT_HALF_W, HUD_TOP + 8, SHAFT_HALF_W * 2, BOTTOM_FLOOR_Y - HUD_TOP);
     }
 
-    // Draw 6 Mansion Floors (skipping over trampoline shafts)
+    // Draw 6 Mansion Floors with beveled moldings & wainscot highlights
     const floorColors = ['#F59E0B', '#EC4899', '#38BDF8', '#4ADE80', '#A855F7', '#F97316'];
     for (let f = 0; f < FLOOR_COUNT; f++) {
       const fy = floorY(f);
@@ -692,41 +693,51 @@ export class MappyGame implements ArcadeGameInstance {
       for (const [x0, x1] of segments) {
         if (x1 <= x0) continue;
         ctx.fillStyle = floorColors[f % floorColors.length];
-        ctx.fillRect(x0, fy, x1 - x0, 8);
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.fillRect(x0, fy + 8, x1 - x0, 5);
+        ctx.fillRect(x0, fy, x1 - x0, 9);
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillRect(x0, fy, x1 - x0, 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        ctx.fillRect(x0, fy + 9, x1 - x0, 5);
       }
     }
 
-    // Draw Trampolines at bottom of shafts
+    // Elastic Braided Trampolines with coil anchor springs
     const trampColors = ['#22C55E', '#3B82F6', '#FACC15', '#EF4444'];
     for (const tr of this.trampolines) {
       const fy = floorY(0);
       if (tr.broken) {
         ctx.strokeStyle = '#64748B';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.4;
         ctx.beginPath();
         ctx.moveTo(tr.x - SHAFT_HALF_W + 4, fy + 4);
-        ctx.lineTo(tr.x - 10, fy + 16);
+        ctx.lineTo(tr.x - 10, fy + 18);
         ctx.moveTo(tr.x + SHAFT_HALF_W - 4, fy + 4);
-        ctx.lineTo(tr.x + 10, fy + 16);
+        ctx.lineTo(tr.x + 10, fy + 18);
         ctx.stroke();
       } else {
-        const sag = tr.compress * 12;
+        const sag = tr.compress * 13;
         const col = trampColors[Math.min(3, tr.bounces)];
+        // Brass anchor pins
+        ctx.fillStyle = '#FACC15';
+        ctx.fillRect(tr.x - SHAFT_HALF_W + 2, fy - 1, 6, 6);
+        ctx.fillRect(tr.x + SHAFT_HALF_W - 8, fy - 1, 6, 6);
         ctx.strokeStyle = col;
-        ctx.lineWidth = 5;
+        ctx.lineWidth = 5.5;
+        ctx.lineCap = 'round';
         ctx.shadowColor = col;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 10;
         ctx.beginPath();
-        ctx.moveTo(tr.x - SHAFT_HALF_W + 4, fy + 2);
-        ctx.quadraticCurveTo(tr.x, fy + 6 + sag, tr.x + SHAFT_HALF_W - 4, fy + 2);
+        ctx.moveTo(tr.x - SHAFT_HALF_W + 6, fy + 2);
+        ctx.quadraticCurveTo(tr.x, fy + 7 + sag, tr.x + SHAFT_HALF_W - 6, fy + 2);
         ctx.stroke();
         ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
       }
     }
 
-    // Doors
+    // Paneled Mansion Doors & Iridescent Power Doors
     for (const d of this.doors) {
       const fy = floorY(d.floor);
       const activePower = d.isPower && !d.usedPower;
@@ -734,13 +745,20 @@ export class MappyGame implements ArcadeGameInstance {
         ? `hsl(${(this.clock * 280) % 360}, 95%, 60%)`
         : '#E2E8F0';
       ctx.save();
+      if (activePower) {
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 14;
+      }
       if (!d.open) {
         ctx.fillStyle = col;
-        ctx.fillRect(d.x - 5, fy - 62, 10, 62);
-        ctx.fillStyle = '#0F172A';
-        ctx.fillRect(d.x - 2, fy - 34, 4, 8);
+        ctx.beginPath();
+        ctx.roundRect(d.x - 5.5, fy - 62, 11, 62, [3, 3, 0, 0]);
+        ctx.fill();
+        ctx.fillStyle = activePower ? '#FEF08A' : '#0F172A';
+        ctx.beginPath();
+        ctx.arc(d.x, fy - 30, 2.8, 0, Math.PI * 2);
+        ctx.fill();
       } else {
-        // Swung open sideways
         ctx.fillStyle = 'rgba(226, 232, 240, 0.35)';
         ctx.fillRect(d.x + (d.openDir === 1 ? 0 : -26), fy - 62, 26, 6);
         ctx.fillStyle = col;
@@ -755,22 +773,28 @@ export class MappyGame implements ArcadeGameInstance {
       this.drawTreasure(ctx, t);
     }
 
-    // Microwave Sonic Beams
+    // Expanding Concentric Microwave Sonic Beams
     for (const b of this.beams) {
       ctx.save();
-      const grad = ctx.createLinearGradient(b.x - b.dir * 85, b.y, b.x + b.dir * 12, b.y);
+      ctx.shadowColor = '#38BDF8';
+      ctx.shadowBlur = 14;
+      const grad = ctx.createLinearGradient(b.x - b.dir * 88, b.y, b.x + b.dir * 14, b.y);
       grad.addColorStop(0, 'rgba(56, 189, 248, 0)');
       grad.addColorStop(0.5, '#38BDF8');
-      grad.addColorStop(1, '#FDE047');
+      grad.addColorStop(1, '#FEF08A');
       ctx.strokeStyle = grad;
       ctx.lineWidth = 10;
+      ctx.lineCap = 'round';
       ctx.beginPath();
       for (let k = 0; k <= 12; k++) {
         const px = b.x - b.dir * (k * 7);
-        const py = b.y + Math.sin(this.clock * 35 + k * 0.9) * 14;
+        const py = b.y + Math.sin(this.clock * 38 + k * 0.9) * 14;
         if (k === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
+      ctx.stroke();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2.6;
       ctx.stroke();
       ctx.restore();
     }
@@ -797,7 +821,7 @@ export class MappyGame implements ArcadeGameInstance {
 
     if (this.phase === 'READY' || this.phase === 'STAGE_CLEAR') {
       ctx.save();
-      ctx.fillStyle = 'rgba(6, 10, 24, 0.78)';
+      ctx.fillStyle = 'rgba(6, 10, 24, 0.84)';
       ctx.fillRect(LOGICAL_W * 0.5 - 175, LOGICAL_H * 0.5 - 34, 350, 68);
       ctx.strokeStyle = '#38BDF8';
       ctx.lineWidth = 2;
@@ -828,52 +852,102 @@ export class MappyGame implements ArcadeGameInstance {
     ctx.translate(x, y);
     if (highlight) {
       ctx.shadowColor = '#4ADE80';
-      ctx.shadowBlur = 14 + Math.sin(this.clock * 12) * 5;
+      ctx.shadowBlur = 16 + Math.sin(this.clock * 12) * 6;
     }
 
     if (t.kind === 'radio') {
-      ctx.fillStyle = '#EF4444';
-      ctx.fillRect(-13, -10, 26, 20);
+      ctx.fillStyle = '#DC2626';
+      ctx.beginPath();
+      ctx.roundRect(-14, -10, 28, 20, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#94A3B8';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-8, -10);
+      ctx.lineTo(-8, -16);
+      ctx.lineTo(8, -16);
+      ctx.lineTo(8, -10);
+      ctx.stroke();
       ctx.fillStyle = '#1E293B';
       ctx.beginPath();
-      ctx.arc(-5, 0, 5, 0, Math.PI * 2);
+      ctx.arc(-5, 0, 5.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#FDE047';
-      ctx.fillRect(3, -6, 7, 12);
+      ctx.fillRect(3, -6, 8, 12);
     } else if (t.kind === 'tv') {
-      ctx.fillStyle = '#6366F1';
-      ctx.fillRect(-14, -12, 28, 22);
+      // Vintage CRT TV with rabbit-ear antennas!
+      ctx.strokeStyle = '#CBD5E1';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(-2, -12);
+      ctx.lineTo(-10, -21);
+      ctx.moveTo(2, -12);
+      ctx.lineTo(10, -21);
+      ctx.stroke();
+      ctx.fillStyle = '#4F46E5';
+      ctx.beginPath();
+      ctx.roundRect(-15, -12, 30, 22, 4);
+      ctx.fill();
       ctx.fillStyle = '#38BDF8';
-      ctx.fillRect(-10, -8, 15, 14);
+      ctx.beginPath();
+      ctx.roundRect(-11, -8, 16, 14, 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.fillRect(-9, -6, 12, 2.5);
       ctx.fillStyle = '#FDE047';
-      ctx.fillRect(7, -6, 4, 4);
-      ctx.fillRect(7, 1, 4, 4);
+      ctx.beginPath();
+      ctx.arc(9, -4, 2.2, 0, Math.PI * 2);
+      ctx.arc(9, 2.5, 2.2, 0, Math.PI * 2);
+      ctx.fill();
     } else if (t.kind === 'computer') {
-      ctx.fillStyle = '#CBD5E1';
-      ctx.fillRect(-13, -14, 26, 17);
-      ctx.fillStyle = '#22C55E';
-      ctx.fillRect(-9, -10, 18, 10);
+      ctx.fillStyle = '#E2E8F0';
+      ctx.beginPath();
+      ctx.roundRect(-13, -15, 26, 18, 3);
+      ctx.fill();
+      ctx.fillStyle = '#052E16';
+      ctx.fillRect(-10, -12, 20, 11);
+      ctx.fillStyle = '#4ADE80';
+      ctx.fillRect(-8, -10, 12, 2);
+      ctx.fillRect(-8, -6, 8, 2);
       ctx.fillStyle = '#94A3B8';
-      ctx.fillRect(-15, 3, 30, 7);
+      ctx.beginPath();
+      ctx.roundRect(-16, 3, 32, 7, 2);
+      ctx.fill();
     } else if (t.kind === 'painting') {
+      // Ornate Mona Lisa gold frame
       ctx.fillStyle = '#F59E0B';
-      ctx.fillRect(-13, -16, 26, 28);
+      ctx.beginPath();
+      ctx.roundRect(-14, -17, 28, 30, 3);
+      ctx.fill();
+      ctx.strokeStyle = '#FEF08A';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-12, -15, 24, 26);
       ctx.fillStyle = '#0F766E';
       ctx.fillRect(-9, -12, 18, 20);
       ctx.fillStyle = '#FDE68A';
       ctx.beginPath();
-      ctx.arc(0, -4, 4.5, 0, Math.PI * 2);
+      ctx.arc(0, -4, 4.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#78350F';
+      ctx.beginPath();
+      ctx.arc(0, 5, 6, Math.PI, 0);
       ctx.fill();
     } else {
-      // Safe
+      // Combination Steel Safe
       ctx.fillStyle = '#475569';
-      ctx.fillRect(-14, -15, 28, 28);
+      ctx.beginPath();
+      ctx.roundRect(-15, -16, 30, 30, 4);
+      ctx.fill();
       ctx.strokeStyle = '#FACC15';
       ctx.lineWidth = 2;
       ctx.strokeRect(-11, -12, 22, 22);
       ctx.beginPath();
-      ctx.arc(0, -1, 5, 0, Math.PI * 2);
+      ctx.arc(0, -1, 5.5, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.arc(0, -1, 2, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.restore();
   }
@@ -883,37 +957,73 @@ export class MappyGame implements ArcadeGameInstance {
     ctx.translate(x, y - 16);
     ctx.scale(this.mFacing, 1);
 
-    // Police blue uniform body
-    ctx.fillStyle = '#2563EB';
+    const run = Math.sin(this.clock * 18) * 3.5;
+    // Wagging mouse tail
+    ctx.strokeStyle = '#FDE68A';
+    ctx.lineWidth = 2.6;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.roundRect(-9, -4, 18, 17, 5);
+    ctx.moveTo(-8, 8);
+    ctx.quadraticCurveTo(-16, 4 + run * 0.5, -18, -3);
+    ctx.stroke();
+
+    // Scampering shoes
+    ctx.fillStyle = '#1E3A8A';
+    ctx.beginPath();
+    ctx.ellipse(-4 + run * 0.5, 14.5, 4.5, 2.8, 0, 0, Math.PI * 2);
+    ctx.ellipse(4 - run * 0.5, 14.5, 4.5, 2.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Police blue uniform coat with gold belt & badge
+    const coat = ctx.createLinearGradient(-9, -4, 9, 13);
+    coat.addColorStop(0, '#3B82F6');
+    coat.addColorStop(1, '#1D4ED8');
+    ctx.fillStyle = coat;
+    ctx.beginPath();
+    ctx.roundRect(-9.5, -4, 19, 17, 5);
     ctx.fill();
     ctx.fillStyle = '#FACC15';
-    ctx.fillRect(-3, 2, 6, 4); // Gold police badge
-
-    // Mouse head & big ears
-    ctx.fillStyle = '#93C5FD';
+    ctx.fillRect(-9, 6, 18, 2.5);
     ctx.beginPath();
-    ctx.arc(-6, -15, 6.5, 0, Math.PI * 2);
-    ctx.arc(5, -15, 6.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FDE68A';
-    ctx.beginPath();
-    ctx.arc(1, -9, 9, 0, Math.PI * 2);
+    ctx.arc(3, 1, 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Police cap
+    // Big rounded Namco mouse ears with pink inner ear
+    ctx.fillStyle = '#60A5FA';
+    ctx.beginPath();
+    ctx.arc(-6, -15, 7, 0, Math.PI * 2);
+    ctx.arc(5, -15, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#F9A8D4';
+    ctx.beginPath();
+    ctx.arc(-6, -15, 3.8, 0, Math.PI * 2);
+    ctx.arc(5, -15, 3.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cream mouse snout & face
+    ctx.fillStyle = '#FEF3C7';
+    ctx.beginPath();
+    ctx.arc(1, -9, 9.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Peaked Police Cap with gold emblem
     ctx.fillStyle = '#1D4ED8';
-    ctx.fillRect(-8, -19, 16, 5);
+    ctx.beginPath();
+    ctx.roundRect(-8.5, -20.5, 17, 6, 2);
+    ctx.fill();
+    ctx.fillStyle = '#0F172A';
+    ctx.fillRect(4, -15.5, 8, 2.4);
     ctx.fillStyle = '#FACC15';
-    ctx.fillRect(0, -18, 4, 3);
+    ctx.fillRect(0, -19, 4.5, 3.2);
 
-    // Eye & nose
+    // Sparkling eye & button nose
     ctx.fillStyle = '#0F172A';
     ctx.beginPath();
-    ctx.arc(5, -10, 2, 0, Math.PI * 2);
-    ctx.arc(10, -8, 2, 0, Math.PI * 2);
+    ctx.arc(4.8, -10.5, 2.2, 0, Math.PI * 2);
+    ctx.arc(10.5, -8, 2.2, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(4, -11.8, 1.1, 1.1);
     ctx.restore();
   }
 
@@ -924,42 +1034,82 @@ export class MappyGame implements ArcadeGameInstance {
       ctx.rotate(Math.sin(this.clock * 25) * 0.25);
     }
 
-    const r = c.isGoro ? 15 : 11;
+    const r = c.isGoro ? 15.5 : 11.5;
     const fur = c.isGoro ? '#F59E0B' : '#EC4899';
+    const furDark = c.isGoro ? '#B45309' : '#9D174D';
+
+    // Swishing cat tail
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = 3.2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.7, 6);
+    ctx.quadraticCurveTo(-r - 7, 2 + Math.sin(this.clock * 12 + c.x) * 4, -r - 4, -8);
+    ctx.stroke();
 
     // Pointy cat ears
     ctx.fillStyle = fur;
     ctx.beginPath();
     ctx.moveTo(-r + 2, -r * 0.5);
-    ctx.lineTo(-r + 6, -r - 7);
-    ctx.lineTo(-2, -r * 0.7);
+    ctx.lineTo(-r + 5, -r - 8);
+    ctx.lineTo(-1, -r * 0.7);
     ctx.moveTo(r - 2, -r * 0.5);
-    ctx.lineTo(r - 6, -r - 7);
-    ctx.lineTo(2, -r * 0.7);
+    ctx.lineTo(r - 5, -r - 8);
+    ctx.lineTo(1, -r * 0.7);
     ctx.fill();
 
-    // Body / head
+    // Shaded round cat body / head
+    const cg = ctx.createRadialGradient(-3, -6, 2, 0, -2, r + 2);
+    cg.addColorStop(0, c.isGoro ? '#FDE68A' : '#FBCFE8');
+    cg.addColorStop(0.45, fur);
+    cg.addColorStop(1, furDark);
+    ctx.fillStyle = cg;
     ctx.beginPath();
     ctx.arc(0, -2, r, 0, Math.PI * 2);
     ctx.fill();
 
-    // Belly
+    // Cream belly
     ctx.fillStyle = '#FEF3C7';
     ctx.beginPath();
-    ctx.arc(0, 4, r * 0.55, 0, Math.PI * 2);
+    ctx.arc(0, 4.5, r * 0.56, 0, Math.PI * 2);
     ctx.fill();
 
-    // Eyes
+    // Whiskers
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(-r + 2, -2);
+    ctx.lineTo(-r - 5, -3);
+    ctx.moveTo(-r + 2, 1);
+    ctx.lineTo(-r - 5, 2);
+    ctx.moveTo(r - 2, -2);
+    ctx.lineTo(r + 5, -3);
+    ctx.moveTo(r - 2, 1);
+    ctx.lineTo(r + 5, 2);
+    ctx.stroke();
+
+    // Expressive mischievous eyes
     ctx.fillStyle = '#FFFFFF';
     ctx.beginPath();
-    ctx.arc(-4, -5, 3.2, 0, Math.PI * 2);
-    ctx.arc(4, -5, 3.2, 0, Math.PI * 2);
+    ctx.arc(-4.2, -5.5, 3.5, 0, Math.PI * 2);
+    ctx.arc(4.2, -5.5, 3.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#0F172A';
     ctx.beginPath();
-    ctx.arc(-4, -5, 1.6, 0, Math.PI * 2);
-    ctx.arc(4, -5, 1.6, 0, Math.PI * 2);
+    ctx.arc(-4.2, -5.5, 1.8, 0, Math.PI * 2);
+    ctx.arc(4.2, -5.5, 1.8, 0, Math.PI * 2);
     ctx.fill();
+
+    // Orbiting dizzy stars when stunned by a door!
+    if (c.stunTimer > 0) {
+      ctx.fillStyle = '#FEF08A';
+      for (let s = 0; s < 3; s++) {
+        const a = this.clock * 8 + (s * Math.PI * 2) / 3;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * 12, -r - 6 + Math.sin(a) * 3, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
 
     ctx.restore();
   }

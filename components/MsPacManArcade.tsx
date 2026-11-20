@@ -709,7 +709,7 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
                             onClick={onOpenLobby}
                             className="lg:hidden w-full py-2 px-4 rounded-lg border border-white/10 bg-white/[0.04] text-xs font-medium text-slate-200 hover:text-white cursor-pointer"
                           >
-                            All 27 Cabinets
+                            All 37 Cabinets
                           </button>
                         )}
                         <p className="text-xs text-slate-400">

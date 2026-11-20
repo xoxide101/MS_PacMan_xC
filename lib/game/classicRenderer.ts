@@ -11,6 +11,8 @@ import {
   MazeDefinition,
   VisualStyle,
 } from './types';
+import { drawStarGlint } from './arcadeGfx';
+import { renderCrtOverlay } from './classicArcadeInterface';
 
 const T = LOGICAL_TILE_SIZE;
 const fruitHelper = new MsPacManRenderer();
@@ -297,6 +299,11 @@ export class ClassicPacManRenderer {
           ctx.beginPath();
           ctx.arc(cx, cy, 7.5 + pulse * 1.7, 0, Math.PI * 2);
           ctx.fill();
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(cx - 2.2, cy - 2.2, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+          drawStarGlint(ctx, cx, cy, 4.5 + pulse * 2.5, '#FEF9C3', 0.55 + pulse * 0.35);
         }
       }
     }
@@ -489,10 +496,15 @@ export class ClassicPacManRenderer {
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
       ctx.beginPath();
-      ctx.ellipse(-r * 0.32, -r * 0.48, r * 0.26, r * 0.14, -0.5, 0, Math.PI * 2);
+      ctx.ellipse(-r * 0.32, -r * 0.48, r * 0.28, r * 0.14, -0.5, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(0, -r * 0.14, r - 0.8, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.stroke();
     }
 
     if (isFrightened) {
@@ -515,6 +527,12 @@ export class ClassicPacManRenderer {
       ctx.stroke();
     } else {
       const look = this.getEyeOffset(ghost.dir);
+      if (isEaten) {
+        ctx.fillStyle = 'rgba(125, 211, 252, 0.24)';
+        ctx.beginPath();
+        ctx.arc(0, -r * 0.1, r * 0.74, 0, Math.PI * 2);
+        ctx.fill();
+      }
       for (const side of [-1, 1]) {
         const ex = side * r * 0.38 + look.x * 0.45;
         const ey = -r * 0.18 + look.y * 0.45;
@@ -525,6 +543,10 @@ export class ClassicPacManRenderer {
         ctx.fillStyle = '#0B1D51';
         ctx.beginPath();
         ctx.arc(ex + look.x * 1.45, ey + look.y * 1.75, 2.7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(ex + look.x * 1.45 - 0.8, ey + look.y * 1.75 - 0.9, 0.9, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -666,11 +688,6 @@ export class ClassicPacManRenderer {
   }
 
   private renderCrtOverlay(ctx: CanvasRenderingContext2D): void {
-    ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
-    for (let y = 0; y < CANVAS_LOGICAL_HEIGHT; y += 4) {
-      ctx.fillRect(0, y, CANVAS_LOGICAL_WIDTH, 1.5);
-    }
-    ctx.restore();
+    renderCrtOverlay(ctx, CANVAS_LOGICAL_WIDTH, CANVAS_LOGICAL_HEIGHT);
   }
 }

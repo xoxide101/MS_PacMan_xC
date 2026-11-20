@@ -14,6 +14,7 @@ import {
   spawnBurst,
   stepParticlesAndPopups,
 } from './classicArcadeInterface';
+import { drawStarGlint } from './arcadeGfx';
 
 const VIEW_W = 864;
 const VIEW_H = 640;
@@ -696,7 +697,7 @@ export class BoulderDashGame implements ArcadeGameInstance {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const def = CAVES[(this.level - 1) % CAVES.length];
 
-    ctx.fillStyle = this.exitFlashTimer > 0 ? '#E2E8F0' : '#090A10';
+    ctx.fillStyle = this.exitFlashTimer > 0 ? '#E2E8F0' : '#08090F';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
     ctx.save();
@@ -715,126 +716,206 @@ export class BoulderDashGame implements ArcadeGameInstance {
         const y = r * TILE;
 
         if (cell === STEEL) {
-          ctx.fillStyle = '#334155';
+          // Riveted metallic titanium block
+          const sg = ctx.createLinearGradient(x, y, x + TILE, y + TILE);
+          sg.addColorStop(0, '#64748B');
+          sg.addColorStop(0.5, '#334155');
+          sg.addColorStop(1, '#1E293B');
+          ctx.fillStyle = sg;
           ctx.fillRect(x, y, TILE, TILE);
-          ctx.strokeStyle = '#64748B';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x + 2, y + 2, TILE - 4, TILE - 4);
-          ctx.fillStyle = '#94A3B8';
-          ctx.fillRect(x + 6, y + 6, 4, 4);
-          ctx.fillRect(x + TILE - 10, y + TILE - 10, 4, 4);
+          ctx.strokeStyle = '#94A3B8';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(x + 1.5, y + 1.5, TILE - 3, TILE - 3);
+          ctx.fillStyle = '#CBD5E1';
+          ctx.fillRect(x + 5, y + 5, 3.5, 3.5);
+          ctx.fillRect(x + TILE - 8.5, y + 5, 3.5, 3.5);
+          ctx.fillRect(x + 5, y + TILE - 8.5, 3.5, 3.5);
+          ctx.fillRect(x + TILE - 8.5, y + TILE - 8.5, 3.5, 3.5);
         } else if (cell === DIRT) {
+          // Mineral-flecked earthen dirt with subtle beveled rim
           ctx.fillStyle = def.dirtColor;
-          ctx.fillRect(x, y, TILE, TILE);
-          ctx.fillStyle = 'rgba(255,255,255,0.12)';
+          ctx.fillRect(x, y, TILE + 0.4, TILE + 0.4);
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+          if (r > 0 && this.grid[r - 1][c] === EMPTY) ctx.fillRect(x, y, TILE, 3.5);
+          if (r < CAVE_ROWS - 1 && this.grid[r + 1][c] === EMPTY) ctx.fillRect(x, y + TILE - 3.5, TILE, 3.5);
+          ctx.fillStyle = 'rgba(255,255,255,0.16)';
           if ((r + c) % 2 === 0) {
-            ctx.fillRect(x + 5, y + 7, 5, 4);
-            ctx.fillRect(x + 19, y + 20, 6, 4);
+            ctx.fillRect(x + 5, y + 6, 5, 3.5);
+            ctx.fillRect(x + 19, y + 20, 6, 3.5);
           } else {
-            ctx.fillRect(x + 17, y + 8, 5, 4);
-            ctx.fillRect(x + 7, y + 22, 5, 4);
+            ctx.fillRect(x + 17, y + 7, 5, 3.5);
+            ctx.fillRect(x + 7, y + 21, 5, 3.5);
           }
+          ctx.fillStyle = 'rgba(0,0,0,0.18)';
+          ctx.fillRect(x + 12, y + 14, 4, 3);
         } else if (cell === WALL) {
+          // Mortared brick wall
+          ctx.fillStyle = '#0F172A';
+          ctx.fillRect(x, y, TILE, TILE);
           ctx.fillStyle = def.wallColor;
-          ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
-          ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x + 1, y + 1, TILE - 2, TILE / 2 - 1);
-          ctx.strokeRect(x + 1, y + TILE / 2, TILE - 2, TILE / 2 - 1);
+          ctx.fillRect(x + 1, y + 1, TILE * 0.5 - 2, TILE * 0.5 - 2);
+          ctx.fillRect(x + TILE * 0.5 + 1, y + 1, TILE * 0.5 - 2, TILE * 0.5 - 2);
+          ctx.fillRect(x + 1, y + TILE * 0.5 + 1, TILE * 0.25 - 1, TILE * 0.5 - 2);
+          ctx.fillRect(x + TILE * 0.25 + 1, y + TILE * 0.5 + 1, TILE * 0.5 - 2, TILE * 0.5 - 2);
+          ctx.fillRect(x + TILE * 0.75 + 1, y + TILE * 0.5 + 1, TILE * 0.25 - 2, TILE * 0.5 - 2);
+          ctx.fillStyle = 'rgba(255,255,255,0.22)';
+          ctx.fillRect(x + 1, y + 1, TILE - 2, 2);
+          ctx.fillRect(x + 1, y + TILE * 0.5 + 1, TILE - 2, 2);
         } else if (cell === BOULDER) {
-          const grad = ctx.createRadialGradient(x + 11, y + 11, 2, x + 16, y + 16, 15);
-          grad.addColorStop(0, '#E2E8F0');
-          grad.addColorStop(0.55, '#94A3B8');
-          grad.addColorStop(1, '#475569');
+          // Craggy lit boulder with geological cracks
+          const grad = ctx.createRadialGradient(x + 11, y + 10, 2, x + 16, y + 16, 15.5);
+          grad.addColorStop(0, '#F1F5F9');
+          grad.addColorStop(0.5, '#94A3B8');
+          grad.addColorStop(1, '#334155');
           ctx.fillStyle = grad;
           ctx.beginPath();
           ctx.arc(x + 16, y + 16, 14.5, 0, Math.PI * 2);
           ctx.fill();
           ctx.strokeStyle = '#1E293B';
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x + 11, y + 10);
+          ctx.lineTo(x + 17, y + 16);
+          ctx.lineTo(x + 13, y + 23);
           ctx.stroke();
         } else if (cell === DIAMOND) {
-          const glint = 0.78 + Math.sin(this.time * 7 + r + c) * 0.22;
+          // Sparkling multi-faceted spinning crystal Diamond
+          const glint = 0.75 + Math.sin(this.time * 8 + r * 1.3 + c) * 0.25;
+          const spinW = 0.75 + 0.25 * Math.abs(Math.cos(this.time * 4 + r + c));
           ctx.save();
           ctx.translate(x + 16, y + 16);
           ctx.shadowColor = def.diamondColor;
-          ctx.shadowBlur = 10 * glint;
+          ctx.shadowBlur = 12 * glint;
           ctx.fillStyle = def.diamondColor;
           ctx.beginPath();
-          ctx.moveTo(0, -13);
-          ctx.lineTo(12, 0);
-          ctx.lineTo(0, 13);
-          ctx.lineTo(-12, 0);
+          ctx.moveTo(0, -13.5);
+          ctx.lineTo(12 * spinW, 0);
+          ctx.lineTo(0, 13.5);
+          ctx.lineTo(-12 * spinW, 0);
           ctx.closePath();
           ctx.fill();
+          // Facet specular core
           ctx.fillStyle = '#FFFFFF';
           ctx.beginPath();
-          ctx.moveTo(0, -7);
-          ctx.lineTo(5, 0);
+          ctx.moveTo(0, -8);
+          ctx.lineTo(5 * spinW, -1);
           ctx.lineTo(0, 7);
-          ctx.lineTo(-5, 0);
+          ctx.lineTo(-5 * spinW, -1);
           ctx.closePath();
           ctx.fill();
+          if (glint > 0.92) {
+            drawStarGlint(ctx, -4, -6, 6.5, '#FFFFFF', this.time * 4);
+          }
           ctx.restore();
         } else if (cell === EXIT_CLOSED) {
           ctx.fillStyle = '#475569';
-          ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+          ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
           ctx.strokeStyle = '#94A3B8';
-          ctx.strokeRect(x + 6, y + 6, TILE - 12, TILE - 12);
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x + 5, y + 5, TILE - 10, TILE - 10);
         } else if (cell === EXIT_OPEN) {
-          const flash = Math.floor(this.time * 8) % 2 === 0;
+          const pulse = 0.5 + 0.5 * Math.sin(this.time * 10);
           ctx.save();
           ctx.shadowColor = '#4ADE80';
-          ctx.shadowBlur = 14;
-          ctx.fillStyle = flash ? '#4ADE80' : '#16A34A';
-          ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+          ctx.shadowBlur = 16;
+          ctx.fillStyle = pulse > 0.5 ? '#4ADE80' : '#22C55E';
+          ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
           ctx.fillStyle = '#052E16';
-          ctx.fillRect(x + 8, y + 8, TILE - 16, TILE - 16);
+          ctx.fillRect(x + 6, y + 6, TILE - 12, TILE - 12);
+          ctx.strokeStyle = '#BBF7D0';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x + 9, y + 9, TILE - 18, TILE - 18);
           ctx.restore();
         } else if (cell === FIREFLY) {
-          const pulse = Math.sin(this.time * 16 + r) * 2;
+          // Glowing rotating arcade Firefly square with burning core
           ctx.save();
           ctx.translate(x + 16, y + 16);
-          ctx.fillStyle = '#FB923C';
+          ctx.rotate(this.time * 5 + r);
+          ctx.shadowColor = '#FB923C';
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = '#EA580C';
           ctx.beginPath();
-          ctx.roundRect(-11, -11, 22, 22, 6);
+          ctx.roundRect(-11, -11, 22, 22, 5);
           ctx.fill();
-          ctx.fillStyle = '#FEF08A';
+          ctx.strokeStyle = '#FEF08A';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = '#FFFFFF';
           ctx.beginPath();
-          ctx.arc(0, 0, 5 + pulse * 0.4, 0, Math.PI * 2);
+          ctx.arc(0, 0, 5 + Math.sin(this.time * 18) * 1.2, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
         } else if (cell === BUTTERFLY) {
-          const flap = Math.sin(this.time * 18 + c) * 4;
+          // Iridescent flapping jewel Butterfly
+          const flap = Math.sin(this.time * 20 + c) * 3.5;
           ctx.save();
           ctx.translate(x + 16, y + 16);
+          ctx.shadowColor = '#38BDF8';
+          ctx.shadowBlur = 10;
           ctx.fillStyle = '#38BDF8';
           ctx.beginPath();
-          ctx.ellipse(-7, -3, 6, 8 - flap * 0.4, -0.3, 0, Math.PI * 2);
-          ctx.ellipse(7, -3, 6, 8 - flap * 0.4, 0.3, 0, Math.PI * 2);
+          ctx.ellipse(-7, -3, 6.5, Math.max(3, 8.5 - flap * 0.5), -0.3, 0, Math.PI * 2);
+          ctx.ellipse(7, -3, 6.5, Math.max(3, 8.5 - flap * 0.5), 0.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#E0F2FE';
+          ctx.beginPath();
+          ctx.ellipse(-6, 5, 4.5, 4, 0.3, 0, Math.PI * 2);
+          ctx.ellipse(6, 5, 4.5, 4, -0.3, 0, Math.PI * 2);
           ctx.fill();
           ctx.fillStyle = '#F472B6';
-          ctx.fillRect(-2.5, -10, 5, 20);
+          ctx.beginPath();
+          ctx.roundRect(-2.5, -10, 5, 20, 2.5);
+          ctx.fill();
           ctx.restore();
         } else if (cell === PLAYER) {
-          // Rockford miner hero
+          // Expressive Rockford miner with glowing headlamp cone & animated stride
           ctx.save();
           ctx.translate(x + 16, y + 16);
           ctx.scale(this.facing, 1);
-          // Hard hat
+
+          // Headlamp beam glow
+          const lamp = ctx.createRadialGradient(8, -10, 1, 20, -8, 28);
+          lamp.addColorStop(0, 'rgba(254, 240, 138, 0.55)');
+          lamp.addColorStop(1, 'rgba(254, 240, 138, 0)');
+          ctx.fillStyle = lamp;
+          ctx.beginPath();
+          ctx.moveTo(6, -10);
+          ctx.lineTo(36, -20);
+          ctx.lineTo(36, 4);
+          ctx.closePath();
+          ctx.fill();
+
+          // Overalls torso & legs
+          ctx.fillStyle = '#7E22CE';
+          ctx.beginPath();
+          ctx.roundRect(-9, 4, 18, 10, 4);
+          ctx.fill();
+          ctx.fillStyle = '#A855F7';
+          ctx.fillRect(-7, 4, 14, 5);
+          // Face with blinking eyes
+          ctx.fillStyle = '#FDBA74';
+          ctx.beginPath();
+          ctx.roundRect(-7.5, -4, 15, 9, 3);
+          ctx.fill();
+          const blink = Math.sin(this.time * 2.5) > 0.96;
+          ctx.fillStyle = '#0F172A';
+          if (!blink) {
+            ctx.fillRect(1, -1.5, 3, 3.2);
+          } else {
+            ctx.fillRect(1, 0, 3, 1.2);
+          }
+          // Yellow miner hard hat + glowing lamp gem
           ctx.fillStyle = '#FACC15';
           ctx.beginPath();
           ctx.arc(0, -5, 11, Math.PI, 0);
           ctx.fill();
-          ctx.fillRect(-13, -6, 26, 3);
-          // Face & body
-          ctx.fillStyle = '#FDBA74';
-          ctx.fillRect(-7, -3, 14, 8);
-          ctx.fillStyle = '#0F172A';
-          ctx.fillRect(1, -1, 3, 3);
-          ctx.fillStyle = '#A855F7';
+          ctx.fillRect(-13, -6, 26, 3.2);
+          ctx.fillStyle = '#FEF08A';
+          ctx.shadowColor = '#FEF08A';
+          ctx.shadowBlur = 8;
           ctx.beginPath();
-          ctx.roundRect(-9, 5, 18, 9, 4);
+          ctx.arc(8, -9.5, 3, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
         }
@@ -850,8 +931,11 @@ export class BoulderDashGame implements ArcadeGameInstance {
       ctx.font = '800 28px "Outfit", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(4, 6, 13, 0.84)';
+      ctx.fillStyle = 'rgba(4, 6, 13, 0.86)';
       ctx.fillRect(VIEW_W * 0.2, VIEW_H * 0.42, VIEW_W * 0.6, 56);
+      ctx.strokeStyle = '#C084FC';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(VIEW_W * 0.2, VIEW_H * 0.42, VIEW_W * 0.6, 56);
       ctx.fillStyle = '#C084FC';
       ctx.fillText(this.bannerText, VIEW_W * 0.5, VIEW_H * 0.42 + 28);
       ctx.restore();

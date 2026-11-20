@@ -738,14 +738,35 @@ export class MillipedeGame implements ArcadeGameInstance {
   public render(ctx: CanvasRenderingContext2D, dpr: number, visualMode: 'hd' | 'crt'): void {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Rich cosmic indigo-amber arena
-    ctx.fillStyle = this.slowMoTimer > 0 ? '#071024' : '#080612';
+    // Rich cosmic indigo-amber arena (shifts icy cyan during Inchworm Slow-Mo!)
+    const bg = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+    if (this.slowMoTimer > 0) {
+      bg.addColorStop(0, '#07142C');
+      bg.addColorStop(1, '#040B1A');
+    } else {
+      bg.addColorStop(0, '#0B0616');
+      bg.addColorStop(1, '#120812');
+    }
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+    // Ambient twilight spores
+    for (let i = 0; i < 24; i++) {
+      const sx = ((i * 191 + Math.cos(this.time * 0.8 + i) * 16) + WIDTH) % WIDTH;
+      const sy = (i * 263 + this.time * 9) % HEIGHT;
+      ctx.fillStyle = this.slowMoTimer > 0 ? 'rgba(56,189,248,0.16)' : 'rgba(251,146,60,0.12)';
+      ctx.beginPath();
+      ctx.arc(sx, sy, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // Subtle zone divider
     ctx.save();
-    ctx.strokeStyle = 'rgba(249, 115, 22, 0.2)';
+    ctx.fillStyle = 'rgba(249, 115, 22, 0.04)';
+    ctx.fillRect(0, PLAYER_MIN_ROW * TILE, WIDTH, HEIGHT - PLAYER_MIN_ROW * TILE);
+    ctx.strokeStyle = 'rgba(249, 115, 22, 0.28)';
     ctx.setLineDash([6, 6]);
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(0, PLAYER_MIN_ROW * TILE);
     ctx.lineTo(WIDTH, PLAYER_MIN_ROW * TILE);
@@ -772,28 +793,41 @@ export class MillipedeGame implements ArcadeGameInstance {
       this.drawDdtBomb(ctx, d.col * TILE + TILE * 0.5, d.row * TILE + TILE * 0.5);
     }
 
-    // Expanding DDT Blast Clouds
+    // Expanding volumetric DDT Blast Clouds with shockwave ring
     for (const cloud of this.ddtClouds) {
       const alpha = Math.max(0, cloud.life / cloud.maxLife);
       ctx.save();
       const grad = ctx.createRadialGradient(cloud.x, cloud.y, 4, cloud.x, cloud.y, cloud.radius);
-      grad.addColorStop(0, `rgba(254, 240, 138, ${alpha * 0.85})`);
-      grad.addColorStop(0.55, `rgba(249, 115, 22, ${alpha * 0.55})`);
+      grad.addColorStop(0, `rgba(255, 255, 255, ${alpha * 0.9})`);
+      grad.addColorStop(0.32, `rgba(254, 240, 138, ${alpha * 0.85})`);
+      grad.addColorStop(0.68, `rgba(249, 115, 22, ${alpha * 0.58})`);
       grad.addColorStop(1, 'rgba(239, 68, 68, 0)');
       ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(cloud.x, cloud.y, cloud.radius, 0, Math.PI * 2);
       ctx.fill();
+
+      ctx.strokeStyle = `rgba(254, 240, 138, ${alpha * 0.7})`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(cloud.x, cloud.y, cloud.radius * 0.94, 0, Math.PI * 2);
+      ctx.stroke();
       ctx.restore();
     }
 
-    // Bullets
+    // Glowing cyan energy bolts
     for (const b of this.bullets) {
       ctx.save();
-      ctx.fillStyle = '#38BDF8';
       ctx.shadowColor = '#38BDF8';
-      ctx.shadowBlur = 10;
-      ctx.fillRect(b.x - 2.4, b.y - 10, 4.8, 18);
+      ctx.shadowBlur = 12;
+      const bgBolt = ctx.createLinearGradient(0, b.y - 11, 0, b.y + 9);
+      bgBolt.addColorStop(0, '#FFFFFF');
+      bgBolt.addColorStop(0.5, '#38BDF8');
+      bgBolt.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      ctx.fillStyle = bgBolt;
+      ctx.beginPath();
+      ctx.roundRect(b.x - 2.6, b.y - 11, 5.2, 20, 2.5);
+      ctx.fill();
       ctx.restore();
     }
 
@@ -820,8 +854,11 @@ export class MillipedeGame implements ArcadeGameInstance {
       ctx.font = '800 28px "Outfit", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(4, 6, 13, 0.82)';
+      ctx.fillStyle = 'rgba(4, 6, 13, 0.85)';
       ctx.fillRect(WIDTH * 0.2, HEIGHT * 0.44, WIDTH * 0.6, 56);
+      ctx.strokeStyle = '#FB923C';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(WIDTH * 0.2, HEIGHT * 0.44, WIDTH * 0.6, 56);
       ctx.fillStyle = '#FB923C';
       ctx.fillText(this.bannerText, WIDTH * 0.5, HEIGHT * 0.44 + 28);
       ctx.restore();
@@ -834,17 +871,34 @@ export class MillipedeGame implements ArcadeGameInstance {
     const dmg = 4 - m.hp;
     ctx.save();
     ctx.translate(x, y);
-    ctx.fillStyle = '#FDBA74';
-    ctx.fillRect(-4, 0, 8, 9 - dmg * 1.4);
-    ctx.fillStyle = m.poisoned ? '#E879F9' : '#F97316';
+    if (m.poisoned) {
+      ctx.shadowColor = '#E879F9';
+      ctx.shadowBlur = 10;
+    }
+    const stemG = ctx.createLinearGradient(-4, 0, 4, 0);
+    stemG.addColorStop(0, '#9A3412');
+    stemG.addColorStop(0.5, '#FED7AA');
+    stemG.addColorStop(1, '#C2410C');
+    ctx.fillStyle = stemG;
     ctx.beginPath();
-    ctx.arc(0, 0, 10 - dmg * 0.7, Math.PI, 0);
+    ctx.roundRect(-4.2, -0.5, 8.4, Math.max(3, 9.2 - dmg * 1.4), [1, 1, 3, 3]);
+    ctx.fill();
+
+    const capR = 10.2 - dmg * 0.75;
+    const capG = ctx.createRadialGradient(-3, -6, 1, 0, -2, capR + 2);
+    capG.addColorStop(0, '#FFF7ED');
+    capG.addColorStop(0.32, m.poisoned ? '#E879F9' : '#F97316');
+    capG.addColorStop(1, m.poisoned ? '#581C87' : '#7C2D12');
+    ctx.fillStyle = capG;
+    ctx.beginPath();
+    ctx.arc(0, 0.5, capR, Math.PI, 0);
     ctx.closePath();
     ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.fillStyle = '#FEF08A';
     ctx.beginPath();
-    ctx.arc(-3, -4, 1.6, 0, Math.PI * 2);
-    ctx.arc(3, -5, 1.6, 0, Math.PI * 2);
+    ctx.arc(-3.5, -4.5, 1.7, 0, Math.PI * 2);
+    ctx.arc(3.5, -5, 1.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
@@ -852,37 +906,63 @@ export class MillipedeGame implements ArcadeGameInstance {
   private drawFlower(ctx: CanvasRenderingContext2D, x: number, y: number): void {
     ctx.save();
     ctx.translate(x, y);
-    ctx.fillStyle = '#22C55E';
-    ctx.fillRect(-2, 1, 4, 8);
-    ctx.fillStyle = '#EC4899';
+    ctx.fillStyle = '#16A34A';
+    ctx.fillRect(-2, 1, 4, 9);
+    // Tiny leaves
+    ctx.fillStyle = '#4ADE80';
+    ctx.beginPath();
+    ctx.ellipse(-4.5, 6, 3, 1.6, -0.4, 0, Math.PI * 2);
+    ctx.ellipse(4.5, 6, 3, 1.6, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+    // 5 shaded magenta petals
     for (let a = 0; a < 5; a++) {
-      const ang = (a / 5) * Math.PI * 2;
+      const ang = (a / 5) * Math.PI * 2 + Math.sin(this.time * 2 + x) * 0.08;
+      const px = Math.cos(ang) * 5.2;
+      const py = Math.sin(ang) * 5.2 - 2.5;
+      ctx.fillStyle = '#EC4899';
       ctx.beginPath();
-      ctx.arc(Math.cos(ang) * 5.2, Math.sin(ang) * 5.2 - 2, 3.6, 0, Math.PI * 2);
+      ctx.arc(px, py, 3.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FBCFE8';
+      ctx.beginPath();
+      ctx.arc(px - 0.8, py - 0.8, 1.2, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.fillStyle = '#FDE047';
     ctx.beginPath();
-    ctx.arc(0, -2, 3.2, 0, Math.PI * 2);
+    ctx.arc(0, -2.5, 3.4, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
 
   private drawDdtBomb(ctx: CanvasRenderingContext2D, x: number, y: number): void {
-    const pulse = 0.85 + Math.sin(this.time * 6) * 0.15;
+    const pulse = 0.85 + Math.sin(this.time * 7) * 0.15;
     ctx.save();
     ctx.translate(x, y);
     ctx.shadowColor = '#EF4444';
-    ctx.shadowBlur = 10 * pulse;
-    ctx.fillStyle = '#DC2626';
+    ctx.shadowBlur = 12 * pulse;
+
+    // Metallic pressurized canister body
+    const cg = ctx.createLinearGradient(-10, -10, 10, 10);
+    cg.addColorStop(0, '#F87171');
+    cg.addColorStop(0.45, '#DC2626');
+    cg.addColorStop(1, '#7F1D1D');
+    ctx.fillStyle = cg;
     ctx.beginPath();
-    ctx.roundRect(-10, -10, 20, 20, 4);
+    ctx.roundRect(-10.5, -10.5, 21, 21, 4);
     ctx.fill();
-    ctx.strokeStyle = '#FACC15';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-9, -9, 18, 18);
+
+    // Caution yellow top/bottom bands & rivet caps
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#FACC15';
+    ctx.fillRect(-10, -10, 20, 3);
+    ctx.fillRect(-10, 7, 20, 3);
+    ctx.strokeStyle = '#FEF08A';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(-9.5, -9.5, 19, 19);
+
     ctx.fillStyle = '#FEF08A';
-    ctx.font = '800 8.5px "JetBrains Mono", monospace';
+    ctx.font = '900 8.5px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('DDT', 0, 0.5);
@@ -892,35 +972,50 @@ export class MillipedeGame implements ArcadeGameInstance {
   private drawSegment(ctx: CanvasRenderingContext2D, seg: MilliSegment): void {
     ctx.save();
     ctx.translate(seg.x, seg.y);
-    const swing = Math.sin(seg.wiggle) * 3.5;
+    const swing = Math.sin(seg.wiggle) * 4;
     ctx.strokeStyle = '#38BDF8';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(-6, -8);
-    ctx.lineTo(-9, -12 + swing);
-    ctx.moveTo(6, -8);
-    ctx.lineTo(9, -12 - swing);
-    ctx.moveTo(-6, 8);
-    ctx.lineTo(-9, 12 - swing);
-    ctx.moveTo(6, 8);
-    ctx.lineTo(9, 12 + swing);
+    ctx.moveTo(-5, -7);
+    ctx.lineTo(-10, -13 + swing);
+    ctx.moveTo(5, -7);
+    ctx.lineTo(10, -13 - swing);
+    ctx.moveTo(-5, 7);
+    ctx.lineTo(-10, 13 - swing);
+    ctx.moveTo(5, 7);
+    ctx.lineTo(10, 13 + swing);
     ctx.stroke();
 
-    const grad = ctx.createRadialGradient(-3, -3, 1, 0, 0, 11);
+    const grad = ctx.createRadialGradient(-3.5, -3.5, 1, 0, 0, 11.5);
     grad.addColorStop(0, '#FFFBEB');
-    grad.addColorStop(0.38, seg.isHead ? '#EF4444' : '#F97316');
+    grad.addColorStop(0.35, seg.isHead ? '#EF4444' : '#F97316');
     grad.addColorStop(1, '#7C2D12');
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(0, 0, 10.5, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 11, 10, 0, 0, Math.PI * 2);
     ctx.fill();
 
     if (seg.isHead) {
+      // Glowing cyan mandibles & arcade eyes
       const ex = seg.dir * 4.5;
+      ctx.strokeStyle = '#FEF08A';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(seg.dir * 9, -4);
+      ctx.lineTo(seg.dir * 14, -2);
+      ctx.moveTo(seg.dir * 9, 4);
+      ctx.lineTo(seg.dir * 14, 2);
+      ctx.stroke();
       ctx.fillStyle = '#38BDF8';
       ctx.beginPath();
-      ctx.arc(ex, -4, 2.8, 0, Math.PI * 2);
-      ctx.arc(ex, 4, 2.8, 0, Math.PI * 2);
+      ctx.arc(ex, -4, 3.1, 0, Math.PI * 2);
+      ctx.arc(ex, 4, 3.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0F172A';
+      ctx.beginPath();
+      ctx.arc(ex + seg.dir * 1, -4, 1.3, 0, Math.PI * 2);
+      ctx.arc(ex + seg.dir * 1, 4, 1.3, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -930,68 +1025,111 @@ export class MillipedeGame implements ArcadeGameInstance {
     ctx.save();
     ctx.translate(bug.x, bug.y);
     if (bug.kind === 'inchworm') {
-      const arch = Math.sin(bug.anim) * 4;
-      ctx.strokeStyle = '#4ADE80';
-      ctx.lineWidth = 6;
+      const arch = Math.sin(bug.anim) * 5;
+      ctx.strokeStyle = '#15803D';
+      ctx.lineWidth = 9;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(-12, 3);
-      ctx.quadraticCurveTo(0, -10 + arch, 12, 3);
+      ctx.quadraticCurveTo(0, -11 + arch, 12, 3);
       ctx.stroke();
+      ctx.strokeStyle = '#4ADE80';
+      ctx.lineWidth = 5.5;
+      ctx.stroke();
+      const hx = bug.vx > 0 ? 12 : -12;
       ctx.fillStyle = '#FDE047';
       ctx.beginPath();
-      ctx.arc(bug.vx > 0 ? 11 : -11, 2, 3, 0, Math.PI * 2);
+      ctx.arc(hx, 2, 3.8, 0, Math.PI * 2);
       ctx.fill();
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(hx - 1, 0.5, 2, 2);
     } else if (bug.kind === 'beetle') {
-      ctx.fillStyle = '#A855F7';
+      const bg = ctx.createRadialGradient(-3, -3, 1, 0, 0, 13);
+      bg.addColorStop(0, '#F3E8FF');
+      bg.addColorStop(0.4, '#A855F7');
+      bg.addColorStop(1, '#3B0764');
+      ctx.fillStyle = bg;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 12, 9, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 12.5, 9.5, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#E9D5FF';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(0, -8);
-      ctx.lineTo(0, 8);
+      ctx.moveTo(0, -8.5);
+      ctx.lineTo(0, 8.5);
       ctx.stroke();
-    } else if (bug.kind === 'mosquito') {
-      const wing = Math.sin(bug.anim * 2.5) * 6;
-      ctx.fillStyle = 'rgba(186, 230, 253, 0.7)';
+      ctx.fillStyle = '#FDE047';
       ctx.beginPath();
-      ctx.ellipse(-9, -4 + wing * 0.4, 8, 3.5, -0.3, 0, Math.PI * 2);
-      ctx.ellipse(9, -4 - wing * 0.4, 8, 3.5, 0.3, 0, Math.PI * 2);
+      ctx.arc(-4.5, -2, 1.8, 0, Math.PI * 2);
+      ctx.arc(4.5, -2, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (bug.kind === 'mosquito') {
+      const wing = Math.sin(bug.anim * 2.8) * 7;
+      ctx.fillStyle = 'rgba(186, 230, 253, 0.78)';
+      ctx.beginPath();
+      ctx.ellipse(-10, -4 + wing * 0.4, 9, 4, -0.35, 0, Math.PI * 2);
+      ctx.ellipse(10, -4 - wing * 0.4, 9, 4, 0.35, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#F43F5E';
       ctx.beginPath();
-      ctx.ellipse(0, 0, 5, 11, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 5.5, 11.5, 0, 0, Math.PI * 2);
       ctx.fill();
-    } else if (bug.kind === 'earwig') {
-      ctx.fillStyle = '#FACC15';
+      ctx.strokeStyle = '#FEF08A';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 14, 6, 0, 0, Math.PI * 2);
+      ctx.moveTo(0, 10);
+      ctx.lineTo(0, 17);
+      ctx.stroke();
+    } else if (bug.kind === 'earwig') {
+      const dir = bug.vx >= 0 ? 1 : -1;
+      ctx.scale(dir, 1);
+      const eg = ctx.createLinearGradient(-14, -6, 14, 6);
+      eg.addColorStop(0, '#F59E0B');
+      eg.addColorStop(0.5, '#FEF08A');
+      eg.addColorStop(1, '#B45309');
+      ctx.fillStyle = eg;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 14.5, 6.5, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#EF4444';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2.8;
       ctx.beginPath();
       ctx.moveTo(-12, -3);
-      ctx.lineTo(-19, -7);
+      ctx.quadraticCurveTo(-18, -9, -21, -4);
       ctx.moveTo(-12, 3);
-      ctx.lineTo(-19, 7);
+      ctx.quadraticCurveTo(-18, 9, -21, 4);
       ctx.stroke();
+      ctx.fillStyle = '#0F172A';
+      ctx.beginPath();
+      ctx.arc(9, -2, 1.8, 0, Math.PI * 2);
+      ctx.arc(9, 2, 1.8, 0, Math.PI * 2);
+      ctx.fill();
     } else {
       // Spider
       ctx.strokeStyle = '#FDE047';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.3;
+      ctx.lineCap = 'round';
       for (const s of [-1, 1]) {
         for (let l = -1; l <= 1; l++) {
           ctx.beginPath();
           ctx.moveTo(s * 6, l * 4);
-          ctx.lineTo(s * 17, l * 6 + Math.sin(bug.anim + l) * 4);
+          ctx.lineTo(s * 14, l * 5 - 4 + Math.sin(bug.anim + l) * 4);
+          ctx.lineTo(s * 20, l * 6 + 4 - Math.sin(bug.anim + l) * 3);
           ctx.stroke();
         }
       }
-      ctx.fillStyle = '#EC4899';
+      const sg = ctx.createRadialGradient(-3, -3, 1, 0, 0, 13);
+      sg.addColorStop(0, '#FCE7F3');
+      sg.addColorStop(0.4, '#EC4899');
+      sg.addColorStop(1, '#831843');
+      ctx.fillStyle = sg;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 12, 8.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 12.5, 8.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(-4, -2, 2.3, 0, Math.PI * 2);
+      ctx.arc(4, -2, 2.3, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -1002,18 +1140,26 @@ export class MillipedeGame implements ArcadeGameInstance {
     ctx.translate(x, y);
     ctx.shadowColor = '#FB923C';
     ctx.shadowBlur = 12;
-    ctx.fillStyle = '#FEF3C7';
+    const hull = ctx.createLinearGradient(-12, -15, 12, 11);
+    hull.addColorStop(0, '#FFFBEB');
+    hull.addColorStop(0.5, '#FDE68A');
+    hull.addColorStop(1, '#D97706');
+    ctx.fillStyle = hull;
     ctx.beginPath();
-    ctx.moveTo(0, -15);
-    ctx.lineTo(12, 6);
-    ctx.lineTo(6, 11);
-    ctx.lineTo(-6, 11);
-    ctx.lineTo(-12, 6);
+    ctx.moveTo(0, -16);
+    ctx.lineTo(13, 5);
+    ctx.lineTo(7, 12);
+    ctx.lineTo(-7, 12);
+    ctx.lineTo(-13, 5);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = '#38BDF8';
     ctx.beginPath();
-    ctx.arc(0, 1, 4.5, 0, Math.PI * 2);
+    ctx.arc(0, 1.5, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(-1.5, 0, 1.6, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }

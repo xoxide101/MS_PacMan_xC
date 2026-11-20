@@ -317,6 +317,7 @@ export default function ClassicArcadeShell({
     inputRef.current.secondary = active;
   };
 
+  const platformerCabinets = CABINET_LIST.filter((c) => c.category === 'platformers');
   const shooterCabinets = CABINET_LIST.filter((c) => c.category === 'shooters');
   const actionCabinets = CABINET_LIST.filter((c) => c.category === 'action');
   const racingCabinets = CABINET_LIST.filter((c) => c.category === 'racing');
@@ -328,6 +329,10 @@ export default function ClassicArcadeShell({
       ? 'Retry Current Cave (R)'
       : gameId === 'gauntlet' || gameId === 'gauntlet2'
       ? 'Switch Hero Class (R)'
+      : gameId === 'smb2'
+      ? 'Switch Hero (R)'
+      : gameId === 'sonic3'
+      ? 'Switch Sonic / Tails / Knuckles (R)'
       : 'Toggle Inviso Cloak (R)';
 
   return (
@@ -342,7 +347,7 @@ export default function ClassicArcadeShell({
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.09] text-xs font-medium text-slate-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>All 27 Cabinets</span>
+              <span>All 37 Cabinets</span>
             </button>
             <div className="flex items-center gap-2 min-w-0">
               <GameEmblem gameId={gameId} size={24} />
@@ -394,9 +399,10 @@ export default function ClassicArcadeShell({
 
       {/* Main 3-Column Arcade Workspace */}
       <main className="flex-1 w-full mx-auto max-w-[1440px] px-3 sm:px-6 py-4 sm:py-6 flex flex-col lg:flex-row items-center lg:items-start justify-center gap-5">
-        {/* Desktop Left Rail: Full 27-Cabinet Switcher */}
+        {/* Desktop Left Rail: Full 37-Cabinet Switcher */}
         <aside className="hidden lg:flex flex-col w-[228px] shrink-0 rounded-2xl bg-[#0B0F1D] border border-white/[0.08] p-3 max-h-[calc(100dvh-108px)] overflow-y-auto">
           {[
+            { label: 'Platformers', items: platformerCabinets },
             { label: 'Shooters & Vector', items: shooterCabinets },
             { label: 'Action & Dungeon', items: actionCabinets },
             { label: 'Arcade Racing', items: racingCabinets },

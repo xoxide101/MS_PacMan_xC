@@ -514,54 +514,71 @@ export class FoodFightGame implements ArcadeGameInstance {
   public render(ctx: CanvasRenderingContext2D, dpr: number, visualMode: 'hd' | 'crt'): void {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Classic vibrant checkered town plaza
+    // Classic vibrant checkered café patio
     ctx.fillStyle = '#1E293B';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Checkered plaza tiles
     const tileS = 48;
     for (let r = 1; r < Math.ceil(HEIGHT / tileS); r++) {
       for (let c = 0; c < Math.ceil(WIDTH / tileS); c++) {
-        ctx.fillStyle = (r + c) % 2 === 0 ? '#182234' : '#131B2A';
+        const even = (r + c) % 2 === 0;
+        ctx.fillStyle = even ? '#1B273C' : '#131C2D';
         ctx.fillRect(c * tileS, r * tileS, tileS, tileS);
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        ctx.fillRect(c * tileS + 1, r * tileS + 1, tileS - 2, 2);
       }
     }
 
-    // Top plaza awning trim
+    // Scalloped red-and-white restaurant café awning with soft drop shadow
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.45)';
+    ctx.fillRect(0, 48, WIDTH, 14);
     ctx.fillStyle = '#0F172A';
-    ctx.fillRect(0, 0, WIDTH, 48);
+    ctx.fillRect(0, 0, WIDTH, 44);
     for (let x = 0; x < WIDTH; x += 36) {
-      ctx.fillStyle = (x / 36) % 2 === 0 ? '#E11D48' : '#F8FAFC';
-      ctx.fillRect(x, 40, 36, 10);
+      const red = (x / 36) % 2 === 0;
+      const ag = ctx.createLinearGradient(0, 0, 0, 48);
+      ag.addColorStop(0, red ? '#BE123C' : '#CBD5E1');
+      ag.addColorStop(1, red ? '#F43F5E' : '#FFFFFF');
+      ctx.fillStyle = ag;
+      ctx.fillRect(x, 0, 36, 44);
+      ctx.beginPath();
+      ctx.arc(x + 18, 44, 18, 0, Math.PI);
+      ctx.fill();
     }
 
     // Persistent food splat decals on plaza floor
     for (const sm of this.splatMarks) {
       ctx.save();
-      ctx.globalAlpha = 0.28;
+      ctx.globalAlpha = 0.32;
       ctx.fillStyle = sm.color;
       ctx.beginPath();
       ctx.arc(sm.x, sm.y, sm.r, 0, Math.PI * 2);
-      ctx.arc(sm.x + sm.r * 0.6, sm.y - sm.r * 0.3, sm.r * 0.45, 0, Math.PI * 2);
+      ctx.arc(sm.x + sm.r * 0.65, sm.y - sm.r * 0.35, sm.r * 0.48, 0, Math.PI * 2);
+      ctx.arc(sm.x - sm.r * 0.5, sm.y + sm.r * 0.45, sm.r * 0.36, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
 
-    // Swirling Chef Holes
+    // Beveled Swirling Chef Pop-Up Holes
     for (const hole of this.holes) {
       ctx.save();
       ctx.translate(hole.x, hole.y);
       ctx.fillStyle = '#020617';
       ctx.beginPath();
-      ctx.ellipse(0, 0, 24, 15, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 26, 16, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 16, 9, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
     }
 
-    // Food Piles (with subtle grab highlight when Charley is in range)
+    // Food Piles (with golden grab ring when Charley is in range)
     const grabPile = this.getNearestPile(this.playerX, this.playerY, 64);
     for (const p of this.piles) {
       if (p.count <= 0) continue;
@@ -585,7 +602,7 @@ export class FoodFightGame implements ArcadeGameInstance {
 
     // Flying Food Projectiles
     for (const pr of this.projectiles) {
-      this.drawFoodItem(ctx, pr.x, pr.y, pr.kind, pr.spin, 1.05);
+      this.drawFoodItem(ctx, pr.x, pr.y, pr.kind, pr.spin, 1.08);
     }
 
     renderParticlesAndPopups(ctx, this.particles, this.popups);
@@ -595,8 +612,11 @@ export class FoodFightGame implements ArcadeGameInstance {
       ctx.font = '800 28px "Outfit", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(4, 6, 13, 0.85)';
+      ctx.fillStyle = 'rgba(4, 6, 13, 0.86)';
       ctx.fillRect(WIDTH * 0.2, HEIGHT * 0.42, WIDTH * 0.6, 56);
+      ctx.strokeStyle = '#FB7185';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(WIDTH * 0.2, HEIGHT * 0.42, WIDTH * 0.6, 56);
       ctx.fillStyle = '#FB7185';
       ctx.fillText(this.bannerText, WIDTH * 0.5, HEIGHT * 0.42 + 28);
       ctx.restore();
@@ -611,16 +631,23 @@ export class FoodFightGame implements ArcadeGameInstance {
 
     if (inRange) {
       ctx.strokeStyle = '#FACC15';
-      ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#FACC15';
+      ctx.shadowBlur = 10;
+      ctx.lineWidth = 2.6;
       ctx.beginPath();
-      ctx.ellipse(0, 6, 30, 18, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 6, 31, 18, 0, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.shadowBlur = 0;
     }
 
-    // Crate shadow
-    ctx.fillStyle = 'rgba(2, 6, 23, 0.45)';
+    // Café platter tray shadow
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.5)';
     ctx.beginPath();
-    ctx.ellipse(0, 10, 24, 12, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 10, 25, 13, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#475569';
+    ctx.beginPath();
+    ctx.ellipse(0, 8, 22, 11, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Stack up to 3 items visually
@@ -631,7 +658,7 @@ export class FoodFightGame implements ArcadeGameInstance {
       [0, -7],
     ];
     for (let i = 0; i < shown; i++) {
-      this.drawFoodItem(ctx, offsets[i][0], offsets[i][1], pile.kind, 0, 0.85);
+      this.drawFoodItem(ctx, offsets[i][0], offsets[i][1], pile.kind, 0, 0.88);
     }
     ctx.restore();
   }
@@ -650,50 +677,80 @@ export class FoodFightGame implements ArcadeGameInstance {
     ctx.scale(scale, scale);
 
     if (kind === 'watermelon') {
-      ctx.fillStyle = '#16A34A';
+      ctx.fillStyle = '#15803D';
       ctx.beginPath();
-      ctx.arc(0, 0, 11, 0, Math.PI);
+      ctx.arc(0, 0, 12, 0, Math.PI);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#DCFCE7';
+      ctx.beginPath();
+      ctx.arc(0, 0, 9.8, 0, Math.PI);
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = '#EF4444';
       ctx.beginPath();
-      ctx.arc(0, 0, 8.2, 0, Math.PI);
+      ctx.arc(0, 0, 8.6, 0, Math.PI);
       ctx.closePath();
       ctx.fill();
+      // Watermelon seeds
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(-4, 2, 1.8, 2.6);
+      ctx.fillRect(0, 4, 1.8, 2.6);
+      ctx.fillRect(3.5, 2, 1.8, 2.6);
     } else if (kind === 'pie') {
-      ctx.fillStyle = '#D97706';
+      ctx.fillStyle = '#B45309';
       ctx.beginPath();
-      ctx.ellipse(0, 4, 12, 6, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 4.5, 13, 6.2, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = '#FEF3C7';
+      const cream = ctx.createRadialGradient(-3, -3, 1, 0, 0, 11);
+      cream.addColorStop(0, '#FFFFFF');
+      cream.addColorStop(1, '#FDE68A');
+      ctx.fillStyle = cream;
       ctx.beginPath();
-      ctx.arc(0, 2, 9.5, Math.PI, 0);
+      ctx.arc(0, 2, 10, Math.PI, 0);
       ctx.fill();
       ctx.fillStyle = '#EF4444';
       ctx.beginPath();
-      ctx.arc(0, -7, 2.5, 0, Math.PI * 2);
+      ctx.arc(0, -8, 2.8, 0, Math.PI * 2);
       ctx.fill();
     } else if (kind === 'tomato') {
-      ctx.fillStyle = '#EF4444';
+      const tg = ctx.createRadialGradient(-3, -2, 1, 0, 1, 10);
+      tg.addColorStop(0, '#FCA5A5');
+      tg.addColorStop(0.4, '#EF4444');
+      tg.addColorStop(1, '#991B1B');
+      ctx.fillStyle = tg;
       ctx.beginPath();
-      ctx.arc(0, 1, 9.5, 0, Math.PI * 2);
+      ctx.arc(0, 1, 9.8, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#22C55E';
-      ctx.fillRect(-3, -10, 6, 4);
+      ctx.beginPath();
+      ctx.moveTo(0, -11);
+      ctx.lineTo(4, -7);
+      ctx.lineTo(-4, -7);
+      ctx.closePath();
+      ctx.fill();
     } else if (kind === 'banana') {
-      ctx.strokeStyle = '#FACC15';
-      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#EAB308';
+      ctx.lineWidth = 7.5;
       ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.arc(0, -2, 9, 0.25 * Math.PI, 0.85 * Math.PI);
+      ctx.arc(0, -2, 9.5, 0.22 * Math.PI, 0.85 * Math.PI);
+      ctx.stroke();
+      ctx.strokeStyle = '#FEF08A';
+      ctx.lineWidth = 4;
       ctx.stroke();
     } else {
       ctx.fillStyle = '#4ADE80';
-      ctx.beginPath();
-      ctx.arc(-5, 2, 4.5, 0, Math.PI * 2);
-      ctx.arc(5, 2, 4.5, 0, Math.PI * 2);
-      ctx.arc(0, -4, 4.5, 0, Math.PI * 2);
-      ctx.fill();
+      for (const [px, py] of [[-5, 2], [5, 2], [0, -4.5]]) {
+        ctx.beginPath();
+        ctx.arc(px, py, 4.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#DCFCE7';
+        ctx.beginPath();
+        ctx.arc(px - 1.4, py - 1.4, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#4ADE80';
+      }
     }
     ctx.restore();
   }
@@ -702,39 +759,69 @@ export class FoodFightGame implements ArcadeGameInstance {
     ctx.save();
     ctx.translate(x, y);
 
-    // Growing strawberry melt puddle beneath the cone
-    ctx.fillStyle = 'rgba(244, 114, 182, 0.55)';
+    // Growing strawberry glaze melt puddle
+    ctx.fillStyle = 'rgba(244, 114, 182, 0.62)';
     ctx.beginPath();
-    ctx.ellipse(0, 32, 14 + melt * 28, 6 + melt * 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 34, 15 + melt * 30, 6.5 + melt * 9, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Waffle cone
-    ctx.fillStyle = '#F59E0B';
+    // Cross-hatched golden waffle cone
+    const coneG = ctx.createLinearGradient(-16, 4, 16, 36);
+    coneG.addColorStop(0, '#FBBF24');
+    coneG.addColorStop(0.55, '#D97706');
+    coneG.addColorStop(1, '#92400E');
+    ctx.fillStyle = coneG;
     ctx.beginPath();
-    ctx.moveTo(-16, 4);
-    ctx.lineTo(16, 4);
-    ctx.lineTo(0, 36);
+    ctx.moveTo(-17, 4);
+    ctx.lineTo(17, 4);
+    ctx.lineTo(0, 38);
     ctx.closePath();
     ctx.fill();
+    ctx.strokeStyle = 'rgba(120, 53, 15, 0.55)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(-11, 10);
+    ctx.lineTo(7, 24);
+    ctx.moveTo(-5, 6);
+    ctx.lineTo(11, 17);
+    ctx.moveTo(11, 10);
+    ctx.lineTo(-7, 24);
+    ctx.stroke();
 
-    // Shrinking ice cream scoops as cone melts!
+    // Luscious shrinking ice cream scoops with specular sheen & cherry on top
     const scoopScale = Math.max(0.2, 1 - melt * 0.82);
     ctx.save();
     ctx.translate(0, 4 - scoopScale * 10);
     ctx.scale(scoopScale, scoopScale);
     ctx.shadowColor = '#F472B6';
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = '#F472B6';
+    ctx.shadowBlur = 16;
+    const sc1 = ctx.createRadialGradient(-5, -3, 2, 0, 2, 20);
+    sc1.addColorStop(0, '#FBCFE8');
+    sc1.addColorStop(0.5, '#F472B6');
+    sc1.addColorStop(1, '#BE185D');
+    ctx.fillStyle = sc1;
     ctx.beginPath();
-    ctx.arc(0, 2, 18, 0, Math.PI * 2);
+    ctx.arc(0, 2, 19, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#FEF3C7';
+
+    const sc2 = ctx.createRadialGradient(-4, -18, 2, 0, -14, 15);
+    sc2.addColorStop(0, '#FFFFFF');
+    sc2.addColorStop(0.6, '#FEF3C7');
+    sc2.addColorStop(1, '#FDE68A');
+    ctx.fillStyle = sc2;
     ctx.beginPath();
-    ctx.arc(0, -14, 14, 0, Math.PI * 2);
+    ctx.arc(0, -14, 14.5, 0, Math.PI * 2);
     ctx.fill();
+
+    // Glossy cherry & stem
+    ctx.shadowBlur = 0;
     ctx.fillStyle = '#EF4444';
     ctx.beginPath();
-    ctx.arc(0, -28, 4.5, 0, Math.PI * 2);
+    ctx.arc(0, -28, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(-1.6, -29.5, 1.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
@@ -747,33 +834,47 @@ export class FoodFightGame implements ArcadeGameInstance {
     if (this.facingX < -0.1) ctx.scale(-1, 1);
 
     // Shadow
-    ctx.fillStyle = 'rgba(2, 6, 23, 0.4)';
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.42)';
     ctx.beginPath();
-    ctx.ellipse(0, 16, 14, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 17, 15, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Bright yellow shirt & blue jeans
-    const bob = Math.sin(this.playerAnim) * 2.5;
-    ctx.fillStyle = '#3B82F6';
-    ctx.fillRect(-8, 6, 6, 10 + bob * 0.4);
-    ctx.fillRect(2, 6, 6, 10 - bob * 0.4);
+    // Articulated jeans & sneakers
+    const bob = Math.sin(this.playerAnim) * 4;
+    ctx.fillStyle = '#2563EB';
+    ctx.beginPath();
+    ctx.roundRect(-8 + bob * 0.4, 5, 6.5, 10, 2);
+    ctx.roundRect(2 - bob * 0.4, 5, 6.5, 10, 2);
+    ctx.fill();
+    ctx.fillStyle = '#F8FAFC';
+    ctx.fillRect(-9 + bob * 0.4, 14, 8, 3.5);
+    ctx.fillRect(1 - bob * 0.4, 14, 8, 3.5);
+
+    // Bright yellow tee with red stripe & swinging arms
     ctx.fillStyle = '#FACC15';
     ctx.beginPath();
     ctx.roundRect(-11, -8, 22, 16, 6);
     ctx.fill();
-    // Head & grin
+    ctx.fillStyle = '#EF4444';
+    ctx.fillRect(-10, -2, 20, 3);
+
+    // Head, big grin & baseball cap
     ctx.fillStyle = '#FDBA74';
     ctx.beginPath();
-    ctx.arc(0, -14, 10, 0, Math.PI * 2);
+    ctx.arc(0, -14.5, 10.5, 0, Math.PI * 2);
     ctx.fill();
-    // Red cap
     ctx.fillStyle = '#EF4444';
     ctx.beginPath();
-    ctx.arc(0, -17, 10, Math.PI, 0);
+    ctx.arc(0, -17.5, 10.5, Math.PI, 0);
     ctx.fill();
-    ctx.fillRect(2, -18, 10, 3);
+    ctx.fillRect(1, -18.5, 11.5, 3.4);
     ctx.fillStyle = '#0F172A';
-    ctx.fillRect(3, -15, 2.5, 3);
+    ctx.fillRect(3.2, -16, 2.5, 3.5);
+    ctx.strokeStyle = '#7C2D12';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(3.5, -11.5, 3.5, 0.1, Math.PI * 0.85);
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -781,35 +882,55 @@ export class FoodFightGame implements ArcadeGameInstance {
     ctx.save();
     ctx.translate(chef.x, chef.y);
     if (chef.state === 'splatted') {
-      ctx.globalAlpha = 0.72;
-      ctx.rotate(0.4);
+      ctx.globalAlpha = 0.78;
+      ctx.rotate(0.42);
     } else if (chef.state === 'respawning') {
       ctx.scale(0.75, 0.75);
     }
 
-    // Chef white apron & colored coat
+    // Ground shadow
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.4)';
+    ctx.beginPath();
+    ctx.ellipse(0, 16, 14, 5.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Chef colored coat + crisp white apron & buttons
     ctx.fillStyle = chef.color;
     ctx.beginPath();
-    ctx.roundRect(-12, -6, 24, 20, 6);
+    ctx.roundRect(-12.5, -6, 25, 21, 6);
     ctx.fill();
     ctx.fillStyle = '#F8FAFC';
-    ctx.fillRect(-7, -2, 14, 15);
+    ctx.beginPath();
+    ctx.roundRect(-8, -3, 16, 17, 3);
+    ctx.fill();
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(-3.5, 0, 2, 2);
+    ctx.fillRect(1.5, 0, 2, 2);
+    ctx.fillRect(-3.5, 5, 2, 2);
+    ctx.fillRect(1.5, 5, 2, 2);
 
-    // Face & mustache
+    // Expressive face, eyes & curled handlebar mustache
     ctx.fillStyle = '#FDBA74';
     ctx.beginPath();
-    ctx.arc(0, -13, 9.5, 0, Math.PI * 2);
+    ctx.arc(0, -13.5, 10, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = '#0F172A';
+    ctx.fillRect(-4.5, -16, 2.4, 2.8);
+    ctx.fillRect(2, -16, 2.4, 2.8);
     ctx.fillStyle = '#1E293B';
-    ctx.fillRect(-5, -10, 10, 2.5);
-
-    // Tall puffy white toque chef hat!
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(-9, -25, 18, 8);
     ctx.beginPath();
-    ctx.arc(-5, -26, 6, 0, Math.PI * 2);
-    ctx.arc(0, -29, 7, 0, Math.PI * 2);
-    ctx.arc(5, -26, 6, 0, Math.PI * 2);
+    ctx.ellipse(-3.5, -10.5, 4.5, 2, -0.15, 0, Math.PI * 2);
+    ctx.ellipse(3.5, -10.5, 4.5, 2, 0.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Tall pleated puffy white toque chef hat!
+    ctx.fillStyle = '#E2E8F0';
+    ctx.fillRect(-9.5, -25.5, 19, 8);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(-6, -26.5, 6.2, 0, Math.PI * 2);
+    ctx.arc(0, -30, 7.5, 0, Math.PI * 2);
+    ctx.arc(6, -26.5, 6.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }

@@ -15,6 +15,8 @@ import {
   JrPrizeType,
   VisualStyle,
 } from './jrTypes';
+import { drawStarGlint } from './arcadeGfx';
+import { renderCrtOverlay } from './classicArcadeInterface';
 
 const T = JR_TILE_SIZE; // 32 logical px per tile
 
@@ -564,6 +566,7 @@ export class JrPacManRenderer {
           ctx.beginPath();
           ctx.arc(cx - 2.3, cy - 2.3, 2.2, 0, Math.PI * 2);
           ctx.fill();
+          drawStarGlint(ctx, cx, cy, 4.8 + pulse * 2.5, '#FEF9C3', 0.55 + pulse * 0.35);
         }
       }
     }
@@ -792,10 +795,15 @@ export class JrPacManRenderer {
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      ctx.fillStyle = isFlashing ? 'rgba(255,255,255,0.55)' : 'rgba(255, 255, 255, 0.22)';
+      ctx.fillStyle = isFlashing ? 'rgba(255,255,255,0.55)' : 'rgba(255, 255, 255, 0.28)';
       ctx.beginPath();
-      ctx.ellipse(-r * 0.32, -r * 0.48, r * 0.26, r * 0.14, -0.5, 0, Math.PI * 2);
+      ctx.ellipse(-r * 0.32, -r * 0.48, r * 0.28, r * 0.14, -0.5, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(0, -r * 0.14, r - 0.8, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.stroke();
     }
 
     if (isFrightened) {
@@ -1222,23 +1230,6 @@ export class JrPacManRenderer {
   }
 
   private renderCrtOverlay(ctx: CanvasRenderingContext2D): void {
-    ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
-    for (let y = 0; y < JR_VIEWPORT_HEIGHT; y += 4) {
-      ctx.fillRect(0, y, JR_VIEWPORT_WIDTH, 1.5);
-    }
-    const vig = ctx.createRadialGradient(
-      JR_VIEWPORT_WIDTH * 0.5,
-      JR_VIEWPORT_HEIGHT * 0.5,
-      JR_VIEWPORT_WIDTH * 0.34,
-      JR_VIEWPORT_WIDTH * 0.5,
-      JR_VIEWPORT_HEIGHT * 0.5,
-      JR_VIEWPORT_HEIGHT * 0.65
-    );
-    vig.addColorStop(0, 'rgba(0,0,0,0)');
-    vig.addColorStop(1, 'rgba(0,0,0,0.34)');
-    ctx.fillStyle = vig;
-    ctx.fillRect(0, 0, JR_VIEWPORT_WIDTH, JR_VIEWPORT_HEIGHT);
-    ctx.restore();
+    renderCrtOverlay(ctx, JR_VIEWPORT_WIDTH, JR_VIEWPORT_HEIGHT);
   }
 }

@@ -10,6 +10,8 @@ import {
   LOGICAL_TILE_SIZE as TILE_SIZE,
   VisualStyle,
 } from './types';
+import { drawStarGlint } from './arcadeGfx';
+import { renderCrtOverlay } from './classicArcadeInterface';
 
 function dirAngle(dir: Direction): number {
   switch (dir) {
@@ -285,12 +287,14 @@ export class SuperPacManRenderer {
           ctx.beginPath();
           ctx.arc(cx, cy, rSuper, 0, Math.PI * 2);
           ctx.fill();
-          // Outer ring glint
+          // Outer ring glint + sparkle star
           ctx.strokeStyle = 'rgba(220, 252, 231, 0.85)';
           ctx.lineWidth = 1.4;
           ctx.beginPath();
           ctx.arc(cx, cy, rSuper + 2.2, 0, Math.PI * 2);
           ctx.stroke();
+          ctx.shadowBlur = 0;
+          drawStarGlint(ctx, cx, cy, 5.5 + superPulse * 2.5, '#ECFDF5', 0.75);
           ctx.restore();
         } else if (ch === 'T') {
           this.drawPrize(ctx, engine.currentPrize, cx, cy, 0.92);
@@ -677,11 +681,17 @@ export class SuperPacManRenderer {
     ctx.arc(0, 0, r, mouthOpen, Math.PI * 2 - mouthOpen);
     ctx.closePath();
     ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Forehead gloss crescent
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.2, -r * 0.45, r * 0.34, r * 0.14, -0.35, 0, Math.PI * 2);
+    ctx.fill();
 
     // Super Pac-Man bold eyes when Giant!
     if (isSuper) {
       const eyeY = p.facing === 'LEFT' ? r * 0.36 : -r * 0.36;
-      ctx.shadowBlur = 0;
       ctx.fillStyle = '#0F172A';
       ctx.beginPath();
       ctx.arc(r * 0.12, eyeY, r * 0.13, 0, Math.PI * 2);
@@ -742,6 +752,13 @@ export class SuperPacManRenderer {
       }
       ctx.closePath();
       ctx.fill();
+
+      // Glossy dome highlight
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.26)';
+      ctx.beginPath();
+      ctx.ellipse(-r * 0.32, -r * 0.45, r * 0.26, r * 0.14, -0.5, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     ctx.shadowBlur = 0;
@@ -766,16 +783,26 @@ export class SuperPacManRenderer {
     } else {
       const lookX = g.dir === 'LEFT' ? -2.1 : g.dir === 'RIGHT' ? 2.1 : 0;
       const lookY = g.dir === 'UP' ? -2.1 : g.dir === 'DOWN' ? 2.1 : 0;
+      if (isEyes) {
+        ctx.fillStyle = 'rgba(125, 211, 252, 0.24)';
+        ctx.beginPath();
+        ctx.arc(0, -r * 0.1, r * 0.72, 0, Math.PI * 2);
+        ctx.fill();
+      }
       for (const side of [-1, 1]) {
         const ex = side * r * 0.36;
         const ey = -r * 0.16;
         ctx.fillStyle = '#F8FAFC';
         ctx.beginPath();
-        ctx.ellipse(ex, ey, 3.6, 4.5, 0, 0, Math.PI * 2);
+        ctx.ellipse(ex, ey, 3.8, 4.8, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#1E3A8A';
         ctx.beginPath();
-        ctx.arc(ex + lookX, ey + lookY, 2.0, 0, Math.PI * 2);
+        ctx.arc(ex + lookX, ey + lookY, 2.1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(ex + lookX - 0.7, ey + lookY - 0.8, 0.8, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -825,23 +852,6 @@ export class SuperPacManRenderer {
   }
 
   private drawCrtOverlay(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
-    for (let y = 0; y < height; y += 3) {
-      ctx.fillRect(0, y, width, 1);
-    }
-    const vig = ctx.createRadialGradient(
-      width * 0.5,
-      height * 0.5,
-      width * 0.34,
-      width * 0.5,
-      height * 0.5,
-      width * 0.78
-    );
-    vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    vig.addColorStop(1, 'rgba(0, 0, 0, 0.45)');
-    ctx.fillStyle = vig;
-    ctx.fillRect(0, 0, width, height);
-    ctx.restore();
+    renderCrtOverlay(ctx, width, height);
   }
 }

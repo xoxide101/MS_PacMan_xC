@@ -14,6 +14,7 @@ import {
   spawnBurst,
   stepParticlesAndPopups,
 } from './classicArcadeInterface';
+import { drawStarGlint } from './arcadeGfx';
 
 const WIDTH = 864;
 const HEIGHT = 640;
@@ -468,11 +469,58 @@ export class SprintGame implements ArcadeGameInstance {
     const wps = circuit.waypoints;
     const isMono = this.variant === 'sprint';
 
-    // Track infield background
-    ctx.fillStyle = isMono ? '#080A0E' : circuit.bgColor;
+    // Textured infield turf / classic monochrome carbon surface
+    ctx.fillStyle = isMono ? '#080B12' : circuit.bgColor;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Draw closed track loop (wall outer border + asphalt inner surface)
+    if (isMono) {
+      // Crisp 1976 Sprint phosphor blueprint infield grid
+      ctx.strokeStyle = 'rgba(226, 232, 240, 0.06)';
+      ctx.lineWidth = 1;
+      for (let gx = 0; gx < WIDTH; gx += 32) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, HEIGHT);
+        ctx.stroke();
+      }
+      for (let gy = 0; gy < HEIGHT; gy += 32) {
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.lineTo(WIDTH, gy);
+        ctx.stroke();
+      }
+    } else {
+      // Mowed stadium turf stripes & subtle radial vignette
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.045)';
+      for (let sx = 0; sx < WIDTH; sx += 44) {
+        ctx.fillRect(sx, 0, 22, HEIGHT);
+      }
+      // Corner spectator grandstands & pit garages
+      const stands = [
+        { x: 24, y: 20, w: 120, h: 30 },
+        { x: WIDTH - 144, y: 20, w: 120, h: 30 },
+        { x: 24, y: HEIGHT - 50, w: 120, h: 30 },
+        { x: WIDTH - 144, y: HEIGHT - 50, w: 120, h: 30 },
+      ];
+      for (const st of stands) {
+        ctx.fillStyle = '#1E293B';
+        ctx.beginPath();
+        ctx.roundRect(st.x, st.y, st.w, st.h, 4);
+        ctx.fill();
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(st.x + 4, st.y + 4, st.w - 8, 6);
+        ctx.fillRect(st.x + 4, st.y + 13, st.w - 8, 6);
+        ctx.fillRect(st.x + 4, st.y + 22, st.w - 8, 5);
+        // Tiny colorful crowd dots
+        for (let cx = st.x + 8; cx < st.x + st.w - 8; cx += 11) {
+          ctx.fillStyle = (cx * 7) % 3 === 0 ? '#FACC15' : (cx * 5) % 2 === 0 ? '#EF4444' : '#38BDF8';
+          ctx.fillRect(cx, st.y + 6, 4, 3);
+          ctx.fillRect(cx + 3, st.y + 15, 4, 3);
+        }
+      }
+    }
+
+    // Draw closed track loop with layered depth: barrier shadow -> guardrail -> rumble kerbs -> asphalt -> racing groove
     ctx.save();
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
@@ -484,109 +532,270 @@ export class SprintGame implements ArcadeGameInstance {
       ctx.closePath();
     };
 
-    // Outer barrier
+    // Outer barrier drop shadow
     traceTrack();
-    ctx.strokeStyle = isMono ? '#E2E8F0' : circuit.wallColor;
-    ctx.lineWidth = circuit.roadWidth + 12;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.42)';
+    ctx.lineWidth = circuit.roadWidth + 24;
     ctx.stroke();
 
-    // Asphalt road
+    // Outer metallic guardrail wall
     traceTrack();
-    ctx.strokeStyle = isMono ? '#181C24' : circuit.roadColor;
+    ctx.strokeStyle = isMono ? '#F8FAFC' : circuit.wallColor;
+    ctx.lineWidth = circuit.roadWidth + 15;
+    ctx.stroke();
+
+    // Alternating red-white rumble kerb lip
+    traceTrack();
+    ctx.strokeStyle = isMono ? '#94A3B8' : '#EF4444';
+    ctx.lineWidth = circuit.roadWidth + 7;
+    ctx.stroke();
+    traceTrack();
+    ctx.strokeStyle = '#F8FAFC';
+    ctx.lineWidth = circuit.roadWidth + 7;
+    ctx.setLineDash([14, 14]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Main asphalt road
+    traceTrack();
+    ctx.strokeStyle = isMono ? '#151A24' : circuit.roadColor;
     ctx.lineWidth = circuit.roadWidth;
     ctx.stroke();
 
-    // Center dashed line
+    // Darkened rubber racing groove along ideal line
     traceTrack();
-    ctx.strokeStyle = isMono ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.22)';
-    ctx.setLineDash([12, 14]);
+    ctx.strokeStyle = isMono ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.34)';
+    ctx.lineWidth = circuit.roadWidth * 0.48;
+    ctx.stroke();
+
+    // Center dashed lane markings
+    traceTrack();
+    ctx.strokeStyle = isMono ? 'rgba(255, 255, 255, 0.36)' : 'rgba(248, 250, 252, 0.28)';
+    ctx.setLineDash([12, 16]);
     ctx.lineWidth = 2.5;
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Championship Sprint retractable shortcut lane
+    // Championship Sprint retractable shortcut bridge with animated pneumatic gates
     if (this.variant === 'champsprint') {
-      ctx.fillStyle = this.shortcutOpen ? '#475569' : '#1E293B';
-      ctx.fillRect(WIDTH * 0.5 - 26, 145, 52, 375);
+      ctx.fillStyle = this.shortcutOpen ? '#334155' : '#0F172A';
+      ctx.fillRect(WIDTH * 0.5 - 28, 145, 56, 375);
+      // Chevron deck arrows when open
+      if (this.shortcutOpen) {
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.45)';
+        for (let cy = 180; cy < 490; cy += 48) {
+          ctx.beginPath();
+          ctx.moveTo(WIDTH * 0.5, cy - 10);
+          ctx.lineTo(WIDTH * 0.5 + 14, cy + 6);
+          ctx.lineTo(WIDTH * 0.5 + 8, cy + 6);
+          ctx.lineTo(WIDTH * 0.5, cy - 2);
+          ctx.lineTo(WIDTH * 0.5 - 8, cy + 6);
+          ctx.lineTo(WIDTH * 0.5 - 14, cy + 6);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
       ctx.strokeStyle = this.shortcutOpen ? '#4ADE80' : '#EF4444';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(WIDTH * 0.5 - 26, 145, 52, 375);
+      ctx.lineWidth = 3.5;
+      ctx.strokeRect(WIDTH * 0.5 - 28, 145, 56, 375);
+      // Top & bottom retractable gate arms
+      ctx.fillStyle = this.shortcutOpen ? '#4ADE80' : '#EF4444';
+      if (!this.shortcutOpen) {
+        ctx.fillRect(WIDTH * 0.5 - 28, 144, 56, 8);
+        ctx.fillRect(WIDTH * 0.5 - 28, 514, 56, 8);
+      } else {
+        ctx.fillRect(WIDTH * 0.5 - 32, 140, 8, 16);
+        ctx.fillRect(WIDTH * 0.5 + 24, 140, 8, 16);
+        ctx.fillRect(WIDTH * 0.5 - 32, 508, 8, 16);
+        ctx.fillRect(WIDTH * 0.5 + 24, 508, 8, 16);
+      }
     }
 
-    // Checkered Start / Finish Line
+    // Double-row Checkered Start / Finish Line & Starting Gantry
     const sf = wps[0];
-    for (let i = -4; i < 4; i++) {
-      ctx.fillStyle = i % 2 === 0 ? '#FFFFFF' : '#0F172A';
-      ctx.fillRect(sf.x - 6, sf.y + i * 11, 12, 11);
+    const halfW = circuit.roadWidth * 0.48;
+    const sq = 9;
+    const rows = Math.floor((halfW * 2) / sq);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < 2; c++) {
+        ctx.fillStyle = (r + c) % 2 === 0 ? '#FFFFFF' : '#0F172A';
+        ctx.fillRect(sf.x - sq + c * sq, sf.y - halfW + r * sq, sq, sq);
+      }
     }
+    // Gantry pillars flanking start line
+    ctx.fillStyle = isMono ? '#F8FAFC' : '#E2E8F0';
+    ctx.fillRect(sf.x - 5, sf.y - halfW - 14, 10, 12);
+    ctx.fillRect(sf.x - 5, sf.y + halfW + 2, 10, 12);
     ctx.restore();
 
-    // Hazards
+    // Hazards (Iridescent Oil Slicks, Rippling Water Puddles, Swirling Dust Tornado)
     for (const h of this.hazards) {
       ctx.save();
       ctx.translate(h.x, h.y);
       if (h.kind === 'oil') {
-        ctx.fillStyle = '#09090B';
+        const oilGrad = ctx.createRadialGradient(-4, -3, 2, 0, 0, h.radius);
+        oilGrad.addColorStop(0, '#1E1B4B');
+        oilGrad.addColorStop(0.55, '#09090B');
+        oilGrad.addColorStop(0.85, '#312E81');
+        oilGrad.addColorStop(1, '#0F172A');
+        ctx.fillStyle = oilGrad;
         ctx.beginPath();
         ctx.ellipse(0, 0, h.radius, h.radius * 0.72, 0.3, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#6366F1';
+        ctx.strokeStyle = isMono ? '#94A3B8' : 'rgba(168, 85, 247, 0.7)';
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+        // Glossy sheen highlight
+        ctx.fillStyle = isMono ? 'rgba(255,255,255,0.35)' : 'rgba(56, 189, 248, 0.45)';
+        ctx.beginPath();
+        ctx.ellipse(-h.radius * 0.3, -h.radius * 0.2, h.radius * 0.26, h.radius * 0.12, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (h.kind === 'water') {
+        ctx.fillStyle = 'rgba(14, 165, 233, 0.5)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, h.radius, h.radius * 0.72, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(186, 230, 253, 0.8)';
         ctx.lineWidth = 1.5;
         ctx.stroke();
-      } else if (h.kind === 'water') {
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.55)';
+        // Animated ripple ring
+        const ripple = ((this.time * 0.9) % 1) * h.radius * 0.8;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 - (ripple / h.radius) * 0.7})`;
         ctx.beginPath();
-        ctx.ellipse(0, 0, h.radius, h.radius * 0.7, -0.2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.ellipse(0, 0, ripple, ripple * 0.7, -0.2, 0, Math.PI * 2);
+        ctx.stroke();
       } else {
-        // Spinning mini-tornado
-        ctx.strokeStyle = '#E2E8F0';
-        ctx.lineWidth = 2.5;
-        for (let r = 6; r <= 18; r += 6) {
+        // Swirling dust-funnel tornado
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.24)';
+        ctx.beginPath();
+        ctx.arc(0, 0, h.radius + 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#F1F5F9';
+        ctx.lineWidth = 2.6;
+        for (let r = 5; r <= 19; r += 4.5) {
           ctx.beginPath();
-          ctx.arc(0, 0, r, this.time * 10 + r, this.time * 10 + r + Math.PI * 1.3);
+          ctx.arc(0, 0, r, this.time * 12 + r * 0.5, this.time * 12 + r * 0.5 + Math.PI * 1.25);
           ctx.stroke();
+        }
+        // Orbiting debris specks
+        ctx.fillStyle = '#FACC15';
+        for (let d = 0; d < 4; d++) {
+          const da = this.time * 10 + d * 1.57;
+          ctx.fillRect(Math.cos(da) * 16 - 1.5, Math.sin(da) * 16 - 1.5, 3, 3);
         }
       }
       ctx.restore();
     }
 
-    // Golden Wrench Pickup
+    // Gleaming Golden Wrench Pickup
     if (this.wrenchPickup.active) {
       ctx.save();
       ctx.translate(this.wrenchPickup.x, this.wrenchPickup.y);
-      ctx.rotate(Math.sin(this.time * 5) * 0.3);
-      ctx.shadowColor = '#FACC15';
-      ctx.shadowBlur = 12;
-      ctx.fillStyle = '#FACC15';
-      ctx.fillRect(-10, -3, 20, 6);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.beginPath();
-      ctx.arc(-10, 0, 6, 0.5, Math.PI * 2 - 0.5);
-      ctx.arc(10, 0, 6, Math.PI + 0.5, Math.PI - 0.5);
+      ctx.ellipse(0, 8, 14, 5, 0, 0, Math.PI * 2);
       ctx.fill();
+      ctx.rotate(Math.sin(this.time * 4.5) * 0.35 - 0.3);
+      ctx.shadowColor = '#FACC15';
+      ctx.shadowBlur = 14;
+      const wg = ctx.createLinearGradient(-12, -6, 12, 6);
+      wg.addColorStop(0, '#FEF08A');
+      wg.addColorStop(0.5, '#FACC15');
+      wg.addColorStop(1, '#CA8A04');
+      ctx.fillStyle = wg;
+      ctx.beginPath();
+      ctx.roundRect(-10, -3.2, 20, 6.4, 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(-11, 0, 6.5, 0.55, Math.PI * 2 - 0.55);
+      ctx.lineTo(-9, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(11, 0, 6.5, Math.PI + 0.55, Math.PI - 0.55);
+      ctx.lineTo(9, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      drawStarGlint(ctx, -6, -4, 5, '#FFFFFF', 0.9);
       ctx.restore();
     }
 
-    // Race Cars
+    // Sculpted Top-Down Formula-1 Sprint Racers
     for (const car of this.cars) {
       ctx.save();
       ctx.translate(car.x, car.y);
       ctx.rotate(car.angle);
-      ctx.fillStyle = '#0F172A';
-      ctx.fillRect(-12, -10, 8, 4);
-      ctx.fillRect(-12, 6, 8, 4);
-      ctx.fillRect(5, -10, 7, 4);
-      ctx.fillRect(5, 6, 7, 4);
+
+      // Soft ground drop shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+      ctx.beginPath();
+      ctx.ellipse(-1, 3, 19, 11, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rear wide slicks & front steering slicks
+      ctx.fillStyle = '#090D16';
+      ctx.beginPath();
+      ctx.roundRect(-15, -12, 9.5, 5, 1.5);
+      ctx.roundRect(-15, 7, 9.5, 5, 1.5);
+      ctx.roundRect(6, -11, 7.5, 4.4, 1.5);
+      ctx.roundRect(6, 6.6, 7.5, 4.4, 1.5);
+      ctx.fill();
+
+      // Rear spoiler wing with endplates
+      ctx.fillStyle = isMono ? '#E2E8F0' : '#F8FAFC';
+      ctx.fillRect(-17.5, -10.5, 4.5, 21);
+      ctx.fillStyle = car.color;
+      ctx.fillRect(-16.5, -8.5, 3, 17);
+
+      // Tapered F1 monocoque chassis & sidepods
       ctx.fillStyle = car.color;
       ctx.beginPath();
-      ctx.roundRect(-14, -7.5, 28, 15, 5);
+      ctx.moveTo(-14, -7.5);
+      ctx.lineTo(2, -8);
+      ctx.lineTo(15, -3.5);
+      ctx.lineTo(17, 0);
+      ctx.lineTo(15, 3.5);
+      ctx.lineTo(2, 8);
+      ctx.lineTo(-14, 7.5);
+      ctx.closePath();
       ctx.fill();
+
+      // Front wing nose foil
+      ctx.fillStyle = isMono ? '#FFFFFF' : '#F8FAFC';
+      ctx.fillRect(14, -8, 3.5, 16);
+
+      // Specular highlight racing stripe along nose
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+      ctx.fillRect(-10, -1.6, 24, 3.2);
+
+      // Cockpit recess + driver helmet
       ctx.fillStyle = '#0F172A';
-      ctx.fillRect(-4, -4, 7, 8);
-      if (car.isPlayer) {
-        ctx.fillStyle = '#FEF08A';
-        ctx.fillRect(11, -3, 4, 6);
+      ctx.beginPath();
+      ctx.ellipse(-2, 0, 5.5, 4.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = car.isPlayer ? '#FEF08A' : '#E2E8F0';
+      ctx.beginPath();
+      ctx.arc(-2.5, 0, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      // Visor slit
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(-0.5, -2.2, 2.2, 4.4);
+
+      // Exhaust glow when player at top speed or spinning sparks
+      if (car.spinTimer > 0) {
+        ctx.strokeStyle = '#FACC15';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, 18, this.time * 18, this.time * 18 + Math.PI * 0.8);
+        ctx.stroke();
+      } else if (car.isPlayer && car.speed > 205) {
+        ctx.fillStyle = '#38BDF8';
+        ctx.beginPath();
+        ctx.ellipse(-19.5, 0, 3.5, 2.2, 0, 0, Math.PI * 2);
+        ctx.fill();
       }
+
       ctx.restore();
     }
 
@@ -597,10 +806,15 @@ export class SprintGame implements ArcadeGameInstance {
       ctx.font = '800 28px "Outfit", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(4, 6, 13, 0.85)';
-      ctx.fillRect(WIDTH * 0.16, HEIGHT * 0.42, WIDTH * 0.68, 56);
+      ctx.fillStyle = 'rgba(4, 6, 13, 0.88)';
+      ctx.beginPath();
+      ctx.roundRect(WIDTH * 0.14, HEIGHT * 0.41, WIDTH * 0.72, 60, 10);
+      ctx.fill();
+      ctx.strokeStyle = isMono ? '#F8FAFC' : '#FACC15';
+      ctx.lineWidth = 2;
+      ctx.stroke();
       ctx.fillStyle = isMono ? '#F8FAFC' : '#FACC15';
-      ctx.fillText(this.bannerText, WIDTH * 0.5, HEIGHT * 0.42 + 28);
+      ctx.fillText(this.bannerText, WIDTH * 0.5, HEIGHT * 0.41 + 30);
       ctx.restore();
     }
 

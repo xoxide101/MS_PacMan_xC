@@ -799,15 +799,15 @@ export class TempestGame implements ArcadeGameInstance {
       ctx.fill();
     }
 
-    // Depth rings (far rim, mid-depth rings for Tempest 2000/3000, outer rim)
+    // Depth rings with authentic dual-pass phosphor vector bloom + hot core
     const rings = this.variant === 'tempest' ? [1.0, 0.0] : [1.0, 0.62, 0.3, 0.0];
     for (const rz of rings) {
       ctx.save();
-      ctx.strokeStyle = rz === 0 ? webColor : `rgba(148, 197, 255, ${rz === 1 ? 0.5 : 0.22})`;
-      ctx.lineWidth = rz === 0 ? 2.6 : 1.3;
+      ctx.strokeStyle = rz === 0 ? webColor : `rgba(148, 197, 255, ${rz === 1 ? 0.55 : 0.25})`;
+      ctx.lineWidth = rz === 0 ? 3.4 : 1.4;
       if (rz === 0) {
         ctx.shadowColor = webColor;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 16;
       }
       ctx.beginPath();
       this.tube.vertices.forEach((v, idx) => {
@@ -817,10 +817,16 @@ export class TempestGame implements ArcadeGameInstance {
       });
       if (this.tube.closed) ctx.closePath();
       ctx.stroke();
+      if (rz === 0) {
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.72)';
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
-    // Longitudinal lane rails
+    // Longitudinal lane rails with luminous active-lane highlight
     ctx.save();
     for (let i = 0; i < this.tube.vertices.length; i++) {
       const v = this.tube.vertices[i];
@@ -828,11 +834,19 @@ export class TempestGame implements ArcadeGameInstance {
       const f = this.projectVertex(v.x, v.y, 1);
       const isPlayerEdge = i === this.lane || i === (this.lane + 1) % this.tube.vertices.length;
       ctx.strokeStyle = isPlayerEdge ? '#FACC15' : webColor;
-      ctx.lineWidth = isPlayerEdge ? 2.6 : 1.5;
+      ctx.lineWidth = isPlayerEdge ? 3.2 : 1.6;
+      ctx.shadowColor = isPlayerEdge ? '#FACC15' : webColor;
+      ctx.shadowBlur = isPlayerEdge ? 12 : 4;
       ctx.beginPath();
       ctx.moveTo(f.x, f.y);
       ctx.lineTo(o.x, o.y);
       ctx.stroke();
+      if (isPlayerEdge) {
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+      }
     }
     ctx.restore();
 
@@ -844,16 +858,19 @@ export class TempestGame implements ArcadeGameInstance {
       const tip = this.laneCenter(i, 1.0 - sp);
       ctx.save();
       ctx.strokeStyle = '#4ADE80';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 3.6;
       ctx.shadowColor = '#4ADE80';
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 12;
       ctx.beginPath();
       ctx.moveTo(far.x, far.y);
       ctx.lineTo(tip.x, tip.y);
       ctx.stroke();
+      ctx.strokeStyle = '#DCFCE7';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
-      ctx.arc(tip.x, tip.y, 3, 0, Math.PI * 2);
+      ctx.arc(tip.x, tip.y, 3.6, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
@@ -864,15 +881,19 @@ export class TempestGame implements ArcadeGameInstance {
       const sc = 1 / (1 + c.z * 2.5);
       ctx.save();
       ctx.translate(p.x, p.y);
-      ctx.fillStyle =
+      const col =
         c.kind === 'laser' ? '#38BDF8' : c.kind === 'jump' ? '#4ADE80' : c.kind === 'droid' ? '#F472B6' : '#FDE047';
-      ctx.shadowColor = ctx.fillStyle;
-      ctx.shadowBlur = 12;
+      ctx.fillStyle = col;
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 14;
       ctx.beginPath();
-      ctx.roundRect(-11 * sc, -7 * sc, 22 * sc, 14 * sc, 6 * sc);
+      ctx.roundRect(-12 * sc, -7.5 * sc, 24 * sc, 15 * sc, 7 * sc);
       ctx.fill();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
       ctx.fillStyle = '#04060D';
-      ctx.font = `800 ${Math.max(8, Math.round(10 * sc))}px "JetBrains Mono", monospace`;
+      ctx.font = `900 ${Math.max(8, Math.round(10 * sc))}px "JetBrains Mono", monospace`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(c.kind[0].toUpperCase(), 0, 0.5);
@@ -887,34 +908,48 @@ export class TempestGame implements ArcadeGameInstance {
       this.drawEnemy(ctx, e, p.x, p.y, p.angle, sc);
     }
 
-    // Shots
+    // Shots with vector-beam streak tail
     for (const s of this.shots) {
       const p = this.laneCenter(s.lane, s.z);
+      const pTail = this.laneCenter(s.lane, Math.max(0, Math.min(1, s.z - (s.fromPlayer ? 0.06 : -0.05))));
       const sc = Math.max(0.35, 1 / (1 + s.z * 2.5));
       ctx.save();
-      ctx.translate(p.x, p.y);
       if (s.fromPlayer) {
-        ctx.fillStyle = this.hasParticleLaser ? '#38BDF8' : '#FDE047';
-        ctx.shadowColor = ctx.fillStyle;
+        const col = this.hasParticleLaser ? '#38BDF8' : '#FDE047';
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 4 * sc;
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(pTail.x, pTail.y);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4.2 * sc, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.translate(p.x, p.y);
+        ctx.rotate(this.clock * 12);
+        ctx.strokeStyle = '#FB7185';
+        ctx.lineWidth = 2.4;
+        ctx.shadowColor = '#FB7185';
         ctx.shadowBlur = 10;
         ctx.beginPath();
-        ctx.arc(0, 0, 5.5 * sc, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(-6 * sc, 0);
+        ctx.lineTo(6 * sc, 0);
+        ctx.moveTo(0, -6 * sc);
+        ctx.lineTo(0, 6 * sc);
+        ctx.stroke();
         ctx.fillStyle = '#FFFFFF';
         ctx.beginPath();
         ctx.arc(0, 0, 2.5 * sc, 0, Math.PI * 2);
         ctx.fill();
-      } else {
-        ctx.strokeStyle = '#FB7185';
-        ctx.lineWidth = 2.2;
-        ctx.beginPath();
-        ctx.arc(0, 0, 5 * sc, 0, Math.PI * 2);
-        ctx.stroke();
       }
       ctx.restore();
     }
 
-    // AI Droid Wingmen
+    // Crystalline AI Droid Wingmen
     for (let d = 0; d < this.droidCount; d++) {
       const a = this.droidAngle + d * Math.PI;
       const dx = CX + Math.cos(a) * 145;
@@ -923,20 +958,26 @@ export class TempestGame implements ArcadeGameInstance {
       ctx.translate(dx, dy);
       ctx.rotate(this.clock * 4);
       ctx.strokeStyle = '#F472B6';
-      ctx.lineWidth = 2.4;
+      ctx.fillStyle = 'rgba(244, 114, 182, 0.25)';
+      ctx.lineWidth = 2.6;
       ctx.shadowColor = '#F472B6';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 14;
       ctx.beginPath();
-      ctx.moveTo(0, -10);
-      ctx.lineTo(10, 0);
-      ctx.lineTo(0, 10);
-      ctx.lineTo(-10, 0);
+      ctx.moveTo(0, -12);
+      ctx.lineTo(12, 0);
+      ctx.lineTo(0, 12);
+      ctx.lineTo(-12, 0);
       ctx.closePath();
+      ctx.fill();
       ctx.stroke();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
     }
 
-    // Blaster Claw on Outer Rim
+    // Iconic Atari Yellow/Cyan C-Claw Blaster with glowing inner vector ribs
     if (this.phase !== 'GAME_OVER') {
       const blink = this.invulnTimer > 0 && Math.floor(this.clock * 16) % 2 === 0;
       if (!blink) {
@@ -945,30 +986,55 @@ export class TempestGame implements ArcadeGameInstance {
         ctx.save();
         ctx.translate(c.x, c.y);
         ctx.rotate(inward);
-        ctx.fillStyle = this.variant === 'tempest3000' ? '#38BDF8' : '#FACC15';
-        ctx.shadowColor = ctx.fillStyle;
-        ctx.shadowBlur = 12;
+        const clawCol = this.variant === 'tempest3000' ? '#38BDF8' : '#FACC15';
+        ctx.fillStyle = clawCol;
+        ctx.shadowColor = clawCol;
+        ctx.shadowBlur = 16;
         ctx.beginPath();
-        ctx.moveTo(22, 0);
-        ctx.lineTo(-6, -17);
-        ctx.lineTo(-14, -9);
+        ctx.moveTo(24, 0);
+        ctx.lineTo(-5, -19);
+        ctx.lineTo(-15, -10);
         ctx.lineTo(-4, 0);
-        ctx.lineTo(-14, 9);
-        ctx.lineTo(-6, 17);
+        ctx.lineTo(-15, 10);
+        ctx.lineTo(-5, 19);
         ctx.closePath();
         ctx.fill();
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 1.8;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Inner vector core chevron
+        ctx.strokeStyle = this.variant === 'tempest3000' ? '#FDE047' : '#EF4444';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(14, 0);
+        ctx.lineTo(-6, -10);
+        ctx.moveTo(14, 0);
+        ctx.lineTo(-6, 10);
         ctx.stroke();
         ctx.restore();
       }
     }
 
-    // Superzapper lightning surge
+    // Branching Superzapper Lightning Surge
     if (this.zapperFlash > 0) {
       ctx.save();
-      ctx.fillStyle = `rgba(56, 189, 248, ${this.zapperFlash * 0.7})`;
+      ctx.fillStyle = `rgba(56, 189, 248, ${this.zapperFlash * 0.48})`;
       ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.shadowColor = '#38BDF8';
+      ctx.shadowBlur = 18;
+      ctx.lineWidth = 3;
+      for (let b = 0; b < 6; b++) {
+        const laneIdx = (this.lane + b * 3) % this.laneCount;
+        const rim = this.laneCenter(laneIdx, 0);
+        const mid = this.laneCenter(laneIdx, 0.5);
+        const pit = this.laneCenter(laneIdx, 1);
+        ctx.beginPath();
+        ctx.moveTo(rim.x, rim.y);
+        ctx.lineTo(mid.x + (Math.sin(this.clock * 90 + b) * 18), mid.y);
+        ctx.lineTo(pit.x, pit.y);
+        ctx.stroke();
+      }
       ctx.restore();
     }
 
@@ -994,7 +1060,7 @@ export class TempestGame implements ArcadeGameInstance {
 
     if (this.phase === 'READY' || this.phase === 'STAGE_CLEAR') {
       ctx.save();
-      ctx.fillStyle = 'rgba(4, 6, 15, 0.76)';
+      ctx.fillStyle = 'rgba(4, 6, 15, 0.8)';
       ctx.fillRect(CX - 180, CY - 34, 360, 68);
       ctx.strokeStyle = webColor;
       ctx.lineWidth = 2;
@@ -1031,56 +1097,87 @@ export class TempestGame implements ArcadeGameInstance {
     ctx.scale(sc, sc);
 
     if (e.kind === 'flipper') {
+      // Iconic red bowtie Flipper with glowing phosphor core
+      ctx.shadowColor = '#F43F5E';
+      ctx.shadowBlur = 12;
       ctx.strokeStyle = '#F43F5E';
-      ctx.fillStyle = 'rgba(244, 63, 94, 0.25)';
-      ctx.lineWidth = 2.6;
+      ctx.fillStyle = 'rgba(244, 63, 94, 0.32)';
+      ctx.lineWidth = 3.2;
       ctx.beginPath();
-      ctx.moveTo(-16, -10);
-      ctx.lineTo(16, 10);
-      ctx.lineTo(16, -10);
-      ctx.lineTo(-16, 10);
+      ctx.moveTo(-17, -11);
+      ctx.lineTo(17, 11);
+      ctx.lineTo(17, -11);
+      ctx.lineTo(-17, 11);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
+      ctx.strokeStyle = '#FECDD3';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.arc(0, 0, 3.2, 0, Math.PI * 2);
+      ctx.fill();
     } else if (e.kind === 'tanker') {
+      ctx.shadowColor = '#C084FC';
+      ctx.shadowBlur = 12;
       ctx.strokeStyle = '#C084FC';
       ctx.fillStyle = 'rgba(168, 85, 247, 0.35)';
-      ctx.lineWidth = 2.6;
+      ctx.lineWidth = 3.2;
       ctx.beginPath();
-      ctx.moveTo(0, -15);
-      ctx.lineTo(16, 0);
-      ctx.lineTo(0, 15);
-      ctx.lineTo(-16, 0);
+      ctx.moveTo(0, -16);
+      ctx.lineTo(17, 0);
+      ctx.lineTo(0, 16);
+      ctx.lineTo(-17, 0);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = '#38BDF8';
-      ctx.fillRect(-4, -4, 8, 8);
-    } else if (e.kind === 'spiker') {
-      ctx.rotate(this.clock * 7);
-      ctx.strokeStyle = '#4ADE80';
-      ctx.lineWidth = 2.6;
-      ctx.beginPath();
-      for (let k = 0; k < 6; k++) {
-        const a = (k / 6) * Math.PI * 2;
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(a) * 14, Math.sin(a) * 14);
-      }
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.1;
       ctx.stroke();
-    } else {
-      // Fuseball crackling plasma orb
-      ctx.rotate(this.clock * 9);
-      ctx.strokeStyle = '#FACC15';
-      ctx.lineWidth = 2.4;
+      ctx.fillStyle = '#38BDF8';
+      ctx.fillRect(-5, -5, 10, 10);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(-2, -2, 4, 4);
+    } else if (e.kind === 'spiker') {
+      // Luminous corkscrew spiral Spiker
+      ctx.rotate(this.clock * 8);
+      ctx.shadowColor = '#4ADE80';
+      ctx.shadowBlur = 12;
+      ctx.strokeStyle = '#4ADE80';
+      ctx.lineWidth = 2.8;
       ctx.beginPath();
-      for (let k = 0; k < 8; k++) {
-        const a = (k / 8) * Math.PI * 2;
-        const r = k % 2 === 0 ? 15 : 5;
-        if (k === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+      for (let t = 0; t <= 18; t++) {
+        const a = t * 0.55;
+        const r = t * 0.85;
+        if (t === 0) ctx.moveTo(0, 0);
         else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
       }
-      ctx.closePath();
       ctx.stroke();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(0, 0, 3, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Multi-arc crackling Fuseball orb
+      ctx.rotate(this.clock * 10);
+      const colors = ['#FACC15', '#EF4444', '#38BDF8', '#4ADE80'];
+      ctx.shadowColor = '#FACC15';
+      ctx.shadowBlur = 14;
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2;
+        ctx.strokeStyle = colors[k % colors.length];
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(a + 0.25) * 9, Math.sin(a + 0.25) * 9);
+        ctx.lineTo(Math.cos(a) * 16, Math.sin(a) * 16);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.restore();
   }

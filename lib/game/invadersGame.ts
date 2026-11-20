@@ -14,6 +14,17 @@ import {
   spawnBurst,
   stepParticlesAndPopups,
 } from './classicArcadeInterface';
+import {
+  drawPixelMatrixHD,
+  drawStarGlint,
+  TAITO_CRAB_F0,
+  TAITO_CRAB_F1,
+  TAITO_OCTO_F0,
+  TAITO_OCTO_F1,
+  TAITO_SQUID_F0,
+  TAITO_SQUID_F1,
+  TAITO_UFO_MATRIX,
+} from './arcadeGfx';
 
 const WIDTH = 720;
 const HEIGHT = 816;
@@ -521,29 +532,53 @@ export class SpaceInvadersGame implements ArcadeGameInstance {
   public render(ctx: CanvasRenderingContext2D, dpr: number, visualMode: 'hd' | 'crt'): void {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Classic Space Invaders pitch black deep-space field
-    ctx.fillStyle = '#04060B';
+    // Deep cosmic arcade monitor backdrop with subtle Taito lunar-cabinet tint
+    const bg = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+    bg.addColorStop(0, '#04060E');
+    bg.addColorStop(0.72, '#04070D');
+    bg.addColorStop(1, '#05110B');
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Faint starlight dust
-    ctx.fillStyle = 'rgba(255,255,255,0.16)';
-    for (let i = 0; i < 36; i++) {
-      const sx = ((i * 197) % WIDTH);
-      const sy = ((i * 313) % (HEIGHT - 120)) + 20;
-      ctx.fillRect(sx, sy, 1.5, 1.5);
+    // Faint authentic cellophane band atmosphere (red UFO band, green defender band)
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.045)';
+    ctx.fillRect(0, 44, WIDTH, 64);
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.045)';
+    ctx.fillRect(0, HEIGHT - 236, WIDTH, 200);
+
+    // Subtle twinkling deep-space stars
+    for (let i = 0; i < 52; i++) {
+      const sx = (i * 197 + 23) % WIDTH;
+      const sy = ((i * 313 + 17) % (HEIGHT - 130)) + 24;
+      const twinkle = 0.14 + 0.22 * (0.5 + 0.5 * Math.sin(this.time * 2.4 + i * 1.7));
+      ctx.fillStyle = i % 5 === 0 ? `rgba(186,230,253,${twinkle})` : `rgba(255,255,255,${twinkle})`;
+      ctx.fillRect(sx, sy, i % 4 === 0 ? 2 : 1.4, i % 4 === 0 ? 2 : 1.4);
     }
 
-    // Phosphor green ground baseline
+    // Phosphor green ground baseline with glow
+    ctx.save();
+    ctx.shadowColor = '#22C55E';
+    ctx.shadowBlur = 10;
     ctx.fillStyle = '#22C55E';
-    ctx.fillRect(24, HEIGHT - 36, WIDTH - 48, 3);
+    ctx.fillRect(24, HEIGHT - 36, WIDTH - 48, 3.5);
+    ctx.fillStyle = '#BBF7D0';
+    ctx.fillRect(24, HEIGHT - 36, WIDTH - 48, 1.2);
+    ctx.restore();
 
-    // Bunkers
-    ctx.fillStyle = '#4ADE80';
+    // Beveled phosphor-lit destructible bunkers
     for (const bk of this.bunkers) {
       for (let r = 0; r < bk.rows; r++) {
         for (let c = 0; c < bk.cols; c++) {
-          if (bk.cells[r][c]) {
-            ctx.fillRect(bk.x + c * bk.cellSize, bk.y + r * bk.cellSize, bk.cellSize - 0.4, bk.cellSize - 0.4);
+          if (!bk.cells[r][c]) continue;
+          const bx = bk.x + c * bk.cellSize;
+          const by = bk.y + r * bk.cellSize;
+          const topExposed = r === 0 || !bk.cells[r - 1][c];
+          const botExposed = r === bk.rows - 1 || !bk.cells[r + 1][c];
+          ctx.fillStyle = topExposed ? '#86EFAC' : botExposed ? '#16A34A' : '#4ADE80';
+          ctx.fillRect(bx + 0.25, by + 0.25, bk.cellSize - 0.5, bk.cellSize - 0.5);
+          if (topExposed) {
+            ctx.fillStyle = 'rgba(255,255,255,0.45)';
+            ctx.fillRect(bx + 0.5, by + 0.3, bk.cellSize - 1, 1.4);
           }
         }
       }
@@ -554,34 +589,63 @@ export class SpaceInvadersGame implements ArcadeGameInstance {
       this.drawUfo(ctx, this.ufo.x, this.ufo.y);
     }
 
-    // Invaders (classic cellophane color bands: white top, cyan mid, green low)
+    // Invaders (classic Taito cellophane bands: crisp white/cyan upper, emerald phosphor lower)
     for (const inv of this.invaders) {
       if (!inv.alive) continue;
-      const color = inv.y > HEIGHT - 260 ? '#4ADE80' : inv.kind === 'squid' ? '#F8FAFC' : inv.kind === 'crab' ? '#E2E8F0' : '#BAE6FD';
+      const color =
+        inv.y > HEIGHT - 240
+          ? '#4ADE80'
+          : inv.kind === 'squid'
+          ? '#F8FAFC'
+          : inv.kind === 'crab'
+          ? '#E0F2FE'
+          : '#7DD3FC';
       this.drawInvader(ctx, inv, color, this.marchAnimFrame);
     }
 
-    // Enemy shots
+    // Jagged electric enemy shots with white-hot cores
     for (const s of this.enemyShots) {
       ctx.save();
-      ctx.strokeStyle = s.kind === 'squiggly' ? '#F472B6' : '#FDE047';
-      ctx.lineWidth = 3;
+      const boltColor = s.kind === 'squiggly' ? '#F472B6' : s.kind === 'plunger' ? '#38BDF8' : '#FDE047';
+      const zig = Math.sin(s.phase) * 4.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = boltColor;
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = boltColor;
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      const zig = Math.sin(s.phase) * 4;
-      ctx.moveTo(s.x - zig, s.y - 9);
-      ctx.lineTo(s.x + zig, s.y);
-      ctx.lineTo(s.x - zig, s.y + 9);
+      if (s.kind === 'plunger') {
+        ctx.moveTo(s.x, s.y - 10);
+        ctx.lineTo(s.x, s.y + 8);
+        ctx.moveTo(s.x - 4.5, s.y + 4 + Math.sin(s.phase) * 2.5);
+        ctx.lineTo(s.x + 4.5, s.y + 4 + Math.sin(s.phase) * 2.5);
+      } else {
+        ctx.moveTo(s.x - zig, s.y - 10);
+        ctx.lineTo(s.x + zig, s.y - 3);
+        ctx.lineTo(s.x - zig, s.y + 4);
+        ctx.lineTo(s.x + zig, s.y + 10);
+      }
+      ctx.stroke();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 1.6;
       ctx.stroke();
       ctx.restore();
     }
 
-    // Player laser beam
+    // Player laser beam with glowing plasma halo
     if (this.playerShot.active) {
       ctx.save();
-      ctx.fillStyle = '#F8FAFC';
       ctx.shadowColor = '#4ADE80';
-      ctx.shadowBlur = 10;
-      ctx.fillRect(this.playerShot.x - 2, this.playerShot.y - 12, 4, 20);
+      ctx.shadowBlur = 14;
+      const beam = ctx.createLinearGradient(0, this.playerShot.y - 14, 0, this.playerShot.y + 10);
+      beam.addColorStop(0, '#FFFFFF');
+      beam.addColorStop(0.55, '#86EFAC');
+      beam.addColorStop(1, 'rgba(34, 197, 94, 0)');
+      ctx.fillStyle = beam;
+      ctx.fillRect(this.playerShot.x - 2.6, this.playerShot.y - 14, 5.2, 24);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(this.playerShot.x - 1.1, this.playerShot.y - 13, 2.2, 16);
       ctx.restore();
     }
 
@@ -598,10 +662,13 @@ export class SpaceInvadersGame implements ArcadeGameInstance {
       ctx.font = '800 30px "Outfit", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(4, 6, 13, 0.84)';
-      ctx.fillRect(WIDTH * 0.25, HEIGHT * 0.44, WIDTH * 0.5, 56);
+      ctx.fillStyle = 'rgba(4, 6, 13, 0.86)';
+      ctx.fillRect(WIDTH * 0.24, HEIGHT * 0.44, WIDTH * 0.52, 58);
+      ctx.strokeStyle = '#4ADE80';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(WIDTH * 0.24, HEIGHT * 0.44, WIDTH * 0.52, 58);
       ctx.fillStyle = '#4ADE80';
-      ctx.fillText(this.bannerText, WIDTH * 0.5, HEIGHT * 0.44 + 28);
+      ctx.fillText(this.bannerText, WIDTH * 0.5, HEIGHT * 0.44 + 29);
       ctx.restore();
     }
 
@@ -611,33 +678,68 @@ export class SpaceInvadersGame implements ArcadeGameInstance {
   private drawCannon(ctx: CanvasRenderingContext2D, x: number, y: number): void {
     ctx.save();
     ctx.translate(x, y);
-    ctx.fillStyle = '#4ADE80';
     ctx.shadowColor = '#22C55E';
-    ctx.shadowBlur = 10;
-    ctx.fillRect(-22, 0, 44, 14);
-    ctx.fillRect(-16, -6, 32, 6);
-    ctx.fillRect(-3.5, -16, 7, 12);
+    ctx.shadowBlur = 12;
+
+    // Classic Taito stepped Laser Base silhouette evolved with metallic bevels
+    const bodyGrad = ctx.createLinearGradient(0, -16, 0, 14);
+    bodyGrad.addColorStop(0, '#BBF7D0');
+    bodyGrad.addColorStop(0.45, '#4ADE80');
+    bodyGrad.addColorStop(1, '#15803D');
+    ctx.fillStyle = bodyGrad;
+
+    // Wide lower chassis with chamfered corners
+    ctx.beginPath();
+    ctx.roundRect(-23, 0, 46, 14, [3, 3, 2, 2]);
+    ctx.fill();
+    // Upper turret shoulder
+    ctx.beginPath();
+    ctx.roundRect(-16, -6, 32, 7, [3, 3, 0, 0]);
+    ctx.fill();
+    // Central emitter barrel
+    ctx.beginPath();
+    ctx.roundRect(-4, -15, 8, 10, [2, 2, 0, 0]);
+    ctx.fill();
+    ctx.fillStyle = '#DCFCE7';
+    ctx.fillRect(-2, -19, 4, 5);
+
+    // Panel seam & specular highlight
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.42)';
+    ctx.fillRect(-15, -5.5, 30, 1.8);
+    ctx.fillRect(-21, 1, 42, 1.8);
+    ctx.fillStyle = '#052E16';
+    ctx.fillRect(-12, 5, 6, 4);
+    ctx.fillRect(6, 5, 6, 4);
+    ctx.fillStyle = '#FEF08A';
+    ctx.fillRect(-2.5, 5, 5, 4);
+
+    // Muzzle flash shimmer when shot just launched
+    if (this.playerShot.active && this.playerShot.y > this.playerY - 75) {
+      drawStarGlint(ctx, 0, -20, 8, '#DCFCE7', this.time * 10);
+    }
     ctx.restore();
   }
 
   private drawUfo(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+    drawPixelMatrixHD(
+      ctx,
+      TAITO_UFO_MATRIX,
+      x,
+      y,
+      3.4,
+      { '#': '#EF4444' },
+      'rgba(239, 68, 68, 0.85)'
+    );
+    // Animated chasing rim lights on authentic saucer
     ctx.save();
     ctx.translate(x, y);
-    ctx.shadowColor = '#EF4444';
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = '#EF4444';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 26, 9, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#FCA5A5';
-    ctx.beginPath();
-    ctx.arc(0, -4, 12, Math.PI, 0);
-    ctx.fill();
-    // Blinking rim lights
-    ctx.fillStyle = '#FEF08A';
+    const activeIdx = Math.floor(this.time * 12) % 5;
     for (let i = -2; i <= 2; i++) {
+      const lit = i + 2 === activeIdx;
+      ctx.fillStyle = lit ? '#FFFFFF' : '#FEF08A';
       ctx.beginPath();
-      ctx.arc(i * 9, 1, 2.2, 0, Math.PI * 2);
+      ctx.arc(i * 9.5, 0.5, lit ? 2.6 : 1.8, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -649,55 +751,19 @@ export class SpaceInvadersGame implements ArcadeGameInstance {
     color: string,
     frame: number
   ): void {
-    ctx.save();
-    ctx.translate(inv.x, inv.y);
-    ctx.fillStyle = color;
-
-    if (inv.kind === 'squid') {
-      // Top-row classic Squid
-      ctx.beginPath();
-      ctx.moveTo(0, -13);
-      ctx.lineTo(12, -2);
-      ctx.lineTo(10, 6);
-      ctx.lineTo(-10, 6);
-      ctx.lineTo(-12, -2);
-      ctx.closePath();
-      ctx.fill();
-      const spread = frame === 0 ? 11 : 6;
-      ctx.fillRect(-spread, 6, 4, 7);
-      ctx.fillRect(-2, 6, 4, 7);
-      ctx.fillRect(spread - 4, 6, 4, 7);
-    } else if (inv.kind === 'crab') {
-      // Middle-row iconic Crab
-      ctx.fillRect(-13, -7, 26, 13);
-      ctx.fillRect(-9, -12, 4, 5);
-      ctx.fillRect(5, -12, 4, 5);
-      if (frame === 0) {
-        ctx.fillRect(-17, -10, 4, 11);
-        ctx.fillRect(13, -10, 4, 11);
-        ctx.fillRect(-11, 6, 5, 6);
-        ctx.fillRect(6, 6, 5, 6);
-      } else {
-        ctx.fillRect(-17, 0, 4, 10);
-        ctx.fillRect(13, 0, 4, 10);
-        ctx.fillRect(-6, 6, 5, 6);
-        ctx.fillRect(1, 6, 5, 6);
-      }
-    } else {
-      // Bottom-row chunky Octopus
-      ctx.beginPath();
-      ctx.roundRect(-15, -9, 30, 15, 5);
-      ctx.fill();
-      const shift = frame === 0 ? 2 : -2;
-      ctx.fillRect(-14 + shift, 6, 6, 6);
-      ctx.fillRect(-3, 6, 6, 6);
-      ctx.fillRect(8 - shift, 6, 6, 6);
-    }
-
-    // Dark eyes
-    ctx.fillStyle = '#04060B';
-    ctx.fillRect(-7, -4, 4, 4);
-    ctx.fillRect(3, -4, 4, 4);
-    ctx.restore();
+    const matrix =
+      inv.kind === 'squid'
+        ? frame === 0
+          ? TAITO_SQUID_F0
+          : TAITO_SQUID_F1
+        : inv.kind === 'crab'
+        ? frame === 0
+          ? TAITO_CRAB_F0
+          : TAITO_CRAB_F1
+        : frame === 0
+        ? TAITO_OCTO_F0
+        : TAITO_OCTO_F1;
+    const cell = inv.kind === 'squid' ? 3.2 : inv.kind === 'crab' ? 3.05 : 2.95;
+    drawPixelMatrixHD(ctx, matrix, inv.x, inv.y, cell, { '#': color }, color);
   }
 }

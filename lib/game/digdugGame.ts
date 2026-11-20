@@ -742,24 +742,62 @@ export class DigDugGame implements ArcadeGameInstance {
   public render(ctx: CanvasRenderingContext2D, dpr: number, visualMode: 'hd' | 'crt'): void {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Sky surface (rows 0..1)
+    // Bright Namco sky surface (rows 0..1) with soft clouds & stage flowers
     const skyGrad = ctx.createLinearGradient(0, 0, 0, TILE * 2);
-    skyGrad.addColorStop(0, '#0284C7');
-    skyGrad.addColorStop(1, '#38BDF8');
+    skyGrad.addColorStop(0, '#0369A1');
+    skyGrad.addColorStop(0.65, '#0EA5E9');
+    skyGrad.addColorStop(1, '#7DD3FC');
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, WIDTH, TILE * 2);
 
-    // Grass rim
-    ctx.fillStyle = '#22C55E';
-    ctx.fillRect(0, TILE * 2 - 7, WIDTH, 9);
+    // Drifting puffy sky clouds
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+    for (let i = 0; i < 4; i++) {
+      const cx = ((i * 210 + this.time * 12) % (WIDTH + 100)) - 50;
+      const cy = 26 + (i % 2) * 14;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 13, 0, Math.PI * 2);
+      ctx.arc(cx + 14, cy - 3, 15, 0, Math.PI * 2);
+      ctx.arc(cx + 28, cy, 12, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-    // Deep underground tunnel cavity background
-    ctx.fillStyle = '#0A0706';
+    // Iconic Namco round stage flowers along top right
+    const flowerCount = Math.min(8, this.level);
+    for (let f = 0; f < flowerCount; f++) {
+      const fx = WIDTH - 32 - f * 26;
+      const fy = TILE * 2 - 14;
+      ctx.fillStyle = '#16A34A';
+      ctx.fillRect(fx - 1.5, fy - 4, 3, 14);
+      ctx.fillStyle = '#FFFFFF';
+      for (let p = 0; p < 5; p++) {
+        const a = (p / 5) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(fx + Math.cos(a) * 5.5, fy - 8 + Math.sin(a) * 5.5, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#EF4444';
+      ctx.beginPath();
+      ctx.arc(fx, fy - 8, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Sculpted grass turf rim
+    const grassGrad = ctx.createLinearGradient(0, TILE * 2 - 9, 0, TILE * 2 + 2);
+    grassGrad.addColorStop(0, '#4ADE80');
+    grassGrad.addColorStop(0.6, '#22C55E');
+    grassGrad.addColorStop(1, '#15803D');
+    ctx.fillStyle = grassGrad;
+    ctx.fillRect(0, TILE * 2 - 9, WIDTH, 11);
+
+    // Deep underground tunnel cavity background with subtle rock grain
+    ctx.fillStyle = '#0D0908';
     ctx.fillRect(0, TILE * 2, WIDTH, HEIGHT - TILE * 2);
 
-    // Stratified earthy soil layers (authentic 4-band Namco warmth)
-    const layerColors = ['#D97706', '#B45309', '#9A3412', '#7C2D12'];
-    const layerHighlights = ['#F59E0B', '#D97706', '#C2410C', '#9A3412'];
+    // Stratified earthy soil layers (authentic 4-band Namco warmth with darkened tunnel rims)
+    const layerColors = ['#E58E17', '#C85E12', '#A83F14', '#852B12'];
+    const layerDark = ['#9A5207', '#7C3207', '#631F07', '#4B1406'];
+    const layerHighlights = ['#FBBF24', '#F59E0B', '#EA580C', '#C2410C'];
 
     for (let r = 2; r < ROWS; r++) {
       const layer = this.getDepthLayer(r);
@@ -770,15 +808,28 @@ export class DigDugGame implements ArcadeGameInstance {
         ctx.fillStyle = layerColors[layer];
         ctx.fillRect(x, y, TILE + 0.5, TILE + 0.5);
 
-        // Subtle mineral pebble texture
+        // Soft bevel rim where dirt borders a dug tunnel
+        ctx.fillStyle = layerDark[layer];
+        if (r > 2 && !this.dirt[r - 1][c]) ctx.fillRect(x, y, TILE, 5);
+        if (r < ROWS - 1 && !this.dirt[r + 1][c]) ctx.fillRect(x, y + TILE - 5, TILE, 5);
+        if (c > 0 && !this.dirt[r][c - 1]) ctx.fillRect(x, y, 5, TILE);
+        if (c < COLS - 1 && !this.dirt[r][c + 1]) ctx.fillRect(x + TILE - 5, y, 5, TILE);
+
+        // Subtle mineral pebble & strata speckles
         ctx.fillStyle = layerHighlights[layer];
         if ((r + c) % 2 === 0) {
-          ctx.fillRect(x + 8, y + 10, 6, 4);
-          ctx.fillRect(x + 28, y + 30, 8, 4);
+          ctx.beginPath();
+          ctx.roundRect(x + 9, y + 11, 7, 4, 2);
+          ctx.roundRect(x + 28, y + 30, 9, 4.5, 2);
+          ctx.fill();
         } else {
-          ctx.fillRect(x + 24, y + 12, 7, 4);
-          ctx.fillRect(x + 10, y + 32, 6, 4);
+          ctx.beginPath();
+          ctx.roundRect(x + 24, y + 12, 8, 4.5, 2);
+          ctx.roundRect(x + 11, y + 31, 7, 4, 2);
+          ctx.fill();
         }
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.16)';
+        ctx.fillRect(x + ((c * 19 + r * 11) % 30) + 6, y + ((r * 17 + c * 7) % 28) + 6, 4, 3);
       }
     }
 
@@ -792,7 +843,7 @@ export class DigDugGame implements ArcadeGameInstance {
       this.drawRock(ctx, rk);
     }
 
-    // Pump Harpoon Line
+    // Coiled Pneumatic Pump Harpoon Hose & Spearhead
     if (this.pump.active) {
       const v = VEC[this.pump.dir];
       const sx = this.playerX * TILE;
@@ -800,15 +851,33 @@ export class DigDugGame implements ArcadeGameInstance {
       const ex = sx + v.x * this.pump.length * TILE;
       const ey = sy + v.y * this.pump.length * TILE;
       ctx.save();
-      ctx.strokeStyle = '#F8FAFC';
-      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#E2E8F0';
+      ctx.lineWidth = 4.5;
+      ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(sx, sy);
-      ctx.lineTo(ex, ey);
+      const segs = 10;
+      for (let i = 0; i <= segs; i++) {
+        const t = i / segs;
+        const wob = i === 0 || i === segs ? 0 : Math.sin(t * Math.PI * 6 + this.time * 24) * 2.5;
+        const px = sx + (ex - sx) * t + (-v.y) * wob;
+        const py = sy + (ey - sy) * t + v.x * wob;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
       ctx.stroke();
+
+      // Glowing blue pneumatic spear tip
+      ctx.translate(ex, ey);
+      ctx.rotate(Math.atan2(v.y, v.x));
       ctx.fillStyle = '#38BDF8';
+      ctx.shadowColor = '#38BDF8';
+      ctx.shadowBlur = 8;
       ctx.beginPath();
-      ctx.arc(ex, ey, 6, 0, Math.PI * 2);
+      ctx.moveTo(10, 0);
+      ctx.lineTo(-4, -6);
+      ctx.lineTo(-1, 0);
+      ctx.lineTo(-4, 6);
+      ctx.closePath();
       ctx.fill();
       ctx.restore();
     }
@@ -818,7 +887,7 @@ export class DigDugGame implements ArcadeGameInstance {
       this.drawMonster(ctx, m);
     }
 
-    // Dig Dug Hero
+    // Dig Dug Hero (Taizo Hori)
     if (this.phase !== 'GAME_OVER') {
       this.drawDigDug(ctx, this.playerX * TILE, this.playerY * TILE);
     }
@@ -830,10 +899,13 @@ export class DigDugGame implements ArcadeGameInstance {
       ctx.font = '800 30px "Outfit", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(4, 6, 13, 0.8)';
-      ctx.fillRect(WIDTH * 0.24, HEIGHT * 0.44, WIDTH * 0.52, 56);
+      ctx.fillStyle = 'rgba(4, 6, 13, 0.85)';
+      ctx.fillRect(WIDTH * 0.24, HEIGHT * 0.44, WIDTH * 0.52, 58);
+      ctx.strokeStyle = '#38BDF8';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(WIDTH * 0.24, HEIGHT * 0.44, WIDTH * 0.52, 58);
       ctx.fillStyle = '#38BDF8';
-      ctx.fillText(this.bannerText, WIDTH * 0.5, HEIGHT * 0.44 + 28);
+      ctx.fillText(this.bannerText, WIDTH * 0.5, HEIGHT * 0.44 + 29);
       ctx.restore();
     }
 
@@ -845,29 +917,69 @@ export class DigDugGame implements ArcadeGameInstance {
     ctx.translate(x, y);
     if (this.playerDir === 'LEFT') ctx.scale(-1, 1);
 
-    // White-and-blue iconic suit
-    ctx.fillStyle = '#F8FAFC';
+    const step = Math.sin(this.playerAnim) * 4;
+    // Soft ground shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.32)';
     ctx.beginPath();
-    ctx.roundRect(-14, -14, 28, 28, 10);
+    ctx.ellipse(0, 17, 13, 4.5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Blue helmet trim & visor
+    // Red air-pump backpack
+    const packG = ctx.createLinearGradient(-18, -6, -11, 10);
+    packG.addColorStop(0, '#F87171');
+    packG.addColorStop(1, '#B91C1C');
+    ctx.fillStyle = packG;
+    ctx.beginPath();
+    ctx.roundRect(-17, -6, 7.5, 16, 3);
+    ctx.fill();
+
+    // Animated blue boots
+    ctx.fillStyle = '#1D4ED8';
+    ctx.beginPath();
+    ctx.roundRect(-9 + step * 0.5, 11, 8, 6.5, 3);
+    ctx.roundRect(1 - step * 0.5, 11, 8, 6.5, 3);
+    ctx.fill();
+
+    // Iconic white spacesuit torso with blue chest stripe
+    const suitG = ctx.createLinearGradient(-11, -6, 11, 13);
+    suitG.addColorStop(0, '#FFFFFF');
+    suitG.addColorStop(1, '#CBD5E1');
+    ctx.fillStyle = suitG;
+    ctx.beginPath();
+    ctx.roundRect(-12, -2, 24, 15, 7);
+    ctx.fill();
     ctx.fillStyle = '#0284C7';
-    ctx.beginPath();
-    ctx.arc(0, -5, 13, Math.PI, 0);
-    ctx.fill();
-    ctx.fillStyle = '#FDBA74';
-    ctx.fillRect(1, -9, 10, 8);
-    ctx.fillStyle = '#0F172A';
-    ctx.fillRect(6, -7, 3, 4);
+    ctx.fillRect(-11, 4, 22, 4);
 
-    // Red air pump backpack & feet
+    // Classic Taizo Hori white/blue rounded helmet
+    const helmG = ctx.createRadialGradient(-3, -12, 2, 0, -7, 15);
+    helmG.addColorStop(0, '#38BDF8');
+    helmG.addColorStop(0.5, '#0284C7');
+    helmG.addColorStop(1, '#075985');
+    ctx.fillStyle = helmG;
+    ctx.beginPath();
+    ctx.arc(0, -7, 13, 0, Math.PI * 2);
+    ctx.fill();
+    // White visor hood opening
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.roundRect(-2, -14, 14, 13, 6);
+    ctx.fill();
+    // Expressive face & eyes
+    ctx.fillStyle = '#FDBA74';
+    ctx.beginPath();
+    ctx.roundRect(1, -12, 10, 9.5, 4);
+    ctx.fill();
+    ctx.fillStyle = '#0F172A';
+    ctx.fillRect(6.5, -10, 2.8, 4.5);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(7.2, -9.5, 1.2, 1.5);
+
+    // Handheld pump nozzle when pumping
     ctx.fillStyle = '#EF4444';
-    ctx.fillRect(-16, -6, 6, 14);
-    const step = Math.sin(this.playerAnim) * 3;
-    ctx.fillStyle = '#2563EB';
-    ctx.fillRect(-9, 12 + step * 0.5, 7, 5);
-    ctx.fillRect(2, 12 - step * 0.5, 7, 5);
+    ctx.beginPath();
+    ctx.roundRect(8, 1, 7, 5, 2);
+    ctx.fill();
     ctx.restore();
   }
 
@@ -875,40 +987,47 @@ export class DigDugGame implements ArcadeGameInstance {
     const x = m.x * TILE;
     const y = m.y * TILE;
     const scale = 1 + m.inflate * 0.28;
+    const wobble = m.inflate > 0 ? Math.sin(this.time * 32) * m.inflate * 1.4 : 0;
 
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(x + wobble, y);
 
     if (m.ghostMode) {
-      // Translucent drifting eyes through dirt
-      ctx.globalAlpha = 0.65;
+      // Iconic Namco translucent drifting ghost-eyes through dirt
+      ctx.globalAlpha = 0.72;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 14, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
-      ctx.arc(-6, -2, 6, 0, Math.PI * 2);
-      ctx.arc(6, -2, 6, 0, Math.PI * 2);
+      ctx.ellipse(-5.5, -1, 5.5, 6.5, 0, 0, Math.PI * 2);
+      ctx.ellipse(5.5, -1, 5.5, 6.5, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#0F172A';
       ctx.beginPath();
-      ctx.arc(-5, -2, 2.8, 0, Math.PI * 2);
-      ctx.arc(7, -2, 2.8, 0, Math.PI * 2);
+      ctx.arc(-4.5, -1, 2.6, 0, Math.PI * 2);
+      ctx.arc(6.5, -1, 2.6, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
       return;
     }
 
-    // Fygar Flame Jet
+    // Layered volumetric Fygar Flame Jet
     if (m.kind === 'fygar' && m.flameTimer > 0) {
       const fDir = m.dir === 'LEFT' ? -1 : 1;
-      const grad = ctx.createLinearGradient(0, 0, fDir * TILE * 2.4, 0);
-      grad.addColorStop(0, '#FEF08A');
-      grad.addColorStop(0.5, '#F97316');
-      grad.addColorStop(1, 'rgba(239, 68, 68, 0.15)');
+      const flicker = Math.sin(this.time * 42) * 5;
+      const grad = ctx.createLinearGradient(fDir * 12, 0, fDir * TILE * 2.5, 0);
+      grad.addColorStop(0, '#FFFFFF');
+      grad.addColorStop(0.25, '#FEF08A');
+      grad.addColorStop(0.6, '#F97316');
+      grad.addColorStop(1, 'rgba(239, 68, 68, 0.05)');
       ctx.fillStyle = grad;
       ctx.beginPath();
-      ctx.moveTo(fDir * 14, -8);
-      ctx.lineTo(fDir * TILE * 2.4, -18 + Math.sin(this.time * 40) * 4);
-      ctx.lineTo(fDir * TILE * 2.4, 18 + Math.cos(this.time * 40) * 4);
-      ctx.lineTo(fDir * 14, 8);
+      ctx.moveTo(fDir * 14, -7);
+      ctx.quadraticCurveTo(fDir * TILE * 1.4, -18 + flicker, fDir * TILE * 2.5, -14 - flicker * 0.5);
+      ctx.lineTo(fDir * TILE * 2.5, 14 + flicker * 0.5);
+      ctx.quadraticCurveTo(fDir * TILE * 1.4, 18 - flicker, fDir * 14, 7);
       ctx.closePath();
       ctx.fill();
     }
@@ -916,76 +1035,127 @@ export class DigDugGame implements ArcadeGameInstance {
     ctx.scale(scale, scale);
 
     if (m.kind === 'pooka') {
-      // Iconic red round Pooka with yellow goggles
-      ctx.fillStyle = m.inflate >= 3 ? '#FB7185' : '#EF4444';
-      ctx.beginPath();
-      ctx.arc(0, 0, 15, 0, Math.PI * 2);
-      ctx.fill();
-      // Yellow goggle band
+      // Little kicking yellow feet
+      const stride = Math.sin(this.time * 14 + m.id) * 3;
       ctx.fillStyle = '#FACC15';
       ctx.beginPath();
-      ctx.roundRect(-13, -7, 26, 10, 5);
+      ctx.ellipse(-6 + stride * 0.4, 14, 5, 3, 0, 0, Math.PI * 2);
+      ctx.ellipse(6 - stride * 0.4, 14, 5, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Glossy red round Pooka body
+      const pg = ctx.createRadialGradient(-5, -6, 2, 0, 0, 17);
+      pg.addColorStop(0, '#FCA5A5');
+      pg.addColorStop(0.35, m.inflate >= 3 ? '#FB7185' : '#EF4444');
+      pg.addColorStop(1, '#991B1B');
+      ctx.fillStyle = pg;
+      ctx.beginPath();
+      ctx.arc(0, 0, 15.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Iconic yellow ski goggles with strap & specular lenses
+      ctx.fillStyle = '#EAB308';
+      ctx.fillRect(-15, -5, 30, 4);
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.roundRect(-13.5, -8.5, 27, 11.5, 5.5);
       ctx.fill();
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
-      ctx.arc(-5, -2, 3.6, 0, Math.PI * 2);
-      ctx.arc(5, -2, 3.6, 0, Math.PI * 2);
+      ctx.arc(-5.2, -2.8, 4.2, 0, Math.PI * 2);
+      ctx.arc(5.2, -2.8, 4.2, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#0F172A';
       ctx.beginPath();
-      ctx.arc(-4.5, -2, 1.8, 0, Math.PI * 2);
-      ctx.arc(5.5, -2, 1.8, 0, Math.PI * 2);
+      ctx.arc(-4.6, -2.8, 2, 0, Math.PI * 2);
+      ctx.arc(5.8, -2.8, 2, 0, Math.PI * 2);
       ctx.fill();
     } else {
-      // Iconic green fire-breathing Fygar dragon
+      // Iconic emerald fire-breathing Fygar dragon with flapping wings & dorsal ridge
       if (m.dir === 'LEFT') ctx.scale(-1, 1);
-      ctx.fillStyle = m.inflate >= 3 ? '#86EFAC' : '#22C55E';
-      ctx.beginPath();
-      ctx.roundRect(-15, -13, 30, 26, 9);
-      ctx.fill();
-      // Crimson dorsal wing/spikes
+      const wingFlap = Math.sin(this.time * 18 + m.id) * 4;
+      // Crimson wings
       ctx.fillStyle = '#EF4444';
       ctx.beginPath();
-      ctx.moveTo(-14, -4);
-      ctx.lineTo(-22, -12);
-      ctx.lineTo(-10, 4);
+      ctx.moveTo(-10, -4);
+      ctx.lineTo(-24, -15 + wingFlap);
+      ctx.lineTo(-18, 2 + wingFlap * 0.5);
+      ctx.lineTo(-8, 4);
       ctx.closePath();
       ctx.fill();
-      // Snout & eye
+      // Yellow belly & emerald dragon body
+      const fg = ctx.createRadialGradient(-4, -5, 2, 0, 0, 18);
+      fg.addColorStop(0, '#86EFAC');
+      fg.addColorStop(0.45, m.inflate >= 3 ? '#4ADE80' : '#22C55E');
+      fg.addColorStop(1, '#14532D');
+      ctx.fillStyle = fg;
+      ctx.beginPath();
+      ctx.roundRect(-15, -13, 31, 26, 9);
+      ctx.fill();
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.ellipse(2, 6, 11, 5.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Dorsal crests
+      ctx.fillStyle = '#DC2626';
+      ctx.beginPath();
+      ctx.moveTo(-12, -13);
+      ctx.lineTo(-8, -19);
+      ctx.lineTo(-4, -13);
+      ctx.lineTo(0, -18);
+      ctx.lineTo(4, -13);
+      ctx.closePath();
+      ctx.fill();
+      // Expressive dragon eye & snout
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
-      ctx.arc(6, -5, 4, 0, Math.PI * 2);
+      ctx.arc(7, -5, 4.4, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#0F172A';
       ctx.beginPath();
-      ctx.arc(7.5, -5, 2, 0, Math.PI * 2);
+      ctx.arc(8.5, -5, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Stress sweat drop when inflated!
+    if (m.inflate >= 2) {
+      ctx.fillStyle = '#38BDF8';
+      ctx.beginPath();
+      ctx.arc(13, -12, 2.8, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
   }
 
   private drawRock(ctx: CanvasRenderingContext2D, rk: Rock): void {
-    const shake = rk.state === 'wobble' ? Math.sin(this.time * 55) * 4 : 0;
+    const shake = rk.state === 'wobble' ? Math.sin(this.time * 55) * 4.5 : 0;
     ctx.save();
     ctx.translate(rk.x * TILE + shake, rk.y * TILE);
     if (rk.state === 'shatter') ctx.globalAlpha = Math.max(0, rk.timer * 2);
 
-    const grad = ctx.createRadialGradient(-6, -6, 3, 0, 0, 22);
-    grad.addColorStop(0, '#E2E8F0');
-    grad.addColorStop(0.55, '#94A3B8');
-    grad.addColorStop(1, '#475569');
+    const grad = ctx.createRadialGradient(-7, -7, 3, 0, 0, 23);
+    grad.addColorStop(0, '#F1F5F9');
+    grad.addColorStop(0.5, '#94A3B8');
+    grad.addColorStop(1, '#334155');
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.roundRect(-20, -19, 40, 38, 12);
+    ctx.roundRect(-20, -19, 40, 38, 13);
     ctx.fill();
 
-    // Facet cracks
-    ctx.strokeStyle = '#334155';
-    ctx.lineWidth = 2;
+    // Moss accent & sharp geological cracks
+    ctx.fillStyle = 'rgba(74, 222, 128, 0.35)';
     ctx.beginPath();
-    ctx.moveTo(-8, -10);
+    ctx.ellipse(-8, -13, 8, 3.5, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#1E293B';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(-8, -11);
     ctx.lineTo(2, 0);
-    ctx.lineTo(-4, 10);
+    ctx.lineTo(-4, 11);
+    ctx.moveTo(2, 0);
+    ctx.lineTo(12, 4);
     ctx.stroke();
     ctx.restore();
   }
@@ -994,14 +1164,20 @@ export class DigDugGame implements ArcadeGameInstance {
     ctx.save();
     ctx.translate(b.x * TILE, b.y * TILE + Math.sin(this.time * 6) * 3);
     ctx.shadowColor = b.color;
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = b.color;
+    ctx.shadowBlur = 14;
+    const vg = ctx.createRadialGradient(-4, -3, 2, 0, 2, 15);
+    vg.addColorStop(0, '#FFFFFF');
+    vg.addColorStop(0.35, b.color);
+    vg.addColorStop(1, '#1E293B');
+    ctx.fillStyle = vg;
     ctx.beginPath();
-    ctx.arc(0, 2, 13, 0, Math.PI * 2);
+    ctx.arc(0, 2, 13.5, 0, Math.PI * 2);
     ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.fillStyle = '#22C55E';
     ctx.beginPath();
-    ctx.ellipse(0, -12, 7, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(-4, -12, 6, 3.5, -0.4, 0, Math.PI * 2);
+    ctx.ellipse(4, -12, 6, 3.5, 0.4, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }

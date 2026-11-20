@@ -609,7 +609,17 @@ type ClassicIconKind =
   | 'tempest'
   | 'tempest2000'
   | 'tempest3000'
-  | 'mappy';
+  | 'mappy'
+  | 'mariobros'
+  | 'dkong'
+  | 'dkongjr'
+  | 'dkong3'
+  | 'smb1'
+  | 'smb2'
+  | 'smb3'
+  | 'sonic1'
+  | 'sonic2'
+  | 'sonic3';
 
 function ClassicIconCanvas({
   kind,
@@ -891,6 +901,104 @@ function ClassicIconCanvas({
       ctx.arc(19, 18, 1.8, 0, Math.PI * 2);
       ctx.arc(16, 22, 2.2, 0, Math.PI * 2);
       ctx.fill();
+    } else if (kind === 'mariobros') {
+      // Iconic POW Block + Red Cap
+      ctx.fillStyle = '#2563EB';
+      ctx.fillRect(5, 11, 22, 16);
+      ctx.strokeStyle = '#93C5FD';
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(5, 11, 22, 16);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 8px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('POW', 16, 19.5);
+      ctx.fillStyle = '#EF4444';
+      ctx.fillRect(9, 4, 14, 5);
+    } else if (kind === 'dkong' || kind === 'dkongjr' || kind === 'dkong3') {
+      // Donkey Kong Barrel / Jungle Vine / Bug Spray emblem
+      if (kind === 'dkong') {
+        ctx.fillStyle = '#B45309';
+        ctx.beginPath();
+        ctx.arc(16, 16, 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#FACC15';
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(6, 16);
+        ctx.lineTo(26, 16);
+        ctx.stroke();
+      } else if (kind === 'dkongjr') {
+        ctx.strokeStyle = '#22C55E';
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.moveTo(10, 3);
+        ctx.lineTo(10, 29);
+        ctx.moveTo(22, 3);
+        ctx.lineTo(22, 29);
+        ctx.stroke();
+        ctx.fillStyle = '#FACC15';
+        ctx.beginPath();
+        ctx.arc(16, 14, 6.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = '#A3E635';
+        ctx.fillRect(10, 12, 12, 16);
+        ctx.fillStyle = '#EF4444';
+        ctx.fillRect(13, 7, 6, 5);
+        ctx.fillStyle = '#FACC15';
+        ctx.beginPath();
+        ctx.arc(16, 4, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (kind === 'smb1' || kind === 'smb2' || kind === 'smb3') {
+      if (kind === 'smb1') {
+        // Super Mushroom
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.arc(16, 14, 11.5, Math.PI, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#FEF3C7';
+        ctx.fillRect(9, 14, 14, 12);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(12, 9, 3, 0, Math.PI * 2);
+        ctx.arc(20, 9, 3, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (kind === 'smb2') {
+        // Subcon Turnip
+        ctx.fillStyle = '#22C55E';
+        ctx.fillRect(11, 4, 10, 8);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(16, 18, 9.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#EC4899';
+        ctx.fillRect(11, 15, 10, 3);
+      } else {
+        // SMB3 Golden Super Leaf
+        ctx.fillStyle = '#F59E0B';
+        ctx.beginPath();
+        ctx.ellipse(16, 16, 11, 8, -0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#FEF08A';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    } else if (kind === 'sonic1' || kind === 'sonic2' || kind === 'sonic3') {
+      // Golden Sonic Ring + Blue/Gold/Indigo Spinball core
+      ctx.strokeStyle = '#FACC15';
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.arc(16, 16, 11.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle =
+        kind === 'sonic1' ? '#2563EB' : kind === 'sonic2' ? '#38BDF8' : '#6366F1';
+      ctx.beginPath();
+      ctx.arc(16, 16, 6.5, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     ctx.restore();
@@ -945,6 +1053,16 @@ export function GameEmblem({
     case 'tempest2000':
     case 'tempest3000':
     case 'mappy':
+    case 'mariobros':
+    case 'dkong':
+    case 'dkongjr':
+    case 'dkong3':
+    case 'smb1':
+    case 'smb2':
+    case 'smb3':
+    case 'sonic1':
+    case 'sonic2':
+    case 'sonic3':
       return <ClassicIconCanvas kind={gameId} size={size} className={className} />;
     default:
       return <ClassicPacManEmblem size={size} className={className} />;

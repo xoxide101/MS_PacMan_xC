@@ -82,6 +82,158 @@ interface CabinetCardConfig {
 }
 
 const CABINET_CARDS: CabinetCardConfig[] = [
+  // --- Classic Platformers (10) ---
+  {
+    id: 'mariobros',
+    title: 'Mario Bros.',
+    year: 1983,
+    category: 'platformers',
+    meta: '1983 · Nintendo · Arcade Sewer · POW Block & Bonus Coins',
+    description:
+      'Bump brick platforms from below to flip Shellcreepers, 2-hit angry Sidesteppers, and Fighter Flies—then kick them off for chain combos and trigger the 3-hit POW block.',
+    footerLabel: 'Sewer Arena',
+    footerSummary: 'Brick Bump Waves · 3-Hit POW · Wrap Pipes',
+    titleColorClass: 'text-red-400',
+    scoreColorClass: 'text-red-200',
+    borderHoverClass: 'hover:border-red-400/50',
+    buttonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
+  },
+  {
+    id: 'dkong',
+    title: 'Donkey Kong',
+    year: 1981,
+    category: 'platformers',
+    meta: '1981 · Nintendo · Slanted Girders · Barrels, Hammer & Rivets',
+    description:
+      'Climb steel ladders and leap over rolling barrels on 25m Girders, grab the golden Hammer to smash hazards, or pull all 8 rivets on 100m to rescue Pauline!',
+    footerLabel: 'Classic Stages',
+    footerSummary: '25m Girders · 100m Rivets · Golden Hammer',
+    titleColorClass: 'text-orange-400',
+    scoreColorClass: 'text-orange-200',
+    borderHoverClass: 'hover:border-orange-400/50',
+    buttonClass: 'bg-orange-500 hover:bg-orange-400 text-slate-950 focus-visible:ring-orange-200',
+  },
+  {
+    id: 'dkongjr',
+    title: 'Donkey Kong Jr.',
+    year: 1982,
+    category: 'platformers',
+    meta: '1982 · Nintendo · Dual-Vine Climbing · Fruit Drops & Keys',
+    description:
+      'Grab two jungle vines to climb fast, slide down single vines, drop tropical fruits onto Snapjaws below, and unlock all 3 golden keys to free Papa Kong!',
+    footerLabel: 'Jungle Climb',
+    footerSummary: '2-Vine Turbo Climb · Fruit Crush · Cage Keys',
+    titleColorClass: 'text-green-400',
+    scoreColorClass: 'text-green-200',
+    borderHoverClass: 'hover:border-green-400/50',
+    buttonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
+  },
+  {
+    id: 'dkong3',
+    title: 'Donkey Kong 3',
+    year: 1983,
+    category: 'platformers',
+    meta: '1983 · Nintendo · Greenhouse Bug Spray · Super Spray',
+    description:
+      'Play as Stanley the Bugman—blast upward bug spray to drive Donkey Kong into the beehive while defending your 5 flowers from Buzzbees and grabbing Super Spray.',
+    footerLabel: 'Greenhouse',
+    footerSummary: 'Bug Spray Shooter · Super Can · 5 Flowers',
+    titleColorClass: 'text-lime-400',
+    scoreColorClass: 'text-lime-200',
+    borderHoverClass: 'hover:border-lime-400/50',
+    buttonClass: 'bg-lime-400 hover:bg-lime-300 text-slate-950 focus-visible:ring-lime-200',
+  },
+  {
+    id: 'smb1',
+    title: 'Super Mario Bros.',
+    year: 1985,
+    category: 'platformers',
+    meta: '1985 · Nintendo · Mushroom Kingdom · Fire Flower & Bowser',
+    description:
+      'Sprint and leap across Overworld, Underground, Sky, and Castle stages—bump ? blocks for Super Mushrooms & Fire Flowers, kick Koopa shells, and reach the Flagpole.',
+    footerLabel: 'Power-Ups',
+    footerSummary: 'Super Mushroom · Fire Flower · Flagpole',
+    titleColorClass: 'text-red-400',
+    scoreColorClass: 'text-red-200',
+    borderHoverClass: 'hover:border-red-400/50',
+    buttonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
+  },
+  {
+    id: 'smb2',
+    title: 'Super Mario Bros. 2',
+    year: 1988,
+    category: 'platformers',
+    meta: '1988 · Nintendo · Subcon · Pluck Veggies · 4 Heroes & Birdo',
+    description:
+      'Switch live between Mario, Luigi, floating Princess Peach, and Toad—pluck turnips, POW blocks, Shy Guys, and Birdo’s flying eggs to hurl them across Subcon!',
+    footerLabel: 'Subcon Mechanics',
+    footerSummary: '4 Playable Heroes · Pluck & Throw · Birdo',
+    titleColorClass: 'text-pink-400',
+    scoreColorClass: 'text-pink-200',
+    borderHoverClass: 'hover:border-pink-400/50',
+    buttonClass: 'bg-pink-500 hover:bg-pink-400 text-white focus-visible:ring-pink-300',
+  },
+  {
+    id: 'smb3',
+    title: 'Super Mario Bros. 3',
+    year: 1988,
+    category: 'platformers',
+    meta: '1988 · Nintendo · Super Leaf Flight · P-Speed & Tail Spin',
+    description:
+      'Build P-Speed to 100% and soar into the clouds with the Super Leaf Raccoon Tail, whip foes with Tail Spins, bounce off Note Blocks, and conquer sky courses.',
+    footerLabel: 'Raccoon Kit',
+    footerSummary: 'P-Speed Flight · Tail Spin · ♪ Note Blocks',
+    titleColorClass: 'text-yellow-400',
+    scoreColorClass: 'text-yellow-200',
+    borderHoverClass: 'hover:border-yellow-400/50',
+    buttonClass: 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 focus-visible:ring-yellow-200',
+  },
+  {
+    id: 'sonic1',
+    title: 'Sonic the Hedgehog',
+    year: 1991,
+    category: 'platformers',
+    meta: '1991 · SEGA · Green Hill 360° Loops · Rings & Dr. Robotnik',
+    description:
+      'Blaze at 60fps through checkered Green Hill, Marble, and Star Light Zones—rocket through 360° Loop-de-Loops, scoop scattered Golden Rings, and smash Robotnik!',
+    footerLabel: '16-Bit Speed',
+    footerSummary: '360° Loops · Ring Scatter · Springs & Boss',
+    titleColorClass: 'text-blue-400',
+    scoreColorClass: 'text-blue-200',
+    borderHoverClass: 'hover:border-blue-400/50',
+    buttonClass: 'bg-blue-500 hover:bg-blue-400 text-white focus-visible:ring-blue-300',
+  },
+  {
+    id: 'sonic2',
+    title: 'Sonic the Hedgehog 2',
+    year: 1992,
+    category: 'platformers',
+    meta: '1992 · SEGA · Spin Dash · Tails Sidekick & Super Sonic',
+    description:
+      'Rev and blast off with the iconic Spin Dash alongside AI sidekick Tails across Emerald Hill and Chemical Plant—then transform into golden Super Sonic at 50+ Rings!',
+    footerLabel: 'Sequel Power',
+    footerSummary: 'Spin Dash · AI Tails · 50-Ring Super Sonic',
+    titleColorClass: 'text-sky-400',
+    scoreColorClass: 'text-sky-200',
+    borderHoverClass: 'hover:border-sky-400/50',
+    buttonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
+  },
+  {
+    id: 'sonic3',
+    title: 'Sonic the Hedgehog 3',
+    year: 1994,
+    category: 'platformers',
+    meta: '1994 · SEGA · Elemental Shields · Sonic / Tails / Knuckles',
+    description:
+      'Master Fire Dash, Electric Ring-Magnet Double-Jump, Bubble Bounce, and Insta-Shield across Angel Island & Hydrocity—switching freely between Sonic, Tails, and Knuckles!',
+    footerLabel: 'Sonic 3 Tech',
+    footerSummary: '3 Elemental Shields · Insta-Shield · 3 Heroes',
+    titleColorClass: 'text-indigo-400',
+    scoreColorClass: 'text-indigo-200',
+    borderHoverClass: 'hover:border-indigo-400/50',
+    buttonClass: 'bg-indigo-500 hover:bg-indigo-400 text-white focus-visible:ring-indigo-300',
+  },
+
   // --- Action & Dungeon (6) ---
   {
     id: 'gauntlet',
@@ -493,10 +645,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
   },
 ];
 
-const QUICK_NAV_IDS: GameId[] = ['gauntlet', 'polepos', 'supersprint', 'defender', 'tempest2000', 'mappy'];
+const QUICK_NAV_IDS: GameId[] = ['mariobros', 'dkong', 'smb1', 'smb3', 'sonic1', 'sonic2'];
 
 const FILTER_TABS: Array<{ id: FilterCategory; label: string }> = [
-  { id: 'all', label: 'All 27' },
+  { id: 'all', label: 'All 37' },
+  { id: 'platformers', label: 'Platformers (10)' },
   { id: 'shooters', label: 'Shooters (10)' },
   { id: 'action', label: 'Action (6)' },
   { id: 'racing', label: 'Racing (5)' },
@@ -739,7 +892,7 @@ export default function ArcadeHub() {
               </a>
             ) : (
               <span className="text-xs text-slate-400 whitespace-nowrap shrink-0">
-                27 Cabinets · 60fps HiDPI
+                37 Cabinets · 60fps HiDPI
               </span>
             )}
           </div>
@@ -757,7 +910,7 @@ export default function ArcadeHub() {
               Choose Your Cabinet
             </h1>
             <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-              Twenty-seven Golden Age arcade classics remastered at high resolution and locked 60fps—from Gauntlet I &amp; II, Pole Position I &amp; II, Sprint, Defender, Stargate, Tempest 1/2000/3000, and Mappy to Centipede, Dig Dug, Boulder Dash, Space Invaders, Food Fight, and all six Pac-Man cabinets.
+              Thirty-seven Golden Age arcade &amp; console classics remastered at high resolution and locked 60fps—featuring Mario Bros., Donkey Kong 1/Jr./3, Super Mario Bros. 1/2/3, Sonic 1/2/3, Gauntlet, Pole Position, Sprint, Defender, Stargate, Tempest, Mappy, Centipede, Dig Dug, Space Invaders, and the full Pac-Man series.
             </p>
           </div>
 
@@ -857,7 +1010,7 @@ export default function ArcadeHub() {
         </div>
 
         <p className="mt-8 text-xs text-slate-500 text-center">
-          Switch between all 27 cabinets anytime from the left rail or return here via the top bar
+          Switch between all 37 cabinets anytime from the left rail or return here via the top bar
         </p>
       </main>
     </div>

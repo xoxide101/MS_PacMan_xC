@@ -140,26 +140,46 @@ export function renderParticlesAndPopups(
 ): void {
   for (const p of particles) {
     const alpha = Math.max(0, p.life / p.maxLife);
+    const rad = p.radius * (0.35 + 0.65 * alpha);
     ctx.save();
+    ctx.globalAlpha = alpha * 0.4;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rad * 2.1, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.globalAlpha = alpha;
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius * (0.4 + 0.6 * alpha), 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hot specular core for crisp arcade impact punch
+    ctx.globalAlpha = alpha * 0.85;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rad * 0.42, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
 
   for (const pop of popups) {
-    const alpha = Math.min(1, (pop.life / pop.maxLife) * 1.6);
+    const t = Math.max(0, pop.life / pop.maxLife);
+    const alpha = Math.min(1, t * 1.8);
+    const popScale = t > 0.85 ? 1 + (1 - t) * 1.4 : 1;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.font = '700 15px "JetBrains Mono", monospace';
+    ctx.translate(pop.x, pop.y);
+    ctx.scale(popScale, popScale);
+    ctx.font = '800 15px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#04060D';
-    ctx.fillText(pop.text, pop.x + 1.5, pop.y + 1.5);
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = 'rgba(4, 6, 15, 0.92)';
+    ctx.strokeText(pop.text, 0, 0);
     ctx.fillStyle = pop.color;
-    ctx.fillText(pop.text, pop.x, pop.y);
+    ctx.fillText(pop.text, 0, 0);
     ctx.restore();
   }
 }
@@ -170,20 +190,34 @@ export function renderCrtOverlay(
   height: number
 ): void {
   ctx.save();
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
-  for (let y = 0; y < height; y += 4) {
-    ctx.fillRect(0, y, width, 1.5);
+  // Authentic fine arcade scanlines
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.24)';
+  for (let y = 0; y < height; y += 3) {
+    ctx.fillRect(0, y, width, 1.2);
   }
+  // Subtle aperture-grille phosphor columns
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+  for (let x = 0; x < width; x += 6) {
+    ctx.fillRect(x, 0, 1, height);
+  }
+  // Curved CRT glass tube vignette & subtle top reflection sheen
+  const sheen = ctx.createLinearGradient(0, 0, 0, height * 0.16);
+  sheen.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+  sheen.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  ctx.fillStyle = sheen;
+  ctx.fillRect(0, 0, width, height * 0.16);
+
   const vig = ctx.createRadialGradient(
     width * 0.5,
     height * 0.5,
-    Math.min(width, height) * 0.36,
+    Math.min(width, height) * 0.34,
     width * 0.5,
     height * 0.5,
     Math.max(width, height) * 0.72
   );
   vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.42)');
+  vig.addColorStop(0.75, 'rgba(0,0,0,0.14)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.48)');
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, width, height);
   ctx.restore();

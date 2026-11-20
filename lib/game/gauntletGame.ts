@@ -744,7 +744,7 @@ export class GauntletGame implements ArcadeGameInstance {
   public render(ctx: CanvasRenderingContext2D, dpr: number, visualMode: 'hd' | 'crt'): void {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    ctx.fillStyle = this.potionFlash > 0 ? '#1E3A8A' : '#0B0D14';
+    ctx.fillStyle = this.potionFlash > 0 ? '#1E3A8A' : '#090B12';
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
     ctx.save();
@@ -761,167 +761,435 @@ export class GauntletGame implements ArcadeGameInstance {
         const y = r * TILE;
         const cell = this.grid[r][c];
         if (cell === WALL) {
-          ctx.fillStyle = this.isSequel ? '#4C1D24' : '#334155';
+          // Chiseled beveled dungeon masonry blocks
+          const wg = ctx.createLinearGradient(x, y, x + TILE, y + TILE);
+          if (this.isSequel) {
+            wg.addColorStop(0, '#881337');
+            wg.addColorStop(0.5, '#4C1D24');
+            wg.addColorStop(1, '#2D0D14');
+          } else {
+            wg.addColorStop(0, '#64748B');
+            wg.addColorStop(0.5, '#334155');
+            wg.addColorStop(1, '#1E293B');
+          }
+          ctx.fillStyle = wg;
           ctx.fillRect(x, y, TILE, TILE);
-          ctx.strokeStyle = this.isSequel ? '#9F1239' : '#64748B';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x + 2, y + 2, TILE - 4, TILE - 4);
+          ctx.fillStyle = 'rgba(255,255,255,0.16)';
+          ctx.fillRect(x + 1, y + 1, TILE - 2, 3);
+          ctx.fillRect(x + 1, y + 1, 3, TILE - 2);
+          ctx.fillStyle = 'rgba(0,0,0,0.35)';
+          ctx.fillRect(x + 1, y + TILE - 3, TILE - 2, 3);
+          ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(x + 1, y + 1, TILE - 2, TILE * 0.5 - 1);
+          ctx.strokeRect(x + 1, y + TILE * 0.5, TILE - 2, TILE * 0.5 - 1);
         } else if (cell === DOOR) {
-          ctx.fillStyle = '#92400E';
+          // Iron-banded timber vault door with golden keyhole
+          ctx.fillStyle = '#78350F';
           ctx.fillRect(x, y, TILE, TILE);
+          ctx.fillStyle = '#92400E';
+          ctx.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+          ctx.fillStyle = '#475569';
+          ctx.fillRect(x + 2, y + 8, TILE - 4, 4);
+          ctx.fillRect(x + 2, y + TILE - 12, TILE - 4, 4);
           ctx.strokeStyle = '#FACC15';
-          ctx.lineWidth = 2.5;
-          ctx.strokeRect(x + 4, y + 4, TILE - 8, TILE - 8);
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x + 3, y + 3, TILE - 6, TILE - 6);
           ctx.fillStyle = '#FDE047';
           ctx.beginPath();
-          ctx.arc(x + TILE * 0.5, y + TILE * 0.5, 4, 0, Math.PI * 2);
+          ctx.arc(x + TILE * 0.5, y + TILE * 0.5 - 1, 4.5, 0, Math.PI * 2);
           ctx.fill();
+          ctx.fillStyle = '#0F172A';
+          ctx.fillRect(x + TILE * 0.5 - 1.5, y + TILE * 0.5 - 2, 3, 6);
         } else if (cell === EXIT) {
+          // Glowing emerald spiral staircase portal
           ctx.save();
-          ctx.fillStyle = '#065F46';
-          ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+          ctx.shadowColor = '#4ADE80';
+          ctx.shadowBlur = 12;
+          ctx.fillStyle = '#064E3B';
+          ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
           ctx.strokeStyle = '#4ADE80';
-          ctx.lineWidth = 3;
-          ctx.strokeRect(x + 5, y + 5, TILE - 10, TILE - 10);
-          ctx.fillStyle = '#86EFAC';
-          ctx.font = '800 10px "JetBrains Mono", monospace';
+          ctx.lineWidth = 2.6;
+          ctx.strokeRect(x + 3, y + 3, TILE - 6, TILE - 6);
+          ctx.fillStyle = '#10B981';
+          for (let s = 0; s < 4; s++) {
+            ctx.fillRect(x + 7, y + 8 + s * 6, TILE - 14, 3);
+          }
+          ctx.fillStyle = '#DCFCE7';
+          ctx.font = '900 9px "JetBrains Mono", monospace';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText('EXIT', x + TILE * 0.5, y + TILE * 0.5);
           ctx.restore();
         } else if (cell === ACID) {
-          ctx.fillStyle = '#14532D';
+          ctx.fillStyle = '#052E16';
           ctx.fillRect(x, y, TILE, TILE);
-          ctx.fillStyle = '#4ADE80';
+          const bub = Math.sin(this.time * 6 + r + c) * 2.5;
+          ctx.fillStyle = '#22C55E';
           ctx.beginPath();
-          ctx.ellipse(x + 20, y + 20, 14, 9 + Math.sin(this.time * 6 + r + c) * 2, 0, 0, Math.PI * 2);
+          ctx.ellipse(x + 20, y + 20, 15, 10 + bub * 0.6, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#BBF7D0';
+          ctx.beginPath();
+          ctx.arc(x + 15 + bub, y + 18, 3, 0, Math.PI * 2);
+          ctx.arc(x + 25 - bub, y + 23, 2.2, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          ctx.fillStyle = (r + c) % 2 === 0 ? '#111522' : '#0E121D';
+          // Flagstone dungeon floor
+          ctx.fillStyle = (r + c) % 2 === 0 ? '#141928' : '#101421';
           ctx.fillRect(x, y, TILE, TILE);
+          ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
         }
       }
     }
 
-    // Pickups
+    // Dungeon Pickups (Turkey Platter, Key, Glowing Potion, Ricochet Gem, Gold Chest)
     for (const p of this.pickups) {
       ctx.save();
-      ctx.translate(p.x, p.y);
+      ctx.translate(p.x, p.y + Math.sin(this.time * 4 + p.x) * 1.5);
       if (p.kind === 'food') {
+        // Roast Turkey / Ham platter
+        ctx.fillStyle = '#94A3B8';
+        ctx.beginPath();
+        ctx.ellipse(0, 4, 15, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = '#D97706';
         ctx.beginPath();
-        ctx.ellipse(0, 2, 12, 8, 0, 0, Math.PI * 2);
+        ctx.ellipse(-2, 1, 11.5, 7.5, -0.1, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = '#FEF3C7';
-        ctx.fillRect(9, 0, 6, 4);
+        ctx.fillStyle = '#FDE68A';
+        ctx.fillRect(8, -1, 7, 4);
+        ctx.beginPath();
+        ctx.arc(15, -1, 2.5, 0, Math.PI * 2);
+        ctx.arc(15, 3, 2.5, 0, Math.PI * 2);
+        ctx.fill();
       } else if (p.kind === 'key') {
+        ctx.shadowColor = '#FACC15';
+        ctx.shadowBlur = 8;
         ctx.fillStyle = '#FACC15';
         ctx.beginPath();
-        ctx.arc(-5, 0, 5, 0, Math.PI * 2);
+        ctx.arc(-6, 0, 5.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillRect(0, -2, 11, 4);
-        ctx.fillRect(7, 2, 3, 4);
-      } else if (p.kind === 'potion') {
-        ctx.fillStyle = '#38BDF8';
+        ctx.fillStyle = '#0F172A';
         ctx.beginPath();
-        ctx.arc(0, 3, 8, 0, Math.PI * 2);
+        ctx.arc(-6, 0, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FACC15';
+        ctx.fillRect(-1, -2, 13, 4);
+        ctx.fillRect(6, 2, 2.8, 4.5);
+        ctx.fillRect(10, 2, 2.8, 3.5);
+      } else if (p.kind === 'potion') {
+        ctx.shadowColor = '#38BDF8';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#0284C7';
+        ctx.beginPath();
+        ctx.arc(0, 4, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#7DD3FC';
+        ctx.beginPath();
+        ctx.arc(-2.5, 2, 3.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = '#E0F2FE';
-        ctx.fillRect(-3, -10, 6, 6);
+        ctx.fillRect(-3.5, -10, 7, 6);
+        ctx.fillStyle = '#D97706';
+        ctx.fillRect(-4, -12, 8, 3);
       } else if (p.kind === 'ricochet') {
+        ctx.shadowColor = '#EC4899';
+        ctx.shadowBlur = 10;
         ctx.fillStyle = '#EC4899';
         ctx.beginPath();
-        ctx.moveTo(0, -10);
-        ctx.lineTo(10, 0);
-        ctx.lineTo(0, 10);
-        ctx.lineTo(-10, 0);
+        ctx.moveTo(0, -11);
+        ctx.lineTo(11, 0);
+        ctx.lineTo(0, 11);
+        ctx.lineTo(-11, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#FBCFE8';
+        ctx.beginPath();
+        ctx.moveTo(0, -5);
+        ctx.lineTo(5, 0);
+        ctx.lineTo(0, 5);
+        ctx.lineTo(-5, 0);
         ctx.closePath();
         ctx.fill();
       } else {
-        ctx.fillStyle = '#F59E0B';
-        ctx.fillRect(-10, -7, 20, 14);
-        ctx.fillStyle = '#FEF08A';
-        ctx.fillRect(-8, -3, 16, 4);
+        // Golden Treasure Chest
+        ctx.fillStyle = '#92400E';
+        ctx.beginPath();
+        ctx.roundRect(-12, -8, 24, 16, 3);
+        ctx.fill();
+        ctx.fillStyle = '#FACC15';
+        ctx.fillRect(-12, -3, 24, 3);
+        ctx.fillRect(-3, -5, 6, 7);
+        ctx.strokeStyle = '#FEF08A';
+        ctx.lineWidth = 1.6;
+        ctx.strokeRect(-11, -7, 22, 14);
       }
       ctx.restore();
     }
 
-    // Generators
+    // Bone-pile & Archway Monster Generators
     for (const g of this.generators) {
       ctx.save();
       ctx.translate(g.x, g.y);
-      ctx.fillStyle = g.kind === 'ghost' ? '#CBD5E1' : g.kind === 'grunt' ? '#A16207' : '#991B1B';
+      const pulse = 0.8 + 0.2 * Math.sin(this.time * 6 + g.x);
+      ctx.fillStyle = g.kind === 'ghost' ? '#94A3B8' : g.kind === 'grunt' ? '#78350F' : '#7F1D1D';
       ctx.beginPath();
-      ctx.roundRect(-14, -14, 28, 28, 6);
+      ctx.roundRect(-15, -15, 30, 30, 7);
       ctx.fill();
-      ctx.strokeStyle = '#FDE047';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = g.kind === 'ghost' ? '#E2E8F0' : '#FACC15';
+      ctx.lineWidth = 2.2;
       ctx.stroke();
+      // Skull / Bone emblem inside generator
+      ctx.fillStyle = g.kind === 'ghost' ? '#FFFFFF' : g.kind === 'grunt' ? '#FDE68A' : '#FCA5A5';
+      ctx.globalAlpha = pulse;
+      ctx.beginPath();
+      ctx.arc(0, -2, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(-3, -4, 2, 2.5);
+      ctx.fillRect(1, -4, 2, 2.5);
       ctx.restore();
     }
 
-    // Monsters
+    // Distinct Atari Gauntlet Monsters
     for (const m of this.monsters) {
       ctx.save();
       ctx.translate(m.x, m.y);
+      const bob = Math.sin(this.time * 10 + m.x * 0.1) * 2;
       if (m.kind === 'dragon') {
-        ctx.fillStyle = '#DC2626';
+        // Winged Fire Dragon (Gauntlet II Boss!)
+        const wing = Math.sin(this.time * 10) * 6;
+        ctx.fillStyle = '#991B1B';
         ctx.beginPath();
-        ctx.roundRect(-24, -18, 48, 36, 12);
+        ctx.moveTo(-14, 0);
+        ctx.lineTo(-34, -18 + wing);
+        ctx.lineTo(-26, 12 + wing * 0.5);
+        ctx.closePath();
+        ctx.moveTo(14, 0);
+        ctx.lineTo(34, -18 + wing);
+        ctx.lineTo(26, 12 + wing * 0.5);
+        ctx.closePath();
+        ctx.fill();
+        const dg = ctx.createRadialGradient(-4, -6, 3, 0, 0, 26);
+        dg.addColorStop(0, '#F87171');
+        dg.addColorStop(0.5, '#DC2626');
+        dg.addColorStop(1, '#450A0A');
+        ctx.fillStyle = dg;
+        ctx.beginPath();
+        ctx.roundRect(-22, -18, 44, 36, 13);
         ctx.fill();
         ctx.fillStyle = '#FACC15';
         ctx.beginPath();
         ctx.arc(-8, -6, 4.5, 0, Math.PI * 2);
         ctx.arc(8, -6, 4.5, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = '#0F172A';
+        ctx.fillRect(-9, -7.5, 2, 3.5);
+        ctx.fillRect(7, -7.5, 2, 3.5);
       } else if (m.kind === 'death') {
-        ctx.fillStyle = '#1E293B';
+        // Hooded Skeletal Death with curved Scythe!
+        ctx.shadowColor = '#EF4444';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = '#0F172A';
         ctx.beginPath();
-        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.arc(0, 0, 15.5, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#F8FAFC';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#E2E8F0';
+        ctx.lineWidth = 2.2;
         ctx.stroke();
+        // Curved silver scythe blade
+        ctx.strokeStyle = '#94A3B8';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(12, 12);
+        ctx.lineTo(12, -12);
+        ctx.quadraticCurveTo(22, -16, 18, -4);
+        ctx.stroke();
+        // Glowing crimson eyes
         ctx.fillStyle = '#EF4444';
         ctx.fillRect(-6, -4, 4, 4);
         ctx.fillRect(2, -4, 4, 4);
-      } else {
-        ctx.fillStyle = m.kind === 'ghost' ? '#F1F5F9' : m.kind === 'grunt' ? '#B45309' : '#EF4444';
+      } else if (m.kind === 'ghost') {
+        // Ethereal waving white Ghost
+        ctx.globalAlpha = 0.88;
+        ctx.fillStyle = '#F1F5F9';
+        ctx.beginPath();
+        ctx.arc(0, -3 + bob * 0.5, 11.5, Math.PI, 0);
+        ctx.lineTo(11.5, 10);
+        ctx.lineTo(5, 6);
+        ctx.lineTo(0, 11);
+        ctx.lineTo(-5, 6);
+        ctx.lineTo(-11.5, 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#0F172A';
+        ctx.beginPath();
+        ctx.arc(-4, -3 + bob * 0.5, 2.2, 0, Math.PI * 2);
+        ctx.arc(4, -3 + bob * 0.5, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (m.kind === 'grunt') {
+        // Tusked club-wielding brown Grunt
+        ctx.fillStyle = '#92400E';
         ctx.beginPath();
         ctx.arc(0, 0, 13, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(10, -10 + bob, 4.5, 16); // Club
+        ctx.fillStyle = '#FEF3C7';
+        ctx.fillRect(-5, 4, 2.5, 4);
+        ctx.fillRect(2.5, 4, 2.5, 4);
         ctx.fillStyle = '#0F172A';
         ctx.fillRect(-5, -4, 3, 3);
         ctx.fillRect(2, -4, 3, 3);
+      } else {
+        // Horned Fire-Spitting Demon
+        ctx.fillStyle = '#DC2626';
+        ctx.beginPath();
+        ctx.arc(0, 1, 13, 0, Math.PI * 2);
+        ctx.fill();
+        // Curved horns
+        ctx.fillStyle = '#FEF08A';
+        ctx.beginPath();
+        ctx.moveTo(-9, -8);
+        ctx.lineTo(-14, -17);
+        ctx.lineTo(-3, -11);
+        ctx.moveTo(9, -8);
+        ctx.lineTo(14, -17);
+        ctx.lineTo(3, -11);
+        ctx.fill();
+        ctx.fillStyle = '#FEF08A';
+        ctx.fillRect(-5.5, -4, 3.5, 3);
+        ctx.fillRect(2, -4, 3.5, 3);
       }
       ctx.restore();
     }
 
-    // Player Hero
+    // 4 Unmistakable Articulated Gauntlet Hero Classes (Warrior, Valkyrie, Wizard, Elf)
     const hero = this.getHero();
+    const aimAngle = Math.atan2(this.aimY, this.aimX);
     ctx.save();
     ctx.translate(this.playerX, this.playerY);
+    ctx.rotate(aimAngle);
     ctx.shadowColor = hero.color;
     ctx.shadowBlur = 12;
-    ctx.fillStyle = hero.color;
-    ctx.beginPath();
-    ctx.arc(0, 0, 14, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = hero.accent;
-    ctx.beginPath();
-    ctx.arc(this.aimX * 6, this.aimY * 6, 5.5, 0, Math.PI * 2);
-    ctx.fill();
+
+    if (hero.id === 'warrior') {
+      // Thor the Warrior: Blue tunic, horned Viking helm, swinging battle-axe
+      ctx.fillStyle = '#1D4ED8';
+      ctx.beginPath();
+      ctx.arc(0, 0, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#CBD5E1';
+      ctx.beginPath();
+      ctx.arc(0, 0, 8.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Viking horns
+      ctx.fillStyle = '#FEF3C7';
+      ctx.beginPath();
+      ctx.moveTo(-2, -8);
+      ctx.lineTo(-6, -15);
+      ctx.lineTo(4, -7);
+      ctx.moveTo(-2, 8);
+      ctx.lineTo(-6, 15);
+      ctx.lineTo(4, 7);
+      ctx.fill();
+      // Battle-axe forward
+      ctx.fillStyle = '#92400E';
+      ctx.fillRect(4, -2, 13, 3.5);
+      ctx.fillStyle = '#E2E8F0';
+      ctx.beginPath();
+      ctx.arc(15, 0, 6, -1.2, 1.2);
+      ctx.fill();
+    } else if (hero.id === 'valkyrie') {
+      // Thyra the Valkyrie: Rose armor, winged helm, kite shield & sword
+      ctx.fillStyle = '#DB2777';
+      ctx.beginPath();
+      ctx.arc(0, 0, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.ellipse(-2, -10, 6, 3, -0.4, 0, Math.PI * 2);
+      ctx.ellipse(-2, 10, 6, 3, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      // Silver sword & kite shield
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(8, -8, 12, 2.8);
+      ctx.fillStyle = '#F472B6';
+      ctx.beginPath();
+      ctx.ellipse(9, 7, 5, 7, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (hero.id === 'wizard') {
+      // Merlin the Wizard: Golden-blue robe, pointed star hat & glowing staff
+      ctx.fillStyle = '#D97706';
+      ctx.beginPath();
+      ctx.arc(0, 0, 13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FACC15';
+      ctx.beginPath();
+      ctx.arc(-1, 0, 9.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#38BDF8';
+      ctx.beginPath();
+      ctx.arc(14, 0, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(14, 0, 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Questor the Elf: Emerald hooded cloak & drawn recurve bow
+      ctx.fillStyle = '#15803D';
+      ctx.beginPath();
+      ctx.arc(0, 0, 12.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#4ADE80';
+      ctx.beginPath();
+      ctx.moveTo(-12, 0);
+      ctx.lineTo(5, -9);
+      ctx.lineTo(5, 9);
+      ctx.closePath();
+      ctx.fill();
+      // Drawn wooden bow
+      ctx.strokeStyle = '#FBBF24';
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.arc(6, 0, 11, -1.1, 1.1);
+      ctx.stroke();
+    }
     ctx.restore();
 
-    // Projectiles
+    // Projectiles (glowing class weapons / fireballs)
     for (const p of this.projectiles) {
       ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(Math.atan2(p.vy, p.vx));
       ctx.fillStyle = p.color;
       ctx.shadowColor = p.color;
-      ctx.shadowBlur = 10;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.fromPlayer ? 5 : 6, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.shadowBlur = 12;
+      if (p.fromPlayer) {
+        ctx.beginPath();
+        ctx.moveTo(8, 0);
+        ctx.lineTo(-4, -4.5);
+        ctx.lineTo(-2, 0);
+        ctx.lineTo(-4, 4.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(2, 0, 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FEF08A';
+        ctx.beginPath();
+        ctx.arc(0, 0, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
       ctx.restore();
     }
 
@@ -932,8 +1200,11 @@ export class GauntletGame implements ArcadeGameInstance {
       ctx.save();
       ctx.font = '700 15px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(4, 6, 13, 0.8)';
+      ctx.fillStyle = 'rgba(4, 6, 13, 0.85)';
       ctx.fillRect(VIEW_W * 0.2, 14, VIEW_W * 0.6, 30);
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(VIEW_W * 0.2, 14, VIEW_W * 0.6, 30);
       ctx.fillStyle = '#FACC15';
       ctx.fillText(this.alertText, VIEW_W * 0.5, 34);
       ctx.restore();
@@ -944,8 +1215,11 @@ export class GauntletGame implements ArcadeGameInstance {
       ctx.font = '800 28px "Outfit", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(4, 6, 13, 0.85)';
+      ctx.fillStyle = 'rgba(4, 6, 13, 0.86)';
       ctx.fillRect(VIEW_W * 0.18, VIEW_H * 0.42, VIEW_W * 0.64, 56);
+      ctx.strokeStyle = this.isSequel ? '#FB7185' : '#FACC15';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(VIEW_W * 0.18, VIEW_H * 0.42, VIEW_W * 0.64, 56);
       ctx.fillStyle = this.isSequel ? '#FB7185' : '#FACC15';
       ctx.fillText(this.bannerText, VIEW_W * 0.5, VIEW_H * 0.42 + 28);
       ctx.restore();

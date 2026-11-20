@@ -562,6 +562,64 @@ class ArcadeAudioEngine {
     });
   }
 
+  // --- Platformer Classics Synth SFX (Mario, Donkey Kong, Sonic) ---
+
+  public playCoin(): void {
+    this.unlock();
+    this.playTone(987.77, 987.77, 0.075, 'square', 0.2);
+    this.playTone(1318.51, 1318.51, 0.22, 'square', 0.2, 0.07);
+  }
+
+  public playStomp(): void {
+    this.unlock();
+    this.playTone(320, 680, 0.08, 'square', 0.24);
+    this.playTone(180, 95, 0.09, 'triangle', 0.22, 0.03);
+  }
+
+  public playPowBlock(): void {
+    this.unlock();
+    this.playTone(180, 42, 0.32, 'sawtooth', 0.34);
+    this.playTone(420, 90, 0.24, 'square', 0.22, 0.03);
+  }
+
+  public playRing(): void {
+    this.unlock();
+    this.playTone(1396.91, 1760, 0.06, 'sine', 0.22);
+    this.playTone(2093.0, 2637.02, 0.14, 'triangle', 0.18, 0.045);
+  }
+
+  public playRingScatter(): void {
+    this.unlock();
+    for (let i = 0; i < 6; i++) {
+      this.playTone(1800 - i * 110, 920 + i * 60, 0.06, 'triangle', 0.16, i * 0.032);
+    }
+  }
+
+  public playSpinDash(charge = 1): void {
+    this.unlock();
+    const base = 220 + charge * 90;
+    this.playTone(base, base * 1.6, 0.1, 'sawtooth', 0.2);
+  }
+
+  public playSpring(): void {
+    this.unlock();
+    this.playTone(210, 980, 0.22, 'sine', 0.28);
+    this.playTone(320, 1240, 0.18, 'triangle', 0.18, 0.03);
+  }
+
+  public playPowerUp(): void {
+    this.unlock();
+    const notes = [392, 493.88, 587.33, 783.99, 987.77, 1174.66];
+    notes.forEach((f, i) => {
+      this.playTone(f, f * 1.02, 0.08, 'square', 0.18, i * 0.055);
+    });
+  }
+
+  public playSpray(): void {
+    this.unlock();
+    this.playTone(720, 1480, 0.065, 'sawtooth', 0.14);
+  }
+
   public stopAmbient(): void {
     if (this.ambientOsc) {
       try {
