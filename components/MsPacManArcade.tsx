@@ -38,7 +38,11 @@ const GHOST_ROSTER = [
   { name: 'Sue', role: 'Pokey', trait: 'Chases far, peels away close', color: '#FF9B26' },
 ];
 
-export default function MsPacManArcade() {
+interface MsPacManArcadeProps {
+  onSwitchGame?: (game: 'jr' | 'ms') => void;
+}
+
+export default function MsPacManArcade({ onSwitchGame }: MsPacManArcadeProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<MsPacManEngine | null>(null);
   const rendererRef = useRef<MsPacManRenderer | null>(null);
@@ -387,7 +391,29 @@ export default function MsPacManArcade() {
       <main className="flex-1 w-full mx-auto max-w-[1440px] px-3 sm:px-6 py-3 sm:py-4 flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-5 xl:gap-8">
         {/* Left Architectural Rail (Desktop) */}
         <aside className="hidden lg:flex flex-col justify-between w-[240px] xl:w-[272px] shrink-0 py-1">
-          <div className="space-y-6">
+          <div className="space-y-5">
+            {onSwitchGame && (
+              <section className="pb-5 border-b border-white/[0.07]">
+                <div className="text-xs font-medium text-slate-400 mb-2">Arcade Cabinet</div>
+                <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-white/[0.04] border border-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={() => onSwitchGame('jr')}
+                    className="py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-400 hover:text-slate-100 transition-colors whitespace-nowrap cursor-pointer"
+                  >
+                    Jr. Pac-Man
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSwitchGame('ms')}
+                    className="py-1.5 px-2.5 text-xs font-semibold rounded-md bg-amber-400 text-slate-950 whitespace-nowrap cursor-pointer"
+                  >
+                    Ms. Pac-Man
+                  </button>
+                </div>
+              </section>
+            )}
+
             {/* Lives & Stage Progress */}
             <section className="space-y-4 pb-6 border-b border-white/[0.07]">
               <div>
@@ -662,6 +688,15 @@ export default function MsPacManArcade() {
                           <Play className="w-4 h-4 fill-current" />
                           <span>Start Game</span>
                         </button>
+                        {onSwitchGame && (
+                          <button
+                            type="button"
+                            onClick={() => onSwitchGame('jr')}
+                            className="lg:hidden w-full py-2 px-4 rounded-lg border border-white/10 bg-white/[0.04] text-xs font-medium text-slate-200 hover:text-white cursor-pointer"
+                          >
+                            Switch to Jr. Pac-Man
+                          </button>
+                        )}
                         <p className="text-xs text-slate-400">
                           Arrow keys or WASD to steer · Space to pause · Press Enter to start
                         </p>

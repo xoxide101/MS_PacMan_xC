@@ -1,5 +1,5 @@
-import MsPacManArcade from '@/components/MsPacManArcade';
+import ArcadeHub from '@/components/ArcadeHub';
 
 export default function HomePage() {
-  return <MsPacManArcade />;
+  return <ArcadeHub />;
 }

@@ -113,6 +113,59 @@ class ArcadeAudioEngine {
     }
   }
 
+  // Distinct playful bouncy Jr. Pac-Man intro jingle
+  public playJrStartFanfare(): void {
+    this.unlock();
+    if (!this.ctx || this.muted) return;
+    const notes: Array<[number, number, number]> = [
+      [523.25, 0.0, 0.1],   // C5
+      [659.25, 0.1, 0.1],   // E5
+      [783.99, 0.2, 0.1],   // G5
+      [698.46, 0.31, 0.09], // F5
+      [659.25, 0.41, 0.1],  // E5
+      [587.33, 0.52, 0.12], // D5
+      [493.88, 0.65, 0.1],  // B4
+      [587.33, 0.76, 0.1],  // D5
+      [783.99, 0.87, 0.11], // G5
+      [880.0, 0.99, 0.11],  // A5
+      [783.99, 1.11, 0.1],  // G5
+      [659.25, 1.22, 0.11], // E5
+      [1046.5, 1.35, 0.14], // C6
+      [1318.5, 1.5, 0.28],  // E6
+    ];
+    for (const [f, t, d] of notes) {
+      this.playTone(f, f * 1.01, d, 'square', 0.19, t);
+      this.playTone(f * 0.5, f * 0.5, d, 'triangle', 0.16, t);
+    }
+  }
+
+  // Deeper rich chomp for mutated 50-pt super dots
+  public playBigDotWaka(): void {
+    this.unlock();
+    this.wakaToggle = !this.wakaToggle;
+    if (this.wakaToggle) {
+      this.playTone(170, 410, 0.095, 'sawtooth', 0.24);
+      this.playTone(340, 620, 0.085, 'triangle', 0.2);
+    } else {
+      this.playTone(390, 155, 0.095, 'sawtooth', 0.24);
+      this.playTone(580, 310, 0.085, 'triangle', 0.2);
+    }
+  }
+
+  // Soft sparkle ping when roaming toy mutates a regular dot into a big dot
+  public playDotMutate(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(680, 1020, 0.055, 'sine', 0.1);
+  }
+
+  // Dramatic arcade boom when a roaming toy collides with and destroys a power energizer!
+  public playEnergizerExplode(): void {
+    this.unlock();
+    this.playTone(460, 58, 0.38, 'sawtooth', 0.34);
+    this.playTone(280, 42, 0.42, 'square', 0.25, 0.04);
+    this.playTone(920, 120, 0.22, 'triangle', 0.2, 0.02);
+  }
+
   public playPowerPellet(): void {
     this.unlock();
     this.playTone(220, 880, 0.18, 'sawtooth', 0.22);
