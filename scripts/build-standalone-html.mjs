@@ -51,9 +51,10 @@ async function generateStandaloneHtml() {
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Retro Arcade Collection — 37 Classic Cabinets in 60fps HD</title>
-  <meta name="description" content="Play 37 classic arcade and console cabinets in crisp 60fps HiDPI: Mario Bros., Donkey Kong 1/Jr./3, Super Mario Bros. 1/2/3, Sonic 1/2/3, Gauntlet I & II, Pole Position I & II, Sprint, Defender, Stargate, Tempest, Mappy, Centipede, Dig Dug, Space Invaders, and all 6 Pac-Man games—all in one web page." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#060811" />
+  <title>Retro Arcade Collection — 87 Classic &amp; Evo Cabinets in 60fps HD</title>
+  <meta name="description" content="Play 87 Golden Age and modern evolved arcade cabinets in crisp 60fps HiDPI with universal mouse steering, multi-touch virtual joystick, adaptive flip/fold/tablet/desktop layouts, and synthesized music." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -65,21 +66,31 @@ async function generateStandaloneHtml() {
       --font-mono: var(--font-jetbrains);
     }
     ${safeCss}
-    html, body {
+    html {
+      margin: 0;
+      padding: 0;
+      background-color: #060811;
+      color: #f1f5f9;
+      overflow-x: clip;
+      overflow-y: auto;
+      height: auto;
+    }
+    body {
       margin: 0;
       padding: 0;
       background-color: #060811;
       color: #f1f5f9;
       font-family: var(--font-jakarta);
       -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
+      overflow: visible;
+      min-height: 100%;
     }
     .font-mono {
       font-family: var(--font-jetbrains);
     }
   </style>
 </head>
-<body class="bg-[#060811] text-slate-100 antialiased selection:bg-amber-400/30 selection:text-amber-100 overflow-x-hidden">
+<body class="bg-[#060811] text-slate-100 antialiased selection:bg-amber-400/30 selection:text-amber-100">
   <div id="root"></div>
   <script>${safeJs}</script>
 </body>

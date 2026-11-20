@@ -4,6 +4,109 @@
 // elevating shading, cel-highlights, articulation, and 60fps animation detail.
 // ============================================================================
 
+interface CachedMatrixSprite {
+  canvas: HTMLCanvasElement;
+  logicalW: number;
+  logicalH: number;
+}
+
+const MATRIX_SPRITE_CACHE = new WeakMap<readonly string[], Map<string, CachedMatrixSprite>>();
+
+function getOrBuildMatrixSprite(
+  rows: readonly string[],
+  cell: number,
+  palette: Record<string, string>,
+  glowColor?: string
+): CachedMatrixSprite | null {
+  if (typeof document === 'undefined') return null;
+
+  let byStyle = MATRIX_SPRITE_CACHE.get(rows);
+  if (!byStyle) {
+    byStyle = new Map();
+    MATRIX_SPRITE_CACHE.set(rows, byStyle);
+  }
+
+  let styleKey = `${cell.toFixed(2)}|${glowColor ?? ''}`;
+  for (const k in palette) {
+    styleKey += `|${k}:${palette[k]}`;
+  }
+
+  const existing = byStyle.get(styleKey);
+  if (existing) return existing;
+
+  // Prevent unbounded cache growth if a caller passes dynamic animated colors
+  if (byStyle.size > 96) byStyle.clear();
+
+  const h = rows.length;
+  const w = rows[0]?.length ?? 0;
+  const pad = glowColor ? Math.ceil(cell * 3.4) : 2;
+  const logicalW = Math.ceil(w * cell + pad * 2);
+  const logicalH = Math.ceil(h * cell + pad * 2);
+  const scale = 2; // Crisp HiDPI pre-render
+
+  const canvas = document.createElement('canvas');
+  canvas.width = logicalW * scale;
+  canvas.height = logicalH * scale;
+  const sctx = canvas.getContext('2d');
+  if (!sctx) return null;
+
+  sctx.scale(scale, scale);
+
+  // Pass 1: single unified silhouette shadow/glow pass (baked once!)
+  if (glowColor) {
+    sctx.save();
+    sctx.shadowColor = glowColor;
+    sctx.shadowBlur = cell * 2.1;
+    sctx.fillStyle = glowColor;
+    for (let r = 0; r < h; r++) {
+      const row = rows[r];
+      for (let c = 0; c < w; c++) {
+        const ch = row[c];
+        if (ch === '.' || ch === ' ' || !palette[ch]) continue;
+        sctx.fillRect(pad + c * cell + 0.4, pad + r * cell + 0.4, cell - 0.8, cell - 0.8);
+      }
+    }
+    sctx.restore();
+  }
+
+  // Pass 2: crisp rounded bevel pixels without redundant shadow overhead
+  for (let r = 0; r < h; r++) {
+    const row = rows[r];
+    for (let c = 0; c < w; c++) {
+      const ch = row[c];
+      if (ch === '.' || ch === ' ') continue;
+      const col = palette[ch];
+      if (!col) continue;
+      const px = pad + c * cell;
+      const py = pad + r * cell;
+      sctx.fillStyle = col;
+      sctx.beginPath();
+      sctx.roundRect(px + 0.25, py + 0.25, cell - 0.5, cell - 0.5, Math.max(0.8, cell * 0.24));
+      sctx.fill();
+    }
+  }
+
+  // Pass 3: subtle top specular micro-bevel for evolved HD crispness
+  sctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+  for (let r = 0; r < h; r++) {
+    const row = rows[r];
+    for (let c = 0; c < w; c++) {
+      const ch = row[c];
+      if (ch === '.' || ch === ' ' || !palette[ch]) continue;
+      const above = r > 0 ? rows[r - 1][c] : '.';
+      if (above === '.' || above === ' ') {
+        const px = pad + c * cell;
+        const py = pad + r * cell;
+        sctx.fillRect(px + 0.6, py + 0.4, cell - 1.2, Math.max(1, cell * 0.28));
+      }
+    }
+  }
+
+  const built: CachedMatrixSprite = { canvas, logicalW, logicalH };
+  byStyle.set(styleKey, built);
+  return built;
+}
+
 export function drawPixelMatrixHD(
   ctx: CanvasRenderingContext2D,
   rows: readonly string[],
@@ -13,17 +116,23 @@ export function drawPixelMatrixHD(
   palette: Record<string, string>,
   glowColor?: string
 ): void {
+  const cached = getOrBuildMatrixSprite(rows, cell, palette, glowColor);
+  if (cached) {
+    ctx.drawImage(
+      cached.canvas,
+      cx - cached.logicalW * 0.5,
+      cy - cached.logicalH * 0.5,
+      cached.logicalW,
+      cached.logicalH
+    );
+    return;
+  }
+
+  // Fallback for non-DOM / headless test environments (fast, no per-pixel blur)
   const h = rows.length;
   const w = rows[0]?.length ?? 0;
   const ox = cx - (w * cell) * 0.5;
   const oy = cy - (h * cell) * 0.5;
-
-  ctx.save();
-  if (glowColor) {
-    ctx.shadowColor = glowColor;
-    ctx.shadowBlur = cell * 2.2;
-  }
-
   for (let r = 0; r < h; r++) {
     const row = rows[r];
     for (let c = 0; c < w; c++) {
@@ -31,34 +140,10 @@ export function drawPixelMatrixHD(
       if (ch === '.' || ch === ' ') continue;
       const col = palette[ch];
       if (!col) continue;
-      const px = ox + c * cell;
-      const py = oy + r * cell;
-
       ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.roundRect(px + 0.25, py + 0.25, cell - 0.5, cell - 0.5, Math.max(0.8, cell * 0.24));
-      ctx.fill();
+      ctx.fillRect(ox + c * cell + 0.25, oy + r * cell + 0.25, cell - 0.5, cell - 0.5);
     }
   }
-
-  // Subtle top specular micro-bevel for evolved HD crispness (no shadow overhead)
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.28)';
-  for (let r = 0; r < h; r++) {
-    const row = rows[r];
-    for (let c = 0; c < w; c++) {
-      const ch = row[c];
-      if (ch === '.' || ch === ' ' || !palette[ch]) continue;
-      // Only add top rim highlight if pixel above is empty or different
-      const above = r > 0 ? rows[r - 1][c] : '.';
-      if (above === '.' || above === ' ') {
-        const px = ox + c * cell;
-        const py = oy + r * cell;
-        ctx.fillRect(px + 0.6, py + 0.4, cell - 1.2, Math.max(1, cell * 0.28));
-      }
-    }
-  }
-  ctx.restore();
 }
 
 export function drawSoftShadow(
@@ -1328,4 +1413,43 @@ export const TAITO_UFO_MATRIX = [
   '################',
   '..###..##..###..',
   '...#........#...',
+] as const;
+
+export const TAITO_INVADER_EXPLODE = [
+  '....#...#....',
+  '.#...#.#...#.',
+  '..#.......#..',
+  '...#.....#...',
+  '##.........##',
+  '...#.....#...',
+  '..#..#.#..#..',
+  '.#..#...#..#.',
+] as const;
+
+export const TAITO_MINI_F0 = [
+  '..###..',
+  '.#####.',
+  '##.#.##',
+  '#######',
+  '.#...#.',
+  '#..#..#',
+] as const;
+
+export const TAITO_MINI_F1 = [
+  '..###..',
+  '.#####.',
+  '##.#.##',
+  '#######',
+  '#.#.#.#',
+  '.#...#.',
+] as const;
+
+export const TAITO_SHOT_TOP_EXPLODE = [
+  '#...#...#',
+  '.#..#..#.',
+  '..#####..',
+  '#########',
+  '..#####..',
+  '.#..#..#.',
+  '#...#...#',
 ] as const;

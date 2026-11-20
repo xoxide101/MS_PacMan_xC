@@ -36,8 +36,23 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
 
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     let rafId = 0;
+    let isVisible = true;
     let lastTime = performance.now();
     let accumulator = 0;
+    let activeTick: ((now: number) => void) | null = null;
+
+    const startLoop = () => {
+      if (rafId || !activeTick) return;
+      lastTime = performance.now();
+      accumulator = 0;
+      rafId = window.requestAnimationFrame(activeTick);
+    };
+
+    const stopLoop = () => {
+      if (!rafId) return;
+      window.cancelAnimationFrame(rafId);
+      rafId = 0;
+    };
 
     const runLoop = (
       logicalW: number,
@@ -47,8 +62,15 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
     ) => {
       canvas.width = Math.round(logicalW * dpr);
       canvas.height = Math.round(logicalH * dpr);
+      // Paint one crisp frame immediately so scrolled-in cards are never blank
+      stepFn(FIXED_STEP);
+      renderFn();
 
-      const tick = (now: number) => {
+      activeTick = (now: number) => {
+        if (!isVisible) {
+          rafId = 0;
+          return;
+        }
         const dt = Math.min(0.05, Math.max(0, (now - lastTime) / 1000));
         lastTime = now;
         accumulator += dt;
@@ -57,10 +79,26 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
           accumulator -= FIXED_STEP;
         }
         renderFn();
-        rafId = window.requestAnimationFrame(tick);
+        rafId = window.requestAnimationFrame(activeTick!);
       };
-      rafId = window.requestAnimationFrame(tick);
+
+      if (isVisible) startLoop();
     };
+
+    let observer: IntersectionObserver | null = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      isVisible = false;
+      observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          isVisible = Boolean(entry?.isIntersecting);
+          if (isVisible) startLoop();
+          else stopLoop();
+        },
+        { rootMargin: '120px 0px' }
+      );
+      observer.observe(canvas);
+    }
 
     if (isClassicArcadeGameId(game)) {
       const instance = createClassicArcadeGame(game);
@@ -127,7 +165,8 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
     }
 
     return () => {
-      window.cancelAnimationFrame(rafId);
+      stopLoop();
+      observer?.disconnect();
     };
   }, [game]);
 

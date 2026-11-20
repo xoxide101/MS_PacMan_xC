@@ -3,12 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  ArrowUpFromLine,
   LayoutGrid,
+  Music,
   Pause,
   Play,
   RotateCcw,
@@ -17,6 +13,7 @@ import {
 } from 'lucide-react';
 import { CABINET_LIST, GameId } from '@/lib/game/arcadeTypes';
 import { arcadeAudio } from '@/lib/game/audio';
+import { arcadeMusic } from '@/lib/game/musicEngine';
 import { PacManiaEngine } from '@/lib/game/pacmaniaEngine';
 import { PacManiaRenderer } from '@/lib/game/pacmaniaRenderer';
 import {
@@ -27,6 +24,13 @@ import {
 import { PACMANIA_WORLDS } from '@/lib/game/pacmaniaWorlds';
 import { Direction, SpeedMode, VisualStyle } from '@/lib/game/types';
 import { PacManiaEmblem } from './MiniEmblemCanvas';
+import {
+  PacManFlankAction,
+  PacManFlankJoystick,
+  PacManHeaderToggles,
+  PacManTouchDeck,
+  usePacManAdaptiveControls,
+} from './PacManControlDeck';
 
 const FIXED_STEP = 1 / 60;
 
@@ -58,6 +62,7 @@ export default function PacManiaArcade({
   const [visualStyle, setVisualStyle] = useState<VisualStyle>('hd');
   const [speedMode, setSpeedMode] = useState<SpeedMode>('arcade');
   const [muted, setMuted] = useState(false);
+  const [musicOn, setMusicOn] = useState(() => arcadeMusic.isMusicEnabled());
 
   const [hud, setHud] = useState<PacManiaHudSnapshot>({
     phase: 'TITLE_MENU',
@@ -111,10 +116,31 @@ export default function PacManiaArcade({
     setHud(engine.getHudSnapshot());
   }, []);
 
+  useEffect(() => {
+    if (hud.phase === 'PLAYING' || hud.phase === 'GHOST_EATEN_PAUSE') {
+      arcadeMusic.startTrackForGame('pacmania');
+    } else {
+      arcadeMusic.pause();
+    }
+  }, [hud.phase]);
+
   const handleToggleMute = useCallback(() => {
     setMuted((prev) => {
       const next = !prev;
       arcadeAudio.setMuted(next);
+      arcadeMusic.setMuted(next);
+      return next;
+    });
+  }, []);
+
+  const handleToggleMusic = useCallback(() => {
+    setMusicOn((prev) => {
+      const next = !prev;
+      arcadeMusic.setMusicEnabled(next);
+      const phase = engineRef.current?.phase;
+      if (next && (phase === 'PLAYING' || phase === 'GHOST_EATEN_PAUSE')) {
+        arcadeMusic.startTrackForGame('pacmania');
+      }
       return next;
     });
   }, []);
@@ -140,6 +166,11 @@ export default function PacManiaArcade({
     arcadeAudio.unlock();
     engineRef.current?.triggerJump();
   }, []);
+
+  const adaptiveControls = usePacManAdaptiveControls({
+    onDirection: handleDirectionInput,
+    onPrimaryActionDown: handleJump,
+  });
 
   useEffect(() => {
     const engine = new PacManiaEngine();
@@ -203,6 +234,7 @@ export default function PacManiaArcade({
       window.cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updateCanvasResolution);
       arcadeAudio.stopAmbient();
+      arcadeMusic.stop();
     };
   }, []);
 
@@ -348,6 +380,21 @@ export default function PacManiaArcade({
                 <span>Cabinets</span>
               </button>
             )}
+            <PacManHeaderToggles controls={adaptiveControls} />
+            <button
+              type="button"
+              onClick={handleToggleMusic}
+              aria-label={musicOn ? 'Disable background music' : 'Enable background music'}
+              title={musicOn ? `BGM: ${arcadeMusic.getTrackTitle('pacmania')} (On)` : 'BGM Off'}
+              className={`h-9 px-2.5 flex items-center justify-center gap-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
+                musicOn && !muted
+                  ? 'border-pink-400/35 bg-pink-500/15 text-pink-300 hover:bg-pink-500/25'
+                  : 'border-white/10 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08]'
+              }`}
+            >
+              <Music className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">{musicOn ? 'BGM' : 'No BGM'}</span>
+            </button>
             <button
               type="button"
               onClick={handleToggleMute}
@@ -388,9 +435,15 @@ export default function PacManiaArcade({
         </div>
       </header>
 
-      <main className="flex-1 w-full mx-auto max-w-[1440px] px-3 sm:px-6 py-3 sm:py-4 flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-5 xl:gap-8">
+      <main
+        className={`flex-1 w-full mx-auto max-w-[1440px] px-2.5 sm:px-6 py-2 sm:py-4 flex ${
+          adaptiveControls.isSideFlanks
+            ? 'flex-row items-center justify-between gap-2 sm:gap-4'
+            : 'flex-col lg:flex-row items-center lg:items-stretch justify-center gap-3 sm:gap-5 xl:gap-8'
+        }`}
+      >
         {/* Left Architectural Rail */}
-        <aside className="hidden lg:flex flex-col justify-between w-[240px] xl:w-[272px] shrink-0 py-1">
+        <aside className={`${adaptiveControls.padVisible ? 'hidden' : 'hidden lg:flex'} flex-col justify-between w-[240px] xl:w-[272px] shrink-0 py-1`}>
           <div className="space-y-5">
             {onSwitchGame && (
               <section className="pb-5 border-b border-white/[0.07]">
@@ -559,7 +612,9 @@ export default function PacManiaArcade({
         </aside>
 
         {/* Center Isometric 3D Stage */}
-        <section className="relative flex flex-col items-center justify-center flex-1 min-w-0">
+        <PacManFlankJoystick controls={adaptiveControls} accentColor="#EC4899" />
+
+        <section className={`relative flex flex-col items-center justify-center flex-1 min-w-0 ${adaptiveControls.isFlexFold ? 'fold-flex-stage' : ''}`}>
           <div className="w-full max-w-[680px] flex lg:hidden items-center justify-between text-xs text-slate-300 mb-2 px-1">
             <div className="flex items-center gap-1.5">
               {Array.from({ length: Math.max(0, hud.lives) }).map((_, i) => (
@@ -574,7 +629,7 @@ export default function PacManiaArcade({
           </div>
 
           <div
-            className="relative rounded-2xl p-2 sm:p-2.5 bg-[#0A0E1C] border border-white/[0.09] transition-shadow duration-500"
+            className="relative rounded-2xl p-1.5 sm:p-2.5 bg-[#0A0E1C] border border-white/[0.09] transition-shadow duration-500"
             style={{
               boxShadow: `0 0 65px -18px ${hud.worldAccent}50, 0 24px 64px -20px rgba(0, 0, 0, 0.85)`,
             }}
@@ -583,15 +638,18 @@ export default function PacManiaArcade({
               className="relative overflow-hidden rounded-xl bg-[#0B1228]"
               style={{
                 aspectRatio: `${PM_VIEWPORT_WIDTH} / ${PM_VIEWPORT_HEIGHT}`,
-                width: 'min(calc(100vw - 32px), 780px)',
-                maxHeight: 'calc(100dvh - 116px)',
+                width: adaptiveControls.isSideFlanks ? 'auto' : 'min(calc(100vw - 24px), 780px)',
+                height: adaptiveControls.isSideFlanks ? adaptiveControls.canvasHeightCss : 'auto',
+                maxHeight: adaptiveControls.canvasHeightCss,
+                maxWidth: '100%',
               }}
             >
               <canvas
                 ref={canvasRef}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
-                className="block w-full h-full touch-none select-none"
+                {...adaptiveControls.canvasMouseHandlers}
+                className="block w-full h-full touch-none select-none cursor-crosshair"
                 aria-label="Pac-Mania 3D isometric game board"
               />
 
@@ -659,7 +717,7 @@ export default function PacManiaArcade({
                             onClick={onOpenLobby}
                             className="lg:hidden w-full py-2 px-4 rounded-lg border border-white/10 bg-white/[0.04] text-xs font-medium text-slate-200 cursor-pointer"
                           >
-                            All 37 Cabinets
+                            All 87 Cabinets
                           </button>
                         )}
                         <p className="text-xs text-slate-300">
@@ -791,58 +849,25 @@ export default function PacManiaArcade({
             </div>
           </div>
 
-          {/* Mobile Touch D-Pad + Dedicated JUMP Button */}
-          <div className="mt-3 flex items-center gap-4 lg:hidden select-none">
-            <div className="grid grid-cols-3 gap-2 w-44">
-              <div />
-              <button
-                type="button"
-                aria-label="Move Up"
-                onPointerDown={() => handleDirectionInput('UP')}
-                className="h-12 rounded-xl bg-white/[0.07] active:bg-pink-500 flex items-center justify-center border border-white/10"
-              >
-                <ArrowUp className="w-5 h-5" />
-              </button>
-              <div />
-              <button
-                type="button"
-                aria-label="Move Left"
-                onPointerDown={() => handleDirectionInput('LEFT')}
-                className="h-12 rounded-xl bg-white/[0.07] active:bg-pink-500 flex items-center justify-center border border-white/10"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Move Down"
-                onPointerDown={() => handleDirectionInput('DOWN')}
-                className="h-12 rounded-xl bg-white/[0.07] active:bg-pink-500 flex items-center justify-center border border-white/10"
-              >
-                <ArrowDown className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Move Right"
-                onPointerDown={() => handleDirectionInput('RIGHT')}
-                className="h-12 rounded-xl bg-white/[0.07] active:bg-pink-500 flex items-center justify-center border border-white/10"
-              >
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onPointerDown={handleJump}
-              className="h-16 px-5 rounded-xl bg-pink-500/25 border border-pink-400 text-pink-200 active:bg-pink-500 active:text-white font-bold text-xs flex flex-col items-center justify-center gap-1"
-            >
-              <ArrowUpFromLine className="w-4 h-4" />
-              <span>JUMP</span>
-            </button>
-          </div>
+          {/* Adaptive Virtual Arcade Joystick + Dedicated JUMP Button */}
+          <PacManTouchDeck
+            controls={adaptiveControls}
+            accentColor="#EC4899"
+            accentButtonClass="bg-pink-500 text-white"
+            actionLabel="JUMP"
+            onActionTap={handleJump}
+          />
         </section>
 
+        <PacManFlankAction
+          controls={adaptiveControls}
+          accentButtonClass="bg-pink-500 text-white"
+          actionLabel="JUMP"
+          onActionTap={handleJump}
+        />
+
         {/* Right Architectural Rail */}
-        <aside className="hidden xl:flex flex-col justify-between w-[272px] shrink-0 py-1">
+        <aside className={`${adaptiveControls.padVisible ? 'hidden' : 'hidden xl:flex'} flex-col justify-between w-[272px] shrink-0 py-1`}>
           <div className="space-y-6">
             <section className="space-y-3 pb-6 border-b border-white/[0.07]">
               <h2 className="text-xs font-medium text-slate-400">7-Ghost 3D Roster</h2>

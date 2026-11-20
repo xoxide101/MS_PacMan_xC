@@ -3,11 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
   LayoutGrid,
+  Music,
   Pause,
   Play,
   RotateCcw,
@@ -16,6 +13,7 @@ import {
 } from 'lucide-react';
 import { CABINET_LIST, GameId } from '@/lib/game/arcadeTypes';
 import { arcadeAudio } from '@/lib/game/audio';
+import { arcadeMusic } from '@/lib/game/musicEngine';
 import { MsPacManEngine } from '@/lib/game/engine';
 import { MAZES } from '@/lib/game/mazes';
 import { MsPacManRenderer } from '@/lib/game/renderer';
@@ -30,6 +28,13 @@ import {
   VisualStyle,
 } from '@/lib/game/types';
 import { FruitEmblem, MsPacManEmblem } from './MiniEmblemCanvas';
+import {
+  PacManFlankAction,
+  PacManFlankJoystick,
+  PacManHeaderToggles,
+  PacManTouchDeck,
+  usePacManAdaptiveControls,
+} from './PacManControlDeck';
 
 const FIXED_STEP = 1 / 60;
 
@@ -55,6 +60,7 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
   const [visualStyle, setVisualStyle] = useState<VisualStyle>('hd');
   const [speedMode, setSpeedMode] = useState<SpeedMode>('arcade');
   const [muted, setMuted] = useState(false);
+  const [musicOn, setMusicOn] = useState(() => arcadeMusic.isMusicEnabled());
 
   const [hud, setHud] = useState<HudSnapshot>({
     phase: 'TITLE_MENU',
@@ -106,10 +112,31 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
     setHud(engine.getHudSnapshot());
   }, []);
 
+  useEffect(() => {
+    if (hud.phase === 'PLAYING' || hud.phase === 'GHOST_EATEN_PAUSE') {
+      arcadeMusic.startTrackForGame('ms');
+    } else {
+      arcadeMusic.pause();
+    }
+  }, [hud.phase]);
+
   const handleToggleMute = useCallback(() => {
     setMuted((prev) => {
       const next = !prev;
       arcadeAudio.setMuted(next);
+      arcadeMusic.setMuted(next);
+      return next;
+    });
+  }, []);
+
+  const handleToggleMusic = useCallback(() => {
+    setMusicOn((prev) => {
+      const next = !prev;
+      arcadeMusic.setMusicEnabled(next);
+      const phase = engineRef.current?.phase;
+      if (next && (phase === 'PLAYING' || phase === 'GHOST_EATEN_PAUSE')) {
+        arcadeMusic.startTrackForGame('ms');
+      }
       return next;
     });
   }, []);
@@ -130,6 +157,10 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
     arcadeAudio.unlock();
     engineRef.current?.setDesiredDirection(dir);
   }, []);
+
+  const adaptiveControls = usePacManAdaptiveControls({
+    onDirection: handleDirectionInput,
+  });
 
   // Main 60fps fixed-timestep simulation + HiDPI render loop
   useEffect(() => {
@@ -199,6 +230,7 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
       window.cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updateCanvasResolution);
       arcadeAudio.stopAmbient();
+      arcadeMusic.stop();
     };
   }, []);
 
@@ -359,6 +391,21 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
                 <span>Cabinets</span>
               </button>
             )}
+            <PacManHeaderToggles controls={adaptiveControls} />
+            <button
+              type="button"
+              onClick={handleToggleMusic}
+              aria-label={musicOn ? 'Disable background music' : 'Enable background music'}
+              title={musicOn ? `BGM: ${arcadeMusic.getTrackTitle('ms')} (On)` : 'BGM Off'}
+              className={`h-9 px-2.5 flex items-center justify-center gap-1.5 rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
+                musicOn && !muted
+                  ? 'border-amber-400/35 bg-amber-400/15 text-amber-300 hover:bg-amber-400/25'
+                  : 'border-white/10 bg-white/[0.03] text-slate-400 hover:text-white hover:bg-white/[0.08]'
+              }`}
+            >
+              <Music className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">{musicOn ? 'BGM' : 'No BGM'}</span>
+            </button>
             <button
               type="button"
               onClick={handleToggleMute}
@@ -402,9 +449,15 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
       </header>
 
       {/* Main Arcade Arena */}
-      <main className="flex-1 w-full mx-auto max-w-[1440px] px-3 sm:px-6 py-3 sm:py-4 flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-5 xl:gap-8">
+      <main
+        className={`flex-1 w-full mx-auto max-w-[1440px] px-2.5 sm:px-6 py-2 sm:py-4 flex ${
+          adaptiveControls.isSideFlanks
+            ? 'flex-row items-center justify-between gap-2 sm:gap-4'
+            : 'flex-col lg:flex-row items-center lg:items-stretch justify-center gap-3 sm:gap-5 xl:gap-8'
+        }`}
+      >
         {/* Left Architectural Rail (Desktop) */}
-        <aside className="hidden lg:flex flex-col justify-between w-[240px] xl:w-[272px] shrink-0 py-1">
+        <aside className={`${adaptiveControls.padVisible ? 'hidden' : 'hidden lg:flex'} flex-col justify-between w-[240px] xl:w-[272px] shrink-0 py-1`}>
           <div className="space-y-5">
             {onSwitchGame && (
               <section className="pb-5 border-b border-white/[0.07]">
@@ -598,7 +651,9 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
         </aside>
 
         {/* Center Focal Anchor: High-Resolution 60fps Game Stage */}
-        <section className="relative flex flex-col items-center justify-center flex-1 min-w-0">
+        <PacManFlankJoystick controls={adaptiveControls} accentColor="#FBBF24" />
+
+        <section className={`relative flex flex-col items-center justify-center flex-1 min-w-0 ${adaptiveControls.isFlexFold ? 'fold-flex-stage' : ''}`}>
           {/* Mobile Compact Status Row */}
           <div className="w-full max-w-[520px] flex lg:hidden items-center justify-between text-xs text-slate-300 mb-2 px-1">
             <div className="flex items-center gap-1.5">
@@ -618,7 +673,7 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
 
           {/* Bezeled HiDPI Canvas Frame */}
           <div
-            className="relative rounded-2xl p-2 sm:p-2.5 bg-[#0A0E1C] border border-white/[0.09] transition-shadow duration-500"
+            className="relative rounded-2xl p-1.5 sm:p-2.5 bg-[#0A0E1C] border border-white/[0.09] transition-shadow duration-500"
             style={{
               boxShadow: `0 0 60px -18px ${hud.mazeAccent}45, 0 24px 64px -20px rgba(0, 0, 0, 0.85)`,
             }}
@@ -627,15 +682,16 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
               className="relative overflow-hidden rounded-xl bg-[#04050B]"
               style={{
                 aspectRatio: `${CANVAS_LOGICAL_WIDTH} / ${CANVAS_LOGICAL_HEIGHT}`,
-                height: 'min(calc(100dvh - 104px), 860px)',
-                maxWidth: 'calc(100vw - 32px)',
+                height: adaptiveControls.canvasHeightCss,
+                maxWidth: 'calc(100vw - 24px)',
               }}
             >
               <canvas
                 ref={canvasRef}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
-                className="block w-full h-full touch-none select-none"
+                {...adaptiveControls.canvasMouseHandlers}
+                className="block w-full h-full touch-none select-none cursor-crosshair"
                 aria-label="Ms. Pac-Man high-resolution game board"
               />
 
@@ -709,7 +765,7 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
                             onClick={onOpenLobby}
                             className="lg:hidden w-full py-2 px-4 rounded-lg border border-white/10 bg-white/[0.04] text-xs font-medium text-slate-200 hover:text-white cursor-pointer"
                           >
-                            All 37 Cabinets
+                            All 87 Cabinets
                           </button>
                         )}
                         <p className="text-xs text-slate-400">
@@ -881,47 +937,21 @@ export default function MsPacManArcade({ onSwitchGame, onOpenLobby }: MsPacManAr
             </div>
           </div>
 
-          {/* Mobile / Tablet Touch D-Pad */}
-          <div className="mt-3 grid grid-cols-3 gap-2 w-48 lg:hidden select-none">
-            <div />
-            <button
-              type="button"
-              aria-label="Move Up"
-              onPointerDown={() => handleDirectionInput('UP')}
-              className="h-12 rounded-xl bg-white/[0.07] active:bg-amber-400 active:text-slate-950 flex items-center justify-center border border-white/10"
-            >
-              <ArrowUp className="w-5 h-5" />
-            </button>
-            <div />
-            <button
-              type="button"
-              aria-label="Move Left"
-              onPointerDown={() => handleDirectionInput('LEFT')}
-              className="h-12 rounded-xl bg-white/[0.07] active:bg-amber-400 active:text-slate-950 flex items-center justify-center border border-white/10"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Move Down"
-              onPointerDown={() => handleDirectionInput('DOWN')}
-              className="h-12 rounded-xl bg-white/[0.07] active:bg-amber-400 active:text-slate-950 flex items-center justify-center border border-white/10"
-            >
-              <ArrowDown className="w-5 h-5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Move Right"
-              onPointerDown={() => handleDirectionInput('RIGHT')}
-              className="h-12 rounded-xl bg-white/[0.07] active:bg-amber-400 active:text-slate-950 flex items-center justify-center border border-white/10"
-            >
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          </div>
+          {/* Adaptive Virtual Arcade Joystick */}
+          <PacManTouchDeck
+            controls={adaptiveControls}
+            accentColor="#FBBF24"
+            accentButtonClass="bg-amber-400 text-slate-950"
+          />
         </section>
 
+        <PacManFlankAction
+          controls={adaptiveControls}
+          accentButtonClass="bg-amber-400 text-slate-950"
+        />
+
         {/* Right Architectural Rail (Desktop XL) */}
-        <aside className="hidden xl:flex flex-col justify-between w-[272px] shrink-0 py-1">
+        <aside className={`${adaptiveControls.padVisible ? 'hidden' : 'hidden xl:flex'} flex-col justify-between w-[272px] shrink-0 py-1`}>
           <div className="space-y-6">
             {/* Ghost Cast & AI Personalities */}
             <section className="space-y-3 pb-6 border-b border-white/[0.07]">

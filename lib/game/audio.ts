@@ -620,6 +620,425 @@ class ArcadeAudioEngine {
     this.playTone(720, 1480, 0.065, 'sawtooth', 0.14);
   }
 
+  public playJump(): void {
+    this.playJumpBoing();
+  }
+
+  public playPaddleBounce(): void {
+    this.unlock();
+    this.playTone(540, 820, 0.055, 'square', 0.16);
+  }
+
+  public playMoveTick(): void {
+    this.unlock();
+    this.playTone(640, 860, 0.04, 'triangle', 0.14);
+  }
+
+  // --- Modern Boulder Dash 2.5D Foley SFX ---
+  public playDiamondChain(combo = 1): void {
+    this.unlock();
+    const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.5, 1567.98];
+    const root = scale[Math.min(scale.length - 1, Math.max(0, combo - 1))];
+    this.playTone(root * 2, root * 2.5, 0.09, 'sine', 0.24);
+    this.playTone(root * 3, root * 3.04, 0.14, 'triangle', 0.18, 0.04);
+    this.playTone(root * 4, root * 4.02, 0.11, 'sine', 0.11, 0.08);
+  }
+
+  public playBoulderRoll(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(125, 72, 0.085, 'triangle', 0.2);
+    this.playTone(86, 54, 0.075, 'sine', 0.16, 0.02);
+  }
+
+  public playBoulderPush(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(110, 82, 0.09, 'sawtooth', 0.14);
+    this.playTone(72, 58, 0.1, 'triangle', 0.2, 0.015);
+  }
+
+  public playMagicWallHum(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(660, 1320, 0.14, 'sine', 0.18);
+    this.playTone(990, 1480, 0.16, 'triangle', 0.14, 0.04);
+  }
+
+  public playAmoebaBubble(): void {
+    if (!this.ctx || this.muted) return;
+    const f = 220 + Math.random() * 140;
+    this.playTone(f, f * 1.65, 0.075, 'sine', 0.12);
+  }
+
+  public playPickaxeDig(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(320, 140, 0.048, 'triangle', 0.14);
+    this.playTone(780, 460, 0.035, 'square', 0.06, 0.01);
+  }
+
+  // --- Modern Dig Dug 2.5D Foley SFX ---
+  public playDigDugStep(depthLayer = 0): void {
+    if (!this.ctx || this.muted) return;
+    const base = 215 - depthLayer * 18;
+    this.playTone(base, base * 0.62, 0.045, 'triangle', 0.14);
+    this.playTone(base * 1.6, base * 0.9, 0.03, 'square', 0.05, 0.01);
+  }
+
+  public playDigDugHarpoon(): void {
+    this.unlock();
+    this.playTone(540, 1180, 0.075, 'triangle', 0.2);
+    this.playTone(320, 740, 0.07, 'sawtooth', 0.13, 0.015);
+  }
+
+  public playDigDugInflate(stage = 1): void {
+    this.unlock();
+    const base = 260 + stage * 135;
+    this.playTone(base, base * 1.48, 0.095, 'sawtooth', 0.22);
+    this.playTone(base * 0.52, base * 0.88, 0.09, 'triangle', 0.17, 0.015);
+    this.playTone(base * 1.9, base * 2.2, 0.05, 'sine', 0.1, 0.03);
+  }
+
+  public playDigDugPop(): void {
+    this.unlock();
+    this.playTone(760, 1680, 0.055, 'sine', 0.3);
+    this.playTone(380, 62, 0.16, 'square', 0.26, 0.035);
+    this.playTone(980, 260, 0.11, 'triangle', 0.18, 0.05);
+  }
+
+  public playDigDugRockWobble(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(170, 118, 0.065, 'triangle', 0.18);
+  }
+
+  public playDigDugCrush(count = 1): void {
+    this.unlock();
+    this.playTone(140, 42, 0.18, 'sawtooth', 0.28);
+    for (let i = 0; i < Math.min(4, count + 1); i++) {
+      const f = 440 + i * 165;
+      this.playTone(f, f * 1.15, 0.1, 'triangle', 0.2, 0.05 + i * 0.055);
+    }
+  }
+
+  public playFygarCharge(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(190, 460, 0.14, 'sawtooth', 0.15);
+  }
+
+  // --- Modern Food Fight 2.5D Slapstick Foley SFX ---
+  public playFoodWhoosh(heavy = false): void {
+    this.unlock();
+    if (heavy) {
+      this.playTone(240, 560, 0.11, 'sine', 0.22);
+      this.playTone(170, 340, 0.1, 'triangle', 0.15, 0.015);
+    } else {
+      this.playTone(380, 920, 0.075, 'sine', 0.18);
+      this.playTone(520, 1180, 0.06, 'triangle', 0.1, 0.01);
+    }
+  }
+
+  public playFoodSplat(heavy = false): void {
+    this.unlock();
+    const mult = heavy ? 0.78 : 1;
+    this.playTone(540 * mult, 95 * mult, heavy ? 0.17 : 0.13, 'sawtooth', heavy ? 0.28 : 0.22);
+    this.playTone(310 * mult, 72 * mult, 0.15, 'triangle', 0.24, 0.018);
+    this.playTone(760 * mult, 220 * mult, 0.08, 'square', 0.11, 0.03);
+  }
+
+  public playChefPopUp(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(220, 620, 0.09, 'triangle', 0.14);
+    this.playTone(460, 780, 0.06, 'sine', 0.1, 0.045);
+  }
+
+  public playCharleyDash(): void {
+    this.unlock();
+    this.playTone(320, 880, 0.085, 'triangle', 0.16);
+    this.playTone(640, 1080, 0.07, 'sine', 0.11, 0.02);
+  }
+
+  public playConeChomp(): void {
+    this.unlock();
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+    notes.forEach((f, i) => {
+      this.playTone(f, f * 1.04, 0.1, 'triangle', 0.22, i * 0.06);
+      this.playTone(f * 0.5, f * 0.5, 0.09, 'sine', 0.14, i * 0.06);
+    });
+  }
+
+  public playInstantReplayFanfare(): void {
+    this.unlock();
+    const notes = [587.33, 739.99, 880, 1174.66];
+    notes.forEach((f, i) => {
+      this.playTone(f, f * 1.01, 0.11, 'square', 0.15, i * 0.075);
+      this.playTone(f * 0.5, f * 0.5, 0.11, 'triangle', 0.16, i * 0.075);
+    });
+  }
+
+  // --- Space Invaders Series (1978 & Part II 1979) Authentic Evolved SFX ---
+  public playInvaderLaser(deluxe = false): void {
+    this.unlock();
+    const base = deluxe ? 1280 : 1080;
+    this.playTone(base, base * 0.18, 0.11, 'sawtooth', 0.18);
+    this.playTone(base * 1.55, base * 0.36, 0.075, 'square', 0.12);
+    this.playTone(base * 0.72, 160, 0.09, 'triangle', 0.1, 0.015);
+  }
+
+  public playInvaderExplosion(kind: 'alien' | 'ufo' | 'player' | 'bunker' | 'clash'): void {
+    this.unlock();
+    if (kind === 'bunker') {
+      this.playTone(460, 130, 0.065, 'sawtooth', 0.12);
+      this.playTone(880, 260, 0.045, 'square', 0.08, 0.01);
+      return;
+    }
+    if (kind === 'clash') {
+      this.playTone(1350, 420, 0.08, 'square', 0.15);
+      this.playTone(960, 1680, 0.06, 'triangle', 0.12, 0.015);
+      return;
+    }
+    if (kind === 'alien') {
+      // Classic Taito alien zap-pop + crisp explosion crunch
+      this.playTone(740, 145, 0.14, 'sawtooth', 0.22);
+      this.playTone(520, 95, 0.17, 'square', 0.16, 0.02);
+      this.playTone(260, 52, 0.19, 'triangle', 0.18, 0.03);
+      return;
+    }
+    if (kind === 'ufo') {
+      // Sweeping analog saucer detonation + multi-pulse rumble
+      this.playTone(620, 68, 0.42, 'sawtooth', 0.28);
+      this.playTone(440, 52, 0.48, 'square', 0.2, 0.04);
+      this.playTone(880, 190, 0.22, 'triangle', 0.16, 0.02);
+      this.playTone(240, 38, 0.5, 'sawtooth', 0.24, 0.1);
+      return;
+    }
+    // Player cannon crackling plasma overload disintegration
+    this.playTone(210, 42, 0.48, 'sawtooth', 0.3);
+    this.playTone(145, 34, 0.56, 'square', 0.22, 0.05);
+    this.playTone(520, 88, 0.24, 'sawtooth', 0.18, 0.09);
+    this.playTone(360, 55, 0.32, 'square', 0.16, 0.18);
+  }
+
+  public playInvaderSplit(): void {
+    this.unlock();
+    this.playTone(480, 1120, 0.09, 'sawtooth', 0.18);
+    this.playTone(760, 340, 0.11, 'square', 0.15, 0.045);
+    this.playTone(980, 1440, 0.08, 'triangle', 0.12, 0.075);
+  }
+
+  public playDropshipDeploy(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(920, 380, 0.18, 'sine', 0.16);
+    this.playTone(640, 260, 0.16, 'triangle', 0.13, 0.04);
+  }
+
+  public playRainbowBonus(): void {
+    this.unlock();
+    const notes = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1318.5];
+    notes.forEach((f, i) => {
+      this.playTone(f, f * 1.02, 0.12, 'triangle', 0.2, i * 0.055);
+      this.playTone(f * 0.5, f * 0.5, 0.1, 'square', 0.11, i * 0.055);
+    });
+  }
+
+  public playDxHyperBeam(): void {
+    this.unlock();
+    this.playTone(220, 1320, 0.22, 'sawtooth', 0.26);
+    this.playTone(880, 1680, 0.42, 'square', 0.16, 0.05);
+    this.playTone(140, 62, 0.55, 'sawtooth', 0.28, 0.06);
+    this.playTone(440, 220, 0.48, 'triangle', 0.2, 0.12);
+  }
+
+  public playDxCapsule(): void {
+    this.unlock();
+    const notes = [659.25, 880, 1174.66, 1318.5];
+    notes.forEach((f, i) => {
+      this.playTone(f, f * 1.03, 0.08, 'square', 0.14, i * 0.042);
+      this.playTone(f * 0.5, f * 0.5, 0.08, 'triangle', 0.14, i * 0.042);
+    });
+  }
+
+  public playDxShieldRepair(): void {
+    this.unlock();
+    const notes = [440, 554.37, 659.25, 880];
+    notes.forEach((f, i) => {
+      this.playTone(f, f * 1.06, 0.1, 'sine', 0.18, i * 0.05);
+    });
+  }
+
+  // --- Puzzle Bobble Series 2.5D Cute Foley & Combo Chimes ---
+  public playBubbleLaunch(): void {
+    this.unlock();
+    this.playTone(340, 760, 0.09, 'sine', 0.22);
+    this.playTone(520, 980, 0.065, 'triangle', 0.14, 0.012);
+  }
+
+  public playBubbleBank(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(620, 920, 0.055, 'sine', 0.16);
+    this.playTone(880, 1240, 0.04, 'triangle', 0.1, 0.01);
+  }
+
+  public playBubbleSnap(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(260, 390, 0.055, 'sine', 0.18);
+    this.playTone(480, 320, 0.045, 'triangle', 0.1, 0.015);
+  }
+
+  public playBubbleSwap(): void {
+    this.unlock();
+    this.playTone(480, 740, 0.055, 'triangle', 0.16);
+    this.playTone(740, 1020, 0.06, 'sine', 0.14, 0.035);
+  }
+
+  public playBubblePopChain(count = 3, combo = 1): void {
+    this.unlock();
+    const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.5, 1567.98];
+    const baseIdx = Math.min(4, Math.max(0, combo - 1));
+    const hits = Math.min(7, Math.max(3, count));
+    for (let i = 0; i < hits; i++) {
+      const f = scale[Math.min(scale.length - 1, baseIdx + i)];
+      const d = i * 0.042;
+      this.playTone(f * 0.72, f * 1.38, 0.075, 'sine', 0.22, d);
+      this.playTone(f * 1.5, f * 1.62, 0.06, 'triangle', 0.11, d + 0.012);
+    }
+  }
+
+  public playBubbleAvalanche(dropCount = 1): void {
+    this.unlock();
+    const notes = [659.25, 783.99, 987.77, 1174.66, 1318.5, 1567.98];
+    const n = Math.min(notes.length, Math.max(2, Math.ceil(dropCount / 2) + 1));
+    for (let i = 0; i < n; i++) {
+      const f = notes[i];
+      this.playTone(f, f * 1.08, 0.095, 'triangle', 0.19, i * 0.05);
+      this.playTone(f * 2, f * 2.04, 0.07, 'sine', 0.1, i * 0.05 + 0.015);
+    }
+  }
+
+  public playCompressorDrop(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(185, 72, 0.15, 'sawtooth', 0.22);
+    this.playTone(125, 54, 0.18, 'triangle', 0.2, 0.03);
+  }
+
+  public playFairyRescue(): void {
+    this.unlock();
+    const notes = [587.33, 739.99, 880, 1174.66, 1479.98, 1760];
+    notes.forEach((f, i) => {
+      this.playTone(f, f * 1.04, 0.13, 'sine', 0.22, i * 0.055);
+      this.playTone(f * 1.5, f * 1.52, 0.09, 'triangle', 0.12, i * 0.055 + 0.02);
+    });
+  }
+
+  // --- Star Wars Trilogy Authentic Vector & Raster Arcade SFX ---
+  public playXWingQuadLaser(torpedo = false): void {
+    this.unlock();
+    if (torpedo) {
+      // Resonant dual Proton Torpedo launch
+      this.playTone(580, 1480, 0.14, 'sawtooth', 0.24);
+      this.playTone(880, 220, 0.26, 'triangle', 0.22, 0.03);
+      this.playTone(320, 140, 0.28, 'sine', 0.18, 0.02);
+      return;
+    }
+    // Iconic X-Wing quad laser "pew-kreeow" sweep
+    this.playTone(1480, 220, 0.11, 'sawtooth', 0.2);
+    this.playTone(1120, 180, 0.12, 'square', 0.14, 0.014);
+    this.playTone(2100, 480, 0.065, 'triangle', 0.11);
+  }
+
+  public playTieScreech(): void {
+    if (!this.ctx || this.muted) return;
+    // Twin Ion Engine howling doppler pass
+    this.playTone(920, 420, 0.32, 'sawtooth', 0.11);
+    this.playTone(958, 438, 0.3, 'sawtooth', 0.09, 0.01);
+    this.playTone(1420, 620, 0.24, 'triangle', 0.07, 0.02);
+  }
+
+  public playVectorExplosion(heavy = false): void {
+    this.unlock();
+    const dur = heavy ? 0.52 : 0.24;
+    // Atari Pokey/Quadrascan vector shatter rumble + digital harmonic crackle
+    this.playTone(heavy ? 240 : 420, 34, dur, 'sawtooth', heavy ? 0.3 : 0.22);
+    this.playTone(heavy ? 150 : 280, 28, dur * 1.1, 'square', heavy ? 0.22 : 0.15, 0.02);
+    this.playTone(heavy ? 780 : 960, 120, dur * 0.45, 'square', 0.13, 0.01);
+    if (heavy) {
+      this.playTone(340, 46, 0.44, 'triangle', 0.2, 0.08);
+    }
+  }
+
+  public playDeathStarSupernova(): void {
+    this.unlock();
+    // Multi-wave seismic chain detonation + victory shimmer
+    this.playTone(260, 28, 0.95, 'sawtooth', 0.34);
+    this.playTone(180, 24, 1.05, 'square', 0.25, 0.06);
+    this.playTone(540, 52, 0.72, 'sawtooth', 0.22, 0.16);
+    this.playTone(120, 22, 1.15, 'triangle', 0.3, 0.22);
+    const fanfare = [392, 523.25, 659.25, 783.99, 1046.5];
+    fanfare.forEach((f, i) => {
+      this.playTone(f, f * 1.005, 0.2, 'sawtooth', 0.14, 0.45 + i * 0.09);
+      this.playTone(f * 0.5, f * 0.5, 0.2, 'triangle', 0.14, 0.45 + i * 0.09);
+    });
+  }
+
+  public playAtAtStomp(): void {
+    if (!this.ctx || this.muted) return;
+    // Heavy metallic hydraulic leg impact
+    this.playTone(115, 32, 0.22, 'triangle', 0.26);
+    this.playTone(190, 48, 0.14, 'sawtooth', 0.14, 0.02);
+  }
+
+  public playTowCableWrap(loopCount = 1): void {
+    this.unlock();
+    // Harpoon magnetic latch & tension cable whine
+    const base = 420 + loopCount * 165;
+    this.playTone(base, base * 1.55, 0.14, 'sawtooth', 0.2);
+    this.playTone(base * 0.5, base * 0.85, 0.16, 'triangle', 0.18, 0.02);
+    this.playTone(base * 2, base * 1.4, 0.09, 'sine', 0.12, 0.05);
+  }
+
+  public playSpeederBikeLaser(turbo = false): void {
+    this.unlock();
+    if (turbo) {
+      this.playTone(220, 740, 0.18, 'sawtooth', 0.18);
+      this.playTone(440, 980, 0.16, 'triangle', 0.14, 0.02);
+      return;
+    }
+    // Crisp high-energy Endor speeder blaster
+    this.playTone(1680, 310, 0.085, 'square', 0.18);
+    this.playTone(1240, 240, 0.09, 'sawtooth', 0.14, 0.01);
+  }
+
+  public playRasterExplosion(heavy = false): void {
+    this.unlock();
+    // Thick, smoky Atari 1984 raster fireball detonation
+    const dur = heavy ? 0.56 : 0.28;
+    this.playTone(heavy ? 190 : 300, 28, dur, 'sawtooth', heavy ? 0.34 : 0.25);
+    this.playTone(heavy ? 130 : 210, 24, dur * 1.12, 'triangle', heavy ? 0.3 : 0.22, 0.025);
+    this.playTone(heavy ? 480 : 640, 72, dur * 0.55, 'square', 0.14, 0.01);
+    if (heavy) {
+      this.playTone(290, 38, 0.48, 'sawtooth', 0.24, 0.1);
+    }
+  }
+
+  public playEwokHorn(): void {
+    this.unlock();
+    // Heroic Ewok forest battle horn call
+    this.playTone(392, 415, 0.12, 'sawtooth', 0.14);
+    this.playTone(523.25, 523.25, 0.16, 'triangle', 0.18, 0.11);
+    this.playTone(659.25, 659.25, 0.24, 'sawtooth', 0.14, 0.25);
+  }
+
+  public playFalconQuadLaser(): void {
+    this.unlock();
+    // Punchy Millennium Falcon dorsal quad-turret double pulse
+    this.playTone(1320, 260, 0.095, 'sawtooth', 0.18);
+    this.playTone(1580, 340, 0.08, 'square', 0.14, 0.024);
+    this.playTone(880, 190, 0.1, 'triangle', 0.12, 0.015);
+  }
+
+  public playReactorKlaxon(): void {
+    this.unlock();
+    // Urgent Death Star II meltdown warning pulse
+    this.playTone(620, 440, 0.18, 'sawtooth', 0.16);
+    this.playTone(620, 440, 0.18, 'sawtooth', 0.16, 0.22);
+  }
+
   public stopAmbient(): void {
     if (this.ambientOsc) {
       try {

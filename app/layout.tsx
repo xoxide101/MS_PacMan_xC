@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Outfit, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -23,21 +23,30 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: '#060811',
+};
+
 export const metadata: Metadata = {
-  title: 'Ms. Pac-Man HD — 60fps Arcade Remaster',
+  title: 'Retro Arcade Collection — 87 Classic & Evo Cabinets in 60fps HD',
   description:
-    'High-resolution 60fps arcade remaster of Ms. Pac-Man featuring all four classic mazes, authentic ghost AI, roaming bonus fruits, crisp vector lighting, and synthesized arcade audio.',
+    'Play 87 Golden Age and modern evolved arcade classics in high-resolution 60fps with mouse steering, multi-touch virtual joystick, foldable/tablet adaptive layouts, and synthesized music.',
   openGraph: {
-    title: 'Ms. Pac-Man HD — 60fps Arcade Remaster',
+    title: 'Retro Arcade Collection — 87 Classic & Evo Cabinets in 60fps HD',
     description:
-      'High-resolution 60fps arcade remaster of Ms. Pac-Man featuring all four classic mazes, authentic ghost AI, roaming bonus fruits, crisp vector lighting, and synthesized arcade audio.',
+      'Play 87 Golden Age and modern evolved arcade classics in high-resolution 60fps with mouse steering, multi-touch virtual joystick, foldable/tablet adaptive layouts, and synthesized music.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Ms. Pac-Man HD — 60fps Arcade Remaster',
+    title: 'Retro Arcade Collection — 87 Classic & Evo Cabinets in 60fps HD',
     description:
-      'High-resolution 60fps arcade remaster of Ms. Pac-Man featuring all four classic mazes, authentic ghost AI, roaming bonus fruits, crisp vector lighting, and synthesized arcade audio.',
+      'Play 87 Golden Age and modern evolved arcade classics in high-resolution 60fps with mouse steering, multi-touch virtual joystick, foldable/tablet adaptive layouts, and synthesized music.',
   },
 };
 
@@ -53,7 +62,7 @@ export default function RootLayout({
     >
       <body
         suppressHydrationWarning
-        className="bg-[#060811] text-slate-100 antialiased selection:bg-amber-400/30 selection:text-amber-100 overflow-x-hidden"
+        className="bg-[#060811] text-slate-100 antialiased selection:bg-amber-400/30 selection:text-amber-100"
         style={{ fontFamily: 'var(--font-jakarta), system-ui, sans-serif' }}
       >
         {children}
