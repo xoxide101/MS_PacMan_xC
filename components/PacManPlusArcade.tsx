@@ -642,7 +642,7 @@ export default function PacManPlusArcade({
                             onClick={onOpenLobby}
                             className="lg:hidden w-full py-2 px-4 rounded-lg border border-white/10 bg-white/[0.04] text-xs font-medium text-slate-200 cursor-pointer"
                           >
-                            All 13 Cabinets
+                            All 27 Cabinets
                           </button>
                         )}
                         <p className="text-xs text-slate-400">

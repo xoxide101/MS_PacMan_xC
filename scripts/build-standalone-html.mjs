@@ -52,8 +52,8 @@ async function generateStandaloneHtml() {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Retro Arcade Collection — 13 Classic Cabinets in 60fps HD</title>
-  <meta name="description" content="Play 13 classic arcade cabinets in crisp 60fps HiDPI: Centipede, Millipede, Dig Dug, Boulder Dash, Space Invaders I & II, Food Fight, and the full 6-game Pac-Man collection—all in one web page." />
+  <title>Retro Arcade Collection — 27 Classic Cabinets in 60fps HD</title>
+  <meta name="description" content="Play 27 classic arcade cabinets in crisp 60fps HiDPI: Gauntlet I & II, Pole Position I & II, Sprint, Super & Championship Sprint, Defender I & II, Stargate, Tempest, Tempest 2000 & 3000, Mappy, Centipede, Millipede, Dig Dug, Boulder Dash, Space Invaders I & II, Food Fight, and all 6 Pac-Man games—all in one web page." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />

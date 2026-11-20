@@ -50,6 +50,7 @@ export default function ClassicArcadeShell({
   const [muted, setMuted] = useState(false);
   const [canvasDims, setCanvasDims] = useState<{ w: number; h: number }>({ w: 720, h: 816 });
   const [actionLabel, setActionLabel] = useState('Fire');
+  const [secondaryLabel, setSecondaryLabel] = useState<string | undefined>(undefined);
   const [hud, setHud] = useState<ClassicGameHud>({
     phase: 'TITLE',
     score: 0,
@@ -92,6 +93,7 @@ export default function ClassicArcadeShell({
     const syncInitial = () => {
       setCanvasDims({ w: instance.logicalWidth, h: instance.logicalHeight });
       setActionLabel(instance.primaryActionLabel);
+      setSecondaryLabel(instance.secondaryActionLabel);
       setHud(instance.getHudSnapshot());
     };
 
@@ -108,6 +110,7 @@ export default function ClassicArcadeShell({
       while (accumulator >= FIXED_STEP) {
         instance.setInput({ ...inputRef.current });
         inputRef.current.fireJustPressed = false;
+        inputRef.current.secondaryJustPressed = false;
         instance.step(FIXED_STEP);
         accumulator -= FIXED_STEP;
       }
@@ -204,6 +207,18 @@ export default function ClassicArcadeShell({
         }
         inputRef.current.fire = true;
       }
+      if (
+        code === 'ShiftLeft' ||
+        code === 'ShiftRight' ||
+        code === 'KeyX' ||
+        code === 'KeyK' ||
+        code === 'KeyC'
+      ) {
+        if (!inputRef.current.secondary) {
+          inputRef.current.secondaryJustPressed = true;
+        }
+        inputRef.current.secondary = true;
+      }
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
@@ -218,6 +233,15 @@ export default function ClassicArcadeShell({
       }
       if (code === 'ArrowDown' || code === 'KeyS') inputRef.current.down = false;
       if (code === 'Space' || code === 'KeyZ' || code === 'KeyJ') inputRef.current.fire = false;
+      if (
+        code === 'ShiftLeft' ||
+        code === 'ShiftRight' ||
+        code === 'KeyX' ||
+        code === 'KeyK' ||
+        code === 'KeyC'
+      ) {
+        inputRef.current.secondary = false;
+      }
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -286,9 +310,25 @@ export default function ClassicArcadeShell({
     inputRef.current.fire = active;
   };
 
+  const setTouchSecondary = (active: boolean) => {
+    if (active && !inputRef.current.secondary) {
+      inputRef.current.secondaryJustPressed = true;
+    }
+    inputRef.current.secondary = active;
+  };
+
+  const shooterCabinets = CABINET_LIST.filter((c) => c.category === 'shooters');
+  const actionCabinets = CABINET_LIST.filter((c) => c.category === 'action');
+  const racingCabinets = CABINET_LIST.filter((c) => c.category === 'racing');
   const pacCabinets = CABINET_LIST.filter((c) => c.category === 'pacman');
-  const classicCabinets = CABINET_LIST.filter((c) => c.category === 'classic-arcade');
   const isWide = canvasDims.w > canvasDims.h;
+
+  const restartStageLabel =
+    gameId === 'boulderdash'
+      ? 'Retry Current Cave (R)'
+      : gameId === 'gauntlet' || gameId === 'gauntlet2'
+      ? 'Switch Hero Class (R)'
+      : 'Toggle Inviso Cloak (R)';
 
   return (
     <div className="min-h-[100dvh] w-full bg-[#060811] text-slate-100 flex flex-col">
@@ -302,7 +342,7 @@ export default function ClassicArcadeShell({
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.09] text-xs font-medium text-slate-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>All 13 Cabinets</span>
+              <span>All 27 Cabinets</span>
             </button>
             <div className="flex items-center gap-2 min-w-0">
               <GameEmblem gameId={gameId} size={24} />
@@ -354,50 +394,41 @@ export default function ClassicArcadeShell({
 
       {/* Main 3-Column Arcade Workspace */}
       <main className="flex-1 w-full mx-auto max-w-[1440px] px-3 sm:px-6 py-4 sm:py-6 flex flex-col lg:flex-row items-center lg:items-start justify-center gap-5">
-        {/* Desktop Left Rail: Full 13-Cabinet Switcher */}
+        {/* Desktop Left Rail: Full 27-Cabinet Switcher */}
         <aside className="hidden lg:flex flex-col w-[228px] shrink-0 rounded-2xl bg-[#0B0F1D] border border-white/[0.08] p-3 max-h-[calc(100dvh-108px)] overflow-y-auto">
-          <div className="text-[11px] font-semibold text-slate-400 px-2 pt-1 pb-2">
-            Golden Age Classics
-          </div>
-          <div className="space-y-1 mb-3">
-            {classicCabinets.map((cab) => {
-              const active = cab.id === gameId;
-              return (
-                <button
-                  key={cab.id}
-                  type="button"
-                  onClick={() => onSwitchGame(cab.id)}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left text-xs font-medium transition-colors cursor-pointer ${
-                    active
-                      ? 'bg-white/[0.11] text-white'
-                      : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-100'
-                  }`}
-                >
-                  <GameEmblem gameId={cab.id} size={20} />
-                  <span className="truncate flex-1">{cab.title}</span>
-                  <span className="text-[10px] font-mono text-slate-500">{cab.year}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="text-[11px] font-semibold text-slate-400 px-2 pt-2 pb-2 border-t border-white/[0.07]">
-            Pac-Man Series
-          </div>
-          <div className="space-y-1">
-            {pacCabinets.map((cab) => (
-              <button
-                key={cab.id}
-                type="button"
-                onClick={() => onSwitchGame(cab.id)}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-left text-xs font-medium text-slate-400 hover:bg-white/[0.05] hover:text-slate-100 transition-colors cursor-pointer"
-              >
-                <GameEmblem gameId={cab.id} size={20} />
-                <span className="truncate flex-1">{cab.title}</span>
-                <span className="text-[10px] font-mono text-slate-500">{cab.year}</span>
-              </button>
-            ))}
-          </div>
+          {[
+            { label: 'Shooters & Vector', items: shooterCabinets },
+            { label: 'Action & Dungeon', items: actionCabinets },
+            { label: 'Arcade Racing', items: racingCabinets },
+            { label: 'Pac-Man Series', items: pacCabinets },
+          ].map((group, gIdx) => (
+            <div key={group.label} className={gIdx > 0 ? 'pt-2 border-t border-white/[0.07]' : ''}>
+              <div className="text-[11px] font-semibold text-slate-400 px-2 pt-1 pb-1.5">
+                {group.label}
+              </div>
+              <div className="space-y-0.5 mb-2.5">
+                {group.items.map((cab) => {
+                  const active = cab.id === gameId;
+                  return (
+                    <button
+                      key={cab.id}
+                      type="button"
+                      onClick={() => onSwitchGame(cab.id)}
+                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-left text-xs font-medium transition-colors cursor-pointer ${
+                        active
+                          ? 'bg-white/[0.11] text-white'
+                          : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-100'
+                      }`}
+                    >
+                      <GameEmblem gameId={cab.id} size={18} />
+                      <span className="truncate flex-1">{cab.title}</span>
+                      <span className="text-[10px] font-mono text-slate-500">{cab.year}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </aside>
 
         {/* Center Arcade Monitor Stage */}
@@ -594,15 +625,28 @@ export default function ClassicArcadeShell({
               </button>
             </div>
 
-            <button
-              type="button"
-              onPointerDown={() => setTouchFire(true)}
-              onPointerUp={() => setTouchFire(false)}
-              onPointerLeave={() => setTouchFire(false)}
-              className={`h-16 px-8 rounded-2xl font-bold text-sm active:scale-95 transition-transform ${spec.accentButtonClass}`}
-            >
-              {actionLabel}
-            </button>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onPointerDown={() => setTouchFire(true)}
+                onPointerUp={() => setTouchFire(false)}
+                onPointerLeave={() => setTouchFire(false)}
+                className={`h-14 px-7 rounded-2xl font-bold text-sm active:scale-95 transition-transform whitespace-nowrap ${spec.accentButtonClass}`}
+              >
+                {actionLabel}
+              </button>
+              {secondaryLabel && (
+                <button
+                  type="button"
+                  onPointerDown={() => setTouchSecondary(true)}
+                  onPointerUp={() => setTouchSecondary(false)}
+                  onPointerLeave={() => setTouchSecondary(false)}
+                  className="h-10 px-5 rounded-xl font-semibold text-xs border border-white/15 bg-white/[0.08] active:bg-white/[0.2] text-slate-100 whitespace-nowrap"
+                >
+                  {secondaryLabel}
+                </button>
+              )}
+            </div>
           </div>
         </section>
 
@@ -667,7 +711,7 @@ export default function ClassicArcadeShell({
                 className="w-full py-2 px-3 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.09] text-xs font-medium text-slate-200 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Retry Current Cave (R)</span>
+                <span>{restartStageLabel}</span>
               </button>
             )}
             <button

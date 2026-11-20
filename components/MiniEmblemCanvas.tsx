@@ -595,7 +595,21 @@ type ClassicIconKind =
   | 'boulderdash'
   | 'invaders'
   | 'invaders2'
-  | 'foodfight';
+  | 'foodfight'
+  | 'gauntlet'
+  | 'gauntlet2'
+  | 'polepos'
+  | 'polepos2'
+  | 'sprint'
+  | 'supersprint'
+  | 'champsprint'
+  | 'defender'
+  | 'defender2'
+  | 'stargate'
+  | 'tempest'
+  | 'tempest2000'
+  | 'tempest3000'
+  | 'mappy';
 
 function ClassicIconCanvas({
   kind,
@@ -620,7 +634,6 @@ function ClassicIconCanvas({
     ctx.scale(s, s);
 
     if (kind === 'centipede') {
-      // Three-segment neon lime & red centipede head
       ctx.fillStyle = '#84CC16';
       ctx.beginPath();
       ctx.arc(8, 20, 6.5, 0, Math.PI * 2);
@@ -636,7 +649,6 @@ function ClassicIconCanvas({
       ctx.arc(25.5, 14.5, 2, 0, Math.PI * 2);
       ctx.fill();
     } else if (kind === 'millipede') {
-      // Fiery orange millipede + DDT badge accent
       ctx.fillStyle = '#DC2626';
       ctx.fillRect(4, 15, 13, 13);
       ctx.strokeStyle = '#FACC15';
@@ -653,7 +665,6 @@ function ClassicIconCanvas({
       ctx.arc(26.5, 11, 1.8, 0, Math.PI * 2);
       ctx.fill();
     } else if (kind === 'digdug') {
-      // Iconic red Pooka with yellow goggles
       ctx.fillStyle = '#EF4444';
       ctx.beginPath();
       ctx.arc(16, 17, 11.5, 0, Math.PI * 2);
@@ -673,7 +684,6 @@ function ClassicIconCanvas({
       ctx.arc(20.5, 15, 1.4, 0, Math.PI * 2);
       ctx.fill();
     } else if (kind === 'boulderdash') {
-      // Sparkling cyan-purple diamond gem
       ctx.fillStyle = '#A855F7';
       ctx.beginPath();
       ctx.moveTo(16, 3);
@@ -699,7 +709,6 @@ function ClassicIconCanvas({
       ctx.closePath();
       ctx.fill();
     } else if (kind === 'invaders') {
-      // Classic green Crab Invader
       ctx.fillStyle = '#4ADE80';
       ctx.fillRect(6, 10, 20, 10);
       ctx.fillRect(9, 6, 3, 4);
@@ -712,7 +721,6 @@ function ClassicIconCanvas({
       ctx.fillRect(10, 13, 3.5, 3.5);
       ctx.fillRect(18.5, 13, 3.5, 3.5);
     } else if (kind === 'invaders2') {
-      // Neon Cyan & Crimson Splitter Command Invader
       ctx.fillStyle = '#F43F5E';
       ctx.beginPath();
       ctx.moveTo(16, 4);
@@ -727,8 +735,7 @@ function ClassicIconCanvas({
       ctx.fillStyle = '#FEF08A';
       ctx.fillRect(9, 13, 3.5, 3.5);
       ctx.fillRect(19.5, 13, 3.5, 3.5);
-    } else {
-      // Food Fight Giant Ice Cream Cone
+    } else if (kind === 'foodfight') {
       ctx.fillStyle = '#F59E0B';
       ctx.beginPath();
       ctx.moveTo(9, 17);
@@ -747,6 +754,142 @@ function ClassicIconCanvas({
       ctx.fillStyle = '#EF4444';
       ctx.beginPath();
       ctx.arc(16, 3, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === 'gauntlet' || kind === 'gauntlet2') {
+      // Battle shield + crossed golden axe / dragon flame for Gauntlet II
+      ctx.fillStyle = kind === 'gauntlet' ? '#B45309' : '#B91C1C';
+      ctx.beginPath();
+      ctx.moveTo(16, 3);
+      ctx.lineTo(27, 8);
+      ctx.lineTo(25, 20);
+      ctx.lineTo(16, 29);
+      ctx.lineTo(7, 20);
+      ctx.lineTo(5, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = kind === 'gauntlet' ? '#FACC15' : '#FB923C';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = kind === 'gauntlet' ? '#FDE047' : '#38BDF8';
+      ctx.beginPath();
+      ctx.moveTo(16, 8);
+      ctx.lineTo(20, 16);
+      ctx.lineTo(16, 23);
+      ctx.lineTo(12, 16);
+      ctx.closePath();
+      ctx.fill();
+    } else if (kind === 'polepos' || kind === 'polepos2') {
+      // Rear-view F1 Grand Prix car
+      ctx.fillStyle = '#1E293B';
+      ctx.fillRect(4, 17, 6, 9);
+      ctx.fillRect(22, 17, 6, 9);
+      ctx.fillStyle = kind === 'polepos' ? '#EF4444' : '#38BDF8';
+      ctx.beginPath();
+      ctx.moveTo(12, 6);
+      ctx.lineTo(20, 6);
+      ctx.lineTo(23, 24);
+      ctx.lineTo(9, 24);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#FACC15';
+      ctx.fillRect(7, 12, 18, 4);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(16, 10, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === 'sprint' || kind === 'supersprint' || kind === 'champsprint') {
+      // Top-down Sprint racer + wrench / gate accent
+      const bodyColor =
+        kind === 'sprint' ? '#E2E8F0' : kind === 'supersprint' ? '#FACC15' : '#4ADE80';
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(6, 7, 5, 7);
+      ctx.fillRect(21, 7, 5, 7);
+      ctx.fillRect(6, 19, 5, 7);
+      ctx.fillRect(21, 19, 5, 7);
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath();
+      ctx.roundRect(10, 4, 12, 24, 5);
+      ctx.fill();
+      ctx.fillStyle = kind === 'sprint' ? '#334155' : '#EF4444';
+      ctx.fillRect(14, 6, 4, 20);
+      ctx.fillStyle = '#0F172A';
+      ctx.beginPath();
+      ctx.arc(16, 15, 3, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === 'defender' || kind === 'defender2' || kind === 'stargate') {
+      // Sleek Williams Defender / Stargate fighter + laser streak
+      const accent =
+        kind === 'defender' ? '#F59E0B' : kind === 'defender2' ? '#A855F7' : '#38BDF8';
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(21, 16);
+      ctx.lineTo(31, 16);
+      ctx.stroke();
+      ctx.fillStyle = '#E2E8F0';
+      ctx.beginPath();
+      ctx.moveTo(26, 17);
+      ctx.lineTo(12, 11);
+      ctx.lineTo(5, 8);
+      ctx.lineTo(3, 14);
+      ctx.lineTo(6, 21);
+      ctx.lineTo(20, 21);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.moveTo(17, 15);
+      ctx.lineTo(11, 11);
+      ctx.lineTo(8, 15);
+      ctx.closePath();
+      ctx.fill();
+    } else if (kind === 'tempest' || kind === 'tempest2000' || kind === 'tempest3000') {
+      // 3D Vector Tube + Yellow Blaster Claw
+      const webCol =
+        kind === 'tempest' ? '#3B82F6' : kind === 'tempest2000' ? '#EC4899' : '#22D3EE';
+      ctx.strokeStyle = webCol;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.arc(16, 16, 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(16, 16, 5, 0, Math.PI * 2);
+      ctx.stroke();
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(16 + Math.cos(a) * 5, 16 + Math.sin(a) * 5);
+        ctx.lineTo(16 + Math.cos(a) * 12, 16 + Math.sin(a) * 12);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#FACC15';
+      ctx.beginPath();
+      ctx.moveTo(16, 21);
+      ctx.lineTo(10, 29);
+      ctx.lineTo(16, 26);
+      ctx.lineTo(22, 29);
+      ctx.closePath();
+      ctx.fill();
+    } else if (kind === 'mappy') {
+      // Mappy Police Mouse face + blue cap & gold badge
+      ctx.fillStyle = '#93C5FD';
+      ctx.beginPath();
+      ctx.arc(9, 11, 6, 0, Math.PI * 2);
+      ctx.arc(23, 11, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FDE68A';
+      ctx.beginPath();
+      ctx.arc(16, 19, 9.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2563EB';
+      ctx.fillRect(8, 6, 16, 6);
+      ctx.fillStyle = '#FACC15';
+      ctx.fillRect(14, 7, 4, 4);
+      ctx.fillStyle = '#0F172A';
+      ctx.beginPath();
+      ctx.arc(13, 18, 1.8, 0, Math.PI * 2);
+      ctx.arc(19, 18, 1.8, 0, Math.PI * 2);
+      ctx.arc(16, 22, 2.2, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -788,6 +931,20 @@ export function GameEmblem({
     case 'invaders':
     case 'invaders2':
     case 'foodfight':
+    case 'gauntlet':
+    case 'gauntlet2':
+    case 'polepos':
+    case 'polepos2':
+    case 'sprint':
+    case 'supersprint':
+    case 'champsprint':
+    case 'defender':
+    case 'defender2':
+    case 'stargate':
+    case 'tempest':
+    case 'tempest2000':
+    case 'tempest3000':
+    case 'mappy':
       return <ClassicIconCanvas kind={gameId} size={size} className={className} />;
     default:
       return <ClassicPacManEmblem size={size} className={className} />;

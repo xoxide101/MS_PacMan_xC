@@ -7,6 +7,8 @@ export interface ArcadeInputState {
   right: boolean;
   fire: boolean;
   fireJustPressed: boolean;
+  secondary: boolean;
+  secondaryJustPressed: boolean;
   pointerActive: boolean;
   pointerX: number; // normalized 0..1 across canvas logical width
   pointerY: number; // normalized 0..1 across canvas logical height
@@ -32,6 +34,7 @@ export interface ArcadeGameInstance {
   readonly logicalHeight: number;
   readonly supportsPointerAim: boolean;
   readonly primaryActionLabel: string;
+  readonly secondaryActionLabel?: string;
   step(dt: number): void;
   render(ctx: CanvasRenderingContext2D, dpr: number, visualMode: 'hd' | 'crt'): void;
   startNewGame(): void;
@@ -194,6 +197,8 @@ export function createEmptyInput(): ArcadeInputState {
     right: false,
     fire: false,
     fireJustPressed: false,
+    secondary: false,
+    secondaryJustPressed: false,
     pointerActive: false,
     pointerX: 0.5,
     pointerY: 0.85,

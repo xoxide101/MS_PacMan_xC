@@ -505,6 +505,63 @@ class ArcadeAudioEngine {
     }
   }
 
+  // Defender / Stargate smart bomb shockwave
+  public playSmartBomb(): void {
+    this.unlock();
+    this.playTone(900, 48, 0.55, 'sawtooth', 0.32);
+    this.playTone(420, 36, 0.62, 'square', 0.24, 0.04);
+    this.playTone(1350, 95, 0.42, 'triangle', 0.2, 0.02);
+  }
+
+  // Tempest Superzapper high-voltage surge
+  public playSuperzapper(): void {
+    this.unlock();
+    for (let i = 0; i < 6; i++) {
+      this.playTone(1400 - i * 160, 260 + i * 180, 0.08, 'sawtooth', 0.2, i * 0.05);
+    }
+  }
+
+  // Racing engine pulse & gear shift chirp
+  public playGearShift(high: boolean): void {
+    this.unlock();
+    this.playTone(high ? 160 : 240, high ? 310 : 140, 0.11, 'sawtooth', 0.16);
+  }
+
+  // Tire screech / spinout
+  public playScreech(): void {
+    if (!this.ctx || this.muted) return;
+    this.playTone(1120, 740, 0.14, 'sawtooth', 0.12);
+  }
+
+  // Mappy springy trampoline bounce
+  public playTrampolineBoing(bounces = 1): void {
+    this.unlock();
+    const base = 240 + bounces * 90;
+    this.playTone(base, base * 1.9, 0.15, 'sine', 0.26);
+    this.playTone(base * 1.2, base * 2.1, 0.11, 'triangle', 0.14, 0.02);
+  }
+
+  // Mappy door slam & microwave blast
+  public playDoorSlam(): void {
+    this.unlock();
+    this.playTone(260, 75, 0.09, 'square', 0.24);
+  }
+
+  public playMicrowave(): void {
+    this.unlock();
+    this.playTone(620, 1480, 0.24, 'sawtooth', 0.22);
+    this.playTone(920, 440, 0.26, 'sine', 0.18, 0.05);
+  }
+
+  // Gauntlet magic potion & warp chime
+  public playPotionBlast(): void {
+    this.unlock();
+    const notes = [440, 587.33, 880, 1174.66, 1760];
+    notes.forEach((f, i) => {
+      this.playTone(f, f * 1.12, 0.12, 'triangle', 0.22, i * 0.04);
+    });
+  }
+
   public stopAmbient(): void {
     if (this.ambientOsc) {
       try {

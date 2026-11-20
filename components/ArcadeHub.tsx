@@ -51,21 +51,11 @@ function parseHashToScreen(hash: string): ActiveScreen {
 }
 
 function createZeroScores(): ScoreMap {
-  return {
-    classic: 0,
-    plus: 0,
-    ms: 0,
-    super: 0,
-    jr: 0,
-    pacmania: 0,
-    centipede: 0,
-    millipede: 0,
-    digdug: 0,
-    boulderdash: 0,
-    invaders: 0,
-    invaders2: 0,
-    foodfight: 0,
-  };
+  const map = {} as ScoreMap;
+  for (const cab of CABINET_LIST) {
+    map[cab.id] = 0;
+  }
+  return map;
 }
 
 function loadAllHighScores(): ScoreMap {
@@ -92,12 +82,228 @@ interface CabinetCardConfig {
 }
 
 const CABINET_CARDS: CabinetCardConfig[] = [
-  // Golden Age Classics (7)
+  // --- Action & Dungeon (6) ---
+  {
+    id: 'gauntlet',
+    title: 'Gauntlet',
+    year: 1985,
+    category: 'action',
+    meta: '1985 · Atari Games · 4 Heroes · Monster Generators & Death',
+    description:
+      'Battle endless dungeon swarms as Warrior, Valkyrie, Wizard, or Elf—collect keys, devour roast food before health drains, and unleash Magic Potions on Death.',
+    footerLabel: 'Dungeon Arsenal',
+    footerSummary: '4 Hero Classes · Monster Spawners · Potions',
+    titleColorClass: 'text-amber-400',
+    scoreColorClass: 'text-amber-200',
+    borderHoverClass: 'hover:border-amber-400/50',
+    buttonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
+  },
+  {
+    id: 'gauntlet2',
+    title: 'Gauntlet II',
+    year: 1986,
+    category: 'action',
+    meta: '1986 · Atari Games · Dragons · Acid Puddles & Ricochet Shots',
+    description:
+      'Bank reflective shots off stone dungeon corridors, dodge glowing acid hazards, and vanquish fire-breathing Dragons guarding multi-floor treasure vaults.',
+    footerLabel: 'Sequel Features',
+    footerSummary: 'Ricochet Shots · Acid Traps · Fire Dragon Boss',
+    titleColorClass: 'text-red-400',
+    scoreColorClass: 'text-red-200',
+    borderHoverClass: 'hover:border-red-400/50',
+    buttonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
+  },
+  {
+    id: 'mappy',
+    title: 'Mappy',
+    year: 1983,
+    category: 'action',
+    meta: '1983 · Namco · 6-Story Mansion · Trampolines & Power Doors',
+    description:
+      'Bounce as police mouse Mappy through four color-cycling trampoline shafts, recover paired stolen treasures for 2×–6× bonuses, and sweep Goro & Meowkies with Microwave Doors.',
+    footerLabel: 'Mansion Tactics',
+    footerSummary: '4-Bounce Trampolines · Paired Loot · Sonic Doors',
+    titleColorClass: 'text-sky-400',
+    scoreColorClass: 'text-sky-200',
+    borderHoverClass: 'hover:border-sky-400/50',
+    buttonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
+  },
+
+  // --- Shooters & Vector Classics (10) ---
+  {
+    id: 'tempest',
+    title: 'Tempest',
+    year: 1981,
+    category: 'shooters',
+    meta: '1981 · Atari · 8 3D Vector Tubes · Superzapper & Spikers',
+    description:
+      'Spin your Blaster Claw around 3D perspective vector webs, vaporize climbing Flippers and splitting Tankers, fire your Superzapper, and survive Hyper-Tube Warp flights.',
+    footerLabel: 'Vector Systems',
+    footerSummary: '8 3D Webs · Spinner Mouse Aim · Superzapper',
+    titleColorClass: 'text-blue-400',
+    scoreColorClass: 'text-blue-200',
+    borderHoverClass: 'hover:border-blue-400/50',
+    buttonClass: 'bg-blue-500 hover:bg-blue-400 text-white focus-visible:ring-blue-300',
+  },
+  {
+    id: 'tempest2000',
+    title: 'Tempest 2000',
+    year: 1994,
+    category: 'shooters',
+    meta: '1994 · Llamasoft · Psychedelic Webs · Jump Thruster & Droid',
+    description:
+      'Catch glowing Power-Up capsules to unlock the rapid Particle Laser, Jump Thruster to leap over rim Flippers, and an automated orbiting AI Droid wingman.',
+    footerLabel: '2000 Upgrades',
+    footerSummary: 'Particle Laser · Rim Jump · Orbiting AI Droid',
+    titleColorClass: 'text-pink-400',
+    scoreColorClass: 'text-pink-200',
+    borderHoverClass: 'hover:border-pink-400/50',
+    buttonClass: 'bg-pink-500 hover:bg-pink-400 text-white focus-visible:ring-pink-300',
+  },
+  {
+    id: 'tempest3000',
+    title: 'Tempest 3000',
+    year: 2000,
+    category: 'shooters',
+    meta: '2000 · Llamasoft · Prism Glass Webs · Triple Laser & Dual Droids',
+    description:
+      'Dive into translucent prism-glass 3D tubes armed with Triple-Stream Prism Lasers, Jump Thrusters, and Dual AI Droids in explosive 60fps vector splendor.',
+    footerLabel: '3000 Systems',
+    footerSummary: 'Prism Glass Tubes · Triple Laser · Dual Droids',
+    titleColorClass: 'text-cyan-400',
+    scoreColorClass: 'text-cyan-200',
+    borderHoverClass: 'hover:border-cyan-400/50',
+    buttonClass: 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 focus-visible:ring-cyan-200',
+  },
+  {
+    id: 'defender',
+    title: 'Defender',
+    year: 1981,
+    category: 'shooters',
+    meta: '1981 · Williams · Wrap-Around Scanner · Smart Bombs',
+    description:
+      'Patrol a seamless wrap-around alien world with the iconic top Scanner Radar—intercept abducting Landers, catch falling Humanoids mid-air, and detonate Smart Bombs.',
+    footerLabel: 'Defender Kit',
+    footerSummary: 'Full-World Radar · Mid-Air Rescues · Smart Bombs',
+    titleColorClass: 'text-amber-400',
+    scoreColorClass: 'text-amber-200',
+    borderHoverClass: 'hover:border-amber-400/50',
+    buttonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
+  },
+  {
+    id: 'defender2',
+    title: 'Defender II',
+    year: 1981,
+    category: 'shooters',
+    meta: '1981 · Williams · Inviso Cloak · Warp Gate & Firebombers',
+    description:
+      'Williams’ turbocharged sequel adds a rechargeable Inviso Cloak that lets you ram enemies unscathed, a central Warp Gate for instant rescues, and tracking Firebombers.',
+    footerLabel: 'Sequel Tech',
+    footerSummary: 'Inviso Cloak (R) · Rescue Warp Gate · Firebombers',
+    titleColorClass: 'text-purple-400',
+    scoreColorClass: 'text-purple-200',
+    borderHoverClass: 'hover:border-purple-400/50',
+    buttonClass: 'bg-purple-500 hover:bg-purple-400 text-white focus-visible:ring-purple-300',
+  },
+  {
+    id: 'stargate',
+    title: 'Stargate',
+    year: 1981,
+    category: 'shooters',
+    meta: '1981 · Williams · Stargate Hyperspace · Inviso Cloak & Pods',
+    description:
+      'Dive into the shimmering cyan Stargate portal to warp straight to kidnapped Humanoids—or trigger a 2,000-point Wave Warp while battling Swarmers and Baiters.',
+    footerLabel: 'Stargate Systems',
+    footerSummary: 'Hyperspace Warp · Inviso Cloak · Smart Bombs',
+    titleColorClass: 'text-sky-400',
+    scoreColorClass: 'text-sky-200',
+    borderHoverClass: 'hover:border-sky-400/50',
+    buttonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
+  },
+
+  // --- Arcade Racing (5) ---
+  {
+    id: 'polepos',
+    title: 'Pole Position',
+    year: 1982,
+    category: 'racing',
+    meta: '1982 · Namco · 3D Fuji Speedway · LO/HI 2-Speed Gearbox',
+    description:
+      'Blaze around Mount Fuji Speedway in smooth pseudo-3D scanline road projection—shift from LO to HI gear at 170 km/h, thread F1 traffic, and beat the lap clock.',
+    footerLabel: 'Grand Prix',
+    footerSummary: 'Fuji Circuit · LO/HI Shifting · Time Extensions',
+    titleColorClass: 'text-red-400',
+    scoreColorClass: 'text-red-200',
+    borderHoverClass: 'hover:border-red-400/50',
+    buttonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
+  },
+  {
+    id: 'polepos2',
+    title: 'Pole Position II',
+    year: 1983,
+    category: 'racing',
+    meta: '1983 · Namco · 4 Grand Prix Tracks · Seaside & Suzuka',
+    description:
+      'Conquer four distinct 3D championship tracks—Seaside, Fuji, Test Speedway, and technical Suzuka—with crisp corner signage, vibrant skies, and high-speed overtakes.',
+    footerLabel: '4 Circuits',
+    footerSummary: 'Seaside · Fuji · Test Speedway · Suzuka',
+    titleColorClass: 'text-sky-400',
+    scoreColorClass: 'text-sky-200',
+    borderHoverClass: 'hover:border-sky-400/50',
+    buttonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
+  },
+  {
+    id: 'sprint',
+    title: 'Sprint 2',
+    year: 1976,
+    category: 'racing',
+    meta: '1976 · Atari / Kee Games · Monochrome Overhead Drift Racer',
+    description:
+      'Experience the 1976 overhead arcade pioneer in razor-sharp phosphor monochrome—master smooth drift cornering, dodge slick oil spills, and outpace three rival cars.',
+    footerLabel: 'Classic Spec',
+    footerSummary: 'Phosphor Visuals · 3 Circuits · Drift Physics',
+    titleColorClass: 'text-slate-200',
+    scoreColorClass: 'text-slate-200',
+    borderHoverClass: 'hover:border-slate-300/50',
+    buttonClass: 'bg-slate-200 hover:bg-white text-slate-950 focus-visible:ring-slate-300',
+  },
+  {
+    id: 'supersprint',
+    title: 'Super Sprint',
+    year: 1986,
+    category: 'racing',
+    meta: '1986 · Atari Games · Golden Wrenches · Upgrades & Tornadoes',
+    description:
+      'Snatch gleaming golden Wrenches mid-race to upgrade Top Speed, Turbo Acceleration, and Traction while weaving past mini-tornadoes and three fierce Indy rivals.',
+    footerLabel: 'Pit Upgrades',
+    footerSummary: 'Wrench Upgrades · Mini-Tornadoes · 3 AI Rivals',
+    titleColorClass: 'text-yellow-400',
+    scoreColorClass: 'text-yellow-200',
+    borderHoverClass: 'hover:border-yellow-400/50',
+    buttonClass: 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 focus-visible:ring-yellow-200',
+  },
+  {
+    id: 'champsprint',
+    title: 'Championship Sprint',
+    year: 1986,
+    category: 'racing',
+    meta: '1986 · Atari Games · Timed Shortcut Gates · Water & Oil',
+    description:
+      'Time your entry through opening inner shortcut gates on pro circuits packed with water puddles, oil slicks, and tighter apexes to claim the championship cup.',
+    footerLabel: 'Pro Circuits',
+    footerSummary: 'Timed Shortcut Gate · Water & Oil · Upgrades',
+    titleColorClass: 'text-green-400',
+    scoreColorClass: 'text-green-200',
+    borderHoverClass: 'hover:border-green-400/50',
+    buttonClass: 'bg-green-400 hover:bg-green-300 text-slate-950 focus-visible:ring-green-200',
+  },
+
+  // --- Earlier Shooters & Action Classics (7) ---
   {
     id: 'centipede',
     title: 'Centipede',
     year: 1981,
-    category: 'classic-arcade',
+    category: 'shooters',
     meta: '1981 · Atari · Splitting Chains · Spiders & Scorpions',
     description:
       'Blast winding centipede chains through a destructible mushroom garden while fending off bouncing spiders, mushroom-dropping fleas, and poisoning scorpions.',
@@ -112,7 +318,7 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     id: 'millipede',
     title: 'Millipede',
     year: 1982,
-    category: 'classic-arcade',
+    category: 'shooters',
     meta: '1982 · Atari · DDT Bombs · Inchworm Slow-Mo',
     description:
       'Detonate volatile DDT canisters for massive 3× blast clouds, freeze time by shooting inchworms, and survive beetles, mosquitoes, and earwigs.',
@@ -127,7 +333,7 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     id: 'digdug',
     title: 'Dig Dug',
     year: 1982,
-    category: 'classic-arcade',
+    category: 'action',
     meta: '1982 · Namco · Air Pump Harpoon · Falling Rocks',
     description:
       'Carve tunnels through four stratified soil layers, inflate Pookas and fire-breathing Fygars until they pop, or drop boulders to crush monsters for huge bonuses.',
@@ -142,7 +348,7 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     id: 'boulderdash',
     title: 'Boulder Dash',
     year: 1984,
-    category: 'classic-arcade',
+    category: 'action',
     meta: '1984 · First Star · 5 Caves · Cellular Rock Physics',
     description:
       'Guide Rockford through five scrolling underground caves with authentic falling and rolling rock physics, fireflies, diamond-bursting butterflies, and snap-digging.',
@@ -157,7 +363,7 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     id: 'invaders',
     title: 'Space Invaders',
     year: 1978,
-    category: 'classic-arcade',
+    category: 'shooters',
     meta: '1978 · Taito · 55-Alien March · Destructible Bunkers',
     description:
       'Defend Earth against an accelerating 5×11 alien armada with a throbbing 4-note bass march, pixel-eroding shield bunkers, and the 300-point Red Mystery UFO.',
@@ -172,7 +378,7 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     id: 'invaders2',
     title: 'Space Invaders II',
     year: 1979,
-    category: 'classic-arcade',
+    category: 'shooters',
     meta: '1979 · Taito · Splitting Invaders · Dropship UFO',
     description:
       'Face full-color splitting Command Invaders that cleave into twin divers, intercept golden reinforcement dropships, and earn the 500-point Rainbow Bonus.',
@@ -187,7 +393,7 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     id: 'foodfight',
     title: 'Food Fight',
     year: 1983,
-    category: 'classic-arcade',
+    category: 'action',
     meta: '1983 · Atari · 4 Pursuing Chefs · Melting Cone',
     description:
       'Sprint as Charley Chuck across the town square to eat the giant melting ice cream cone before Oscar, Angelo, Jacques, and Zorba catch you—hurling pies and melons back!',
@@ -199,7 +405,7 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     buttonClass: 'bg-rose-500 hover:bg-rose-400 text-white focus-visible:ring-rose-300',
   },
 
-  // Pac-Man Series (6)
+  // --- Pac-Man Series (6) ---
   {
     id: 'classic',
     title: 'Pac-Man',
@@ -287,7 +493,15 @@ const CABINET_CARDS: CabinetCardConfig[] = [
   },
 ];
 
-const QUICK_NAV_IDS: GameId[] = ['centipede', 'digdug', 'boulderdash', 'invaders', 'foodfight'];
+const QUICK_NAV_IDS: GameId[] = ['gauntlet', 'polepos', 'supersprint', 'defender', 'tempest2000', 'mappy'];
+
+const FILTER_TABS: Array<{ id: FilterCategory; label: string }> = [
+  { id: 'all', label: 'All 27' },
+  { id: 'shooters', label: 'Shooters (10)' },
+  { id: 'action', label: 'Action (6)' },
+  { id: 'racing', label: 'Racing (5)' },
+  { id: 'pacman', label: 'Pac-Man (6)' },
+];
 
 export default function ArcadeHub() {
   const [screen, setScreen] = useState<ActiveScreen>('select');
@@ -525,7 +739,7 @@ export default function ArcadeHub() {
               </a>
             ) : (
               <span className="text-xs text-slate-400 whitespace-nowrap shrink-0">
-                13 Cabinets · 60fps HiDPI
+                27 Cabinets · 60fps HiDPI
               </span>
             )}
           </div>
@@ -534,7 +748,7 @@ export default function ArcadeHub() {
 
       {/* Main Selection Floor */}
       <main className="flex-1 w-full mx-auto max-w-[1360px] px-5 sm:px-8 py-8 sm:py-10">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-7 sm:mb-9">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-7 sm:mb-9">
           <div className="max-w-2xl space-y-2">
             <h1
               className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white text-balance"
@@ -543,7 +757,7 @@ export default function ArcadeHub() {
               Choose Your Cabinet
             </h1>
             <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-              Thirteen Golden Age arcade classics remastered at high resolution and locked 60fps—spanning Centipede, Millipede, Dig Dug, Boulder Dash, Space Invaders I & II, Food Fight, and the full six-game Pac-Man collection.
+              Twenty-seven Golden Age arcade classics remastered at high resolution and locked 60fps—from Gauntlet I &amp; II, Pole Position I &amp; II, Sprint, Defender, Stargate, Tempest 1/2000/3000, and Mappy to Centipede, Dig Dug, Boulder Dash, Space Invaders, Food Fight, and all six Pac-Man cabinets.
             </p>
           </div>
 
@@ -551,47 +765,24 @@ export default function ArcadeHub() {
           <div
             role="tablist"
             aria-label="Filter arcade cabinets"
-            className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#0B0F1D] border border-white/[0.08] self-start md:self-auto shrink-0"
+            className="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl bg-[#0B0F1D] border border-white/[0.08] self-start lg:self-auto shrink-0"
           >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filter === 'all'}
-              onClick={() => setFilter('all')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                filter === 'all'
-                  ? 'bg-white text-slate-950'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              All 13 Cabinets
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filter === 'classic-arcade'}
-              onClick={() => setFilter('classic-arcade')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                filter === 'classic-arcade'
-                  ? 'bg-white text-slate-950'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Golden Age Classics (7)
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={filter === 'pacman'}
-              onClick={() => setFilter('pacman')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                filter === 'pacman'
-                  ? 'bg-white text-slate-950'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Pac-Man Series (6)
-            </button>
+            {FILTER_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={filter === tab.id}
+                onClick={() => setFilter(tab.id)}
+                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  filter === tab.id
+                    ? 'bg-white text-slate-950'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -666,7 +857,7 @@ export default function ArcadeHub() {
         </div>
 
         <p className="mt-8 text-xs text-slate-500 text-center">
-          Switch between all 13 cabinets anytime from the left rail or return here via the top bar
+          Switch between all 27 cabinets anytime from the left rail or return here via the top bar
         </p>
       </main>
     </div>
