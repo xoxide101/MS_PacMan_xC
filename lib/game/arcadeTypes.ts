@@ -57,6 +57,8 @@ export type ClassicArcadeGameId =
   | 'scramble'
   | 'moonpatrol'
   | 'timepilot'
+  | 'timepilot84'
+  | 'timepilot2016evo'
   | 'ww1942'
   | 'ww1943'
   | 'starwars'
@@ -64,6 +66,7 @@ export type ClassicArcadeGameId =
   | 'starwarsrotj'
   | 'berzerk'
   | 'robotron'
+  | 'robotron2016evo'
   | 'frogger'
   | 'frogger2'
   | 'joust'
@@ -71,6 +74,7 @@ export type ClassicArcadeGameId =
   | 'popeye'
   | 'mrdo'
   | 'spyhunter'
+  | 'spyhunter2'
   | 'tapper'
   | 'roottapper'
   | 'puzzlebobble'
@@ -288,8 +292,8 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Gauntlet: Dark Legacy',
     year: 2000,
     category: 'action',
-    tagline: 'Genuine Three.js 3D · Sumner’s Tower · 12 Heroes × 4 Elements · 9 Bosses & 10 Relics',
-    accentHex: '#A855F7',
+    tagline: 'Authentic 2000 Midway 3D · Torchlit Stonework · Sumner’s Tower · 9 Bosses & 10 Relics',
+    accentHex: '#D97706',
     storageKey: 'gauntlet_dark_legacy_hd_highscore_v1',
   },
   {
@@ -701,7 +705,7 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Scramble',
     year: 1981,
     category: 'shooters',
-    tagline: 'Side-Scrolling Caverns · Bombs & Lasers · Fuel Tank Raids',
+    tagline: '6-Sector Konami Cavern Run · Dual Laser & Bombs · FUEL Silos · ? Mystery & Base Core',
     accentHex: '#4ADE80',
     storageKey: 'scramble_hd_highscore_v1',
   },
@@ -719,9 +723,27 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Time Pilot',
     year: 1982,
     category: 'shooters',
-    tagline: '360° Free-Flight Dogfights · 1910 to 2001 Era Motherships',
+    tagline: '360° Free-Flight Dogfights · 1910–2001 Era Motherships · Parachutist Rescues',
     accentHex: '#60A5FA',
     storageKey: 'timepilot_hd_highscore_v1',
+  },
+  {
+    id: 'timepilot84',
+    title: 'Time Pilot ’84',
+    year: 1984,
+    category: 'shooters',
+    tagline: '1984 Konami Sequel · Metallic Overworld · Vulcan + Lock-On Homing Missiles & Turrets',
+    accentHex: '#38BDF8',
+    storageKey: 'timepilot84_hd_highscore_v1',
+  },
+  {
+    id: 'timepilot2016evo',
+    title: 'Time Pilot: 2016 Evo',
+    year: 2016,
+    category: 'shooters',
+    tagline: 'Melt-O-Vision Warp Trails · 4-Target Homing Salvos · Chain Lightning & Chrono Shift',
+    accentHex: '#F472B6',
+    storageKey: 'timepilot2016evo_hd_highscore_v1',
   },
   {
     id: 'ww1942',
@@ -789,6 +811,15 @@ export const CABINET_LIST: CabinetMeta[] = [
     storageKey: 'robotron_hd_highscore_v1',
   },
   {
+    id: 'robotron2016evo',
+    title: 'Robotron: 2016 Evo',
+    year: 2016,
+    category: 'action',
+    tagline: 'Full Melt-O-Vision Feedback · Chromatic RGB · Overdrive Tiers & Melt-Nova Pulse',
+    accentHex: '#F43F5E',
+    storageKey: 'robotron2016evo_hd_highscore_v1',
+  },
+  {
     id: 'frogger',
     title: 'Frogger',
     year: 1981,
@@ -847,8 +878,8 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Tapper',
     year: 1983,
     category: 'action',
-    tagline: '4 Busy Bar Lanes · Pour & Slide Mugs · Catch Empty Glasses',
-    accentHex: '#F59E0B',
+    tagline: '1983 Budweiser Evo · 4 Classic Saloons · Can-Can Tip Show & Shaken Can Bonus',
+    accentHex: '#EF4444',
     storageKey: 'tapper_hd_highscore_v1',
   },
   {
@@ -856,7 +887,7 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Root Beer Tapper',
     year: 1984,
     category: 'action',
-    tagline: 'Frothy Root Beer Saloon · Wild West, Sports, Punk & Space Bars',
+    tagline: '1984 Soda Fountain Evo · Frothy Root Beer Kegs · 4 Saloons & Shaken Can Bonus',
     accentHex: '#FB923C',
     storageKey: 'roottapper_hd_highscore_v1',
   },
@@ -888,15 +919,24 @@ export const CABINET_LIST: CabinetMeta[] = [
     storageKey: 'dragonslair_hd_highscore_v1',
   },
 
-  // Arcade Racing (+1)
+  // Arcade Racing (+2)
   {
     id: 'spyhunter',
     title: 'Spy Hunter',
     year: 1983,
     category: 'racing',
-    tagline: 'G-6155 Interceptor · Weapons Van · Oil Slick, Smoke & Missiles',
+    tagline: '1983 G-6155 Interceptor · Boat House River Transform · Weapons Van & Mad Bomber',
     accentHex: '#E2E8F0',
     storageKey: 'spyhunter_hd_highscore_v1',
+  },
+  {
+    id: 'spyhunter2',
+    title: 'Spy Hunter II',
+    year: 1987,
+    category: 'racing',
+    tagline: '1987 3D Chase View · G-8155 + Yellow Wingman · Seeker Missiles, Flames & Pyro Gyro',
+    accentHex: '#FACC15',
+    storageKey: 'spyhunter2_hd_highscore_v1',
   },
 
   // Action RPG & Classic Strategy (3)

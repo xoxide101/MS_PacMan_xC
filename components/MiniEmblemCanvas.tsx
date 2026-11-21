@@ -645,6 +645,8 @@ type ClassicIconKind =
   | 'scramble'
   | 'moonpatrol'
   | 'timepilot'
+  | 'timepilot84'
+  | 'timepilot2016evo'
   | 'ww1942'
   | 'ww1943'
   | 'starwars'
@@ -652,6 +654,7 @@ type ClassicIconKind =
   | 'starwarsrotj'
   | 'berzerk'
   | 'robotron'
+  | 'robotron2016evo'
   | 'frogger'
   | 'frogger2'
   | 'joust'
@@ -659,6 +662,7 @@ type ClassicIconKind =
   | 'popeye'
   | 'mrdo'
   | 'spyhunter'
+  | 'spyhunter2'
   | 'tapper'
   | 'roottapper'
   | 'puzzlebobble'
@@ -903,39 +907,39 @@ function ClassicIconCanvas({
       ctx.closePath();
       ctx.fill();
     } else if (kind === 'gauntletdl') {
-      // Dark Legacy Runestone Obsidian Crest + Glowing Purple Crystal + Golden Crossblade
-      ctx.fillStyle = '#1E1038';
+      // Authentic 2000 Midway Gauntlet: Dark Legacy — Carved Stone & Riveted Antique Bronze Shield + Ember Runestone
+      ctx.fillStyle = '#29221A';
       ctx.beginPath();
       ctx.moveTo(16, 2);
-      ctx.lineTo(28, 9);
-      ctx.lineTo(24, 24);
+      ctx.lineTo(28, 8.5);
+      ctx.lineTo(24.5, 24);
       ctx.lineTo(16, 30);
-      ctx.lineTo(8, 24);
-      ctx.lineTo(4, 9);
+      ctx.lineTo(7.5, 24);
+      ctx.lineTo(4, 8.5);
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = '#C084FC';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#D9A043';
+      ctx.lineWidth = 2.2;
       ctx.stroke();
-      // Crossed golden sword blade
-      ctx.strokeStyle = '#FACC15';
+      // Broadsword hilt & steel blade
+      ctx.strokeStyle = '#E7D5B0';
       ctx.lineWidth = 2.2;
       ctx.beginPath();
-      ctx.moveTo(16, 5);
+      ctx.moveTo(16, 5.5);
       ctx.lineTo(16, 26);
-      ctx.moveTo(10, 11);
-      ctx.lineTo(22, 11);
+      ctx.moveTo(9.5, 11.5);
+      ctx.lineTo(22.5, 11.5);
       ctx.stroke();
-      // Glowing cyan-violet Runestone core
-      ctx.fillStyle = '#E879F9';
+      // Torchlit crimson-gold Runestone core
+      ctx.fillStyle = '#DC2626';
       ctx.beginPath();
-      ctx.moveTo(16, 10);
-      ctx.lineTo(21, 16);
-      ctx.lineTo(16, 22);
-      ctx.lineTo(11, 16);
+      ctx.moveTo(16, 10.5);
+      ctx.lineTo(20.5, 16);
+      ctx.lineTo(16, 21.5);
+      ctx.lineTo(11.5, 16);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = '#FDE047';
       ctx.beginPath();
       ctx.arc(16, 16, 2.2, 0, Math.PI * 2);
       ctx.fill();
@@ -1539,7 +1543,15 @@ function ClassicIconCanvas({
         ctx.fillStyle = kind === 'galaxian' ? '#EF4444' : '#38BDF8';
         ctx.fillRect(13, 11, 6, 10);
       }
-    } else if (kind === 'scramble' || kind === 'moonpatrol' || kind === 'timepilot' || kind === 'ww1942' || kind === 'ww1943') {
+    } else if (
+      kind === 'scramble' ||
+      kind === 'moonpatrol' ||
+      kind === 'timepilot' ||
+      kind === 'timepilot84' ||
+      kind === 'timepilot2016evo' ||
+      kind === 'ww1942' ||
+      kind === 'ww1943'
+    ) {
       if (kind === 'moonpatrol') {
         // Pink lunar buggy + wheels
         ctx.fillStyle = '#F472B6';
@@ -1629,9 +1641,108 @@ function ClassicIconCanvas({
         ctx.fillRect(23, 10.5, 4.5, 3.8);
         ctx.fillStyle = '#FACC15';
         ctx.fillRect(15, 7.5, 2, 3.5);
+      } else if (kind === 'scramble') {
+        // Scramble: Cavern ridge + glowing FUEL tank + Konami silver/emerald starfighter + bomb
+        ctx.fillStyle = '#070D1A';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = '#92400E';
+        ctx.beginPath();
+        ctx.moveTo(0, 32);
+        ctx.lineTo(0, 24);
+        ctx.lineTo(10, 22);
+        ctx.lineTo(18, 25);
+        ctx.lineTo(26, 20);
+        ctx.lineTo(32, 23);
+        ctx.lineTo(32, 32);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#EF4444';
+        ctx.fillRect(21, 16, 5, 6);
+        ctx.fillStyle = '#FACC15';
+        ctx.fillRect(22, 17, 3, 2);
+        ctx.fillStyle = '#4ADE80';
+        ctx.beginPath();
+        ctx.moveTo(23, 11);
+        ctx.lineTo(8, 6);
+        ctx.lineTo(5, 11);
+        ctx.lineTo(8, 16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#FACC15';
+        ctx.fillRect(11, 9.5, 5, 3);
+        ctx.fillStyle = '#38BDF8';
+        ctx.beginPath();
+        ctx.arc(14, 19, 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (kind === 'timepilot84') {
+        // Time Pilot '84: Metallic space grid + silver-cyan interceptor + red missile lock reticle
+        ctx.fillStyle = '#0F172A';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.strokeStyle = 'rgba(56,189,248,0.28)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(4, 4, 24, 24);
+        ctx.beginPath();
+        ctx.moveTo(16, 2);
+        ctx.lineTo(16, 30);
+        ctx.moveTo(2, 16);
+        ctx.lineTo(30, 16);
+        ctx.stroke();
+        ctx.strokeStyle = '#EF4444';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(23, 9, 4.2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = '#E2E8F0';
+        ctx.beginPath();
+        ctx.moveTo(26, 17);
+        ctx.lineTo(10, 10);
+        ctx.lineTo(7, 17);
+        ctx.lineTo(10, 24);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#38BDF8';
+        ctx.fillRect(14, 15, 6, 4);
+      } else if (kind === 'timepilot2016evo') {
+        // Time Pilot: 2016 Evo — Neon prism chrono vortex + magenta/cyan starfighter
+        const g = ctx.createRadialGradient(16, 16, 2, 16, 16, 16);
+        g.addColorStop(0, '#701A75');
+        g.addColorStop(0.6, '#1E1B4B');
+        g.addColorStop(1, '#090D16');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.strokeStyle = '#22D3EE';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(16, 16, 12.5, 0, Math.PI * 1.4);
+        ctx.stroke();
+        ctx.strokeStyle = '#F472B6';
+        ctx.beginPath();
+        ctx.arc(16, 16, 9, Math.PI * 0.6, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = '#F8FAFC';
+        ctx.beginPath();
+        ctx.moveTo(27, 16);
+        ctx.lineTo(10, 9);
+        ctx.lineTo(13, 16);
+        ctx.lineTo(10, 23);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#F472B6';
+        ctx.fillRect(14, 14.5, 6, 3);
       } else {
-        // Side-profile fighter / Time Pilot jet
-        ctx.fillStyle = kind === 'scramble' ? '#4ADE80' : '#60A5FA';
+        // Time Pilot (1982): Sky clouds + classic 360° blue/silver fighter
+        const sky = ctx.createLinearGradient(0, 0, 0, 32);
+        sky.addColorStop(0, '#0284C7');
+        sky.addColorStop(1, '#1E3A8A');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.beginPath();
+        ctx.arc(8, 8, 4, 0, Math.PI * 2);
+        ctx.arc(12, 8, 3.2, 0, Math.PI * 2);
+        ctx.arc(24, 24, 3.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#F8FAFC';
         ctx.beginPath();
         ctx.moveTo(28, 16);
         ctx.lineTo(11, 8);
@@ -1741,8 +1852,8 @@ function ClassicIconCanvas({
       ctx.arc(0, 0, 2.2, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
-    } else if (kind === 'berzerk' || kind === 'robotron') {
-      // Evil Otto smiley / Robotron neon humanoid
+    } else if (kind === 'berzerk' || kind === 'robotron' || kind === 'robotron2016evo') {
+      // Evil Otto smiley / Robotron neon humanoid / Robotron 2016 Evo Melt-o-Vision
       if (kind === 'berzerk') {
         // High-Voltage Neon Maze Walls + Glowing Evil Otto Smiley
         ctx.fillStyle = '#040814';
@@ -1765,6 +1876,39 @@ function ClassicIconCanvas({
         ctx.beginPath();
         ctx.arc(16, 16.5, 5.5, 0.2, Math.PI - 0.2);
         ctx.stroke();
+      } else if (kind === 'robotron2016evo') {
+        // Psychedelic Melt-o-Vision RGB Chromatic Humanoid + Prism Aura
+        const mg = ctx.createRadialGradient(16, 16, 2, 16, 16, 16);
+        mg.addColorStop(0, '#EC4899');
+        mg.addColorStop(0.55, '#4C1D95');
+        mg.addColorStop(1, '#09061A');
+        ctx.fillStyle = mg;
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.strokeStyle = '#22D3EE';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(16, 16, 12.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = '#FACC15';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(16, 16, 9.5, 0, Math.PI * 2);
+        ctx.stroke();
+        // Chromatic RGB split humanoid silhouette
+        ctx.fillStyle = 'rgba(244,63,94,0.85)';
+        ctx.fillRect(9.5, 13, 10, 9);
+        ctx.fillStyle = 'rgba(34,211,238,0.85)';
+        ctx.fillRect(12.5, 13, 10, 9);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(16, 8.5, 3.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(11, 13, 10, 8.5);
+        ctx.fillStyle = '#FACC15';
+        ctx.fillRect(5, 14, 6, 3);
+        ctx.fillRect(21, 14, 6, 3);
+        ctx.fillRect(11.5, 21.5, 3.2, 6);
+        ctx.fillRect(17.3, 21.5, 3.2, 6);
       } else {
         ctx.fillStyle = '#EC4899';
         ctx.beginPath();
@@ -1907,18 +2051,77 @@ function ClassicIconCanvas({
       ctx.fillStyle = '#EF4444';
       ctx.fillRect(11, 24, 3, 3);
       ctx.fillRect(18, 24, 3, 3);
-    } else if (kind === 'tapper' || kind === 'roottapper') {
-      // Frothy arcade mug
-      ctx.fillStyle = kind === 'tapper' ? '#F59E0B' : '#9A3412';
-      ctx.fillRect(7, 11, 14, 17);
-      ctx.strokeStyle = '#FDE68A';
-      ctx.lineWidth = 2.4;
-      ctx.strokeRect(21, 14, 5, 9);
-      ctx.fillStyle = '#FFFFFF';
+    } else if (kind === 'spyhunter2') {
+      // Spy Hunter II: 3D behind-the-car highway + twin-turret G-8155 + nitro jet flames
+      ctx.fillStyle = '#0F172A';
+      ctx.fillRect(0, 0, 32, 32);
+      ctx.fillStyle = '#334155';
       ctx.beginPath();
-      ctx.arc(11, 10, 4.5, 0, Math.PI * 2);
-      ctx.arc(17, 10, 4.5, 0, Math.PI * 2);
+      ctx.moveTo(12, 5);
+      ctx.lineTo(20, 5);
+      ctx.lineTo(30, 32);
+      ctx.lineTo(2, 32);
+      ctx.closePath();
       ctx.fill();
+      ctx.fillStyle = '#FACC15';
+      ctx.fillRect(15.2, 8, 1.6, 5);
+      // Rear-chase G-8155 coupe
+      ctx.fillStyle = '#F8FAFC';
+      ctx.beginPath();
+      ctx.roundRect(8, 14, 16, 11, 3);
+      ctx.fill();
+      ctx.fillStyle = '#38BDF8';
+      ctx.fillRect(10.5, 15.5, 11, 4);
+      ctx.fillStyle = '#F97316';
+      ctx.fillRect(10, 25, 4, 5);
+      ctx.fillRect(18, 25, 4, 5);
+      ctx.fillStyle = '#EF4444';
+      ctx.fillRect(8.5, 21, 3, 2.5);
+      ctx.fillRect(20.5, 21, 3, 2.5);
+    } else if (kind === 'tapper' || kind === 'roottapper') {
+      // Tapper (1983 Budweiser Crimson/Gold Bowtie + Draft Mug) vs Root Beer Tapper (1984 Mahogany Soda Mug)
+      if (kind === 'tapper') {
+        ctx.fillStyle = '#7F1D1D';
+        ctx.fillRect(0, 0, 32, 32);
+        // Classic crimson-gold bowtie crest ribbon
+        ctx.fillStyle = '#DC2626';
+        ctx.beginPath();
+        ctx.moveTo(2, 16);
+        ctx.lineTo(16, 7);
+        ctx.lineTo(30, 16);
+        ctx.lineTo(16, 25);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#FACC15';
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+        // Golden frothy draft mug
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(9, 12, 11, 14);
+        ctx.strokeStyle = '#FEF08A';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(20, 14.5, 4, 7.5);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(12, 11, 3.6, 0, Math.PI * 2);
+        ctx.arc(17, 11, 3.6, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = '#431407';
+        ctx.fillRect(0, 0, 32, 32);
+        ctx.fillStyle = '#9A3412';
+        ctx.fillRect(7, 11, 14, 17);
+        ctx.fillStyle = '#C2410C';
+        ctx.fillRect(9, 13, 4, 13);
+        ctx.strokeStyle = '#FDBA74';
+        ctx.lineWidth = 2.4;
+        ctx.strokeRect(21, 14, 5, 9);
+        ctx.fillStyle = '#FFFBEB';
+        ctx.beginPath();
+        ctx.arc(11, 10, 4.5, 0, Math.PI * 2);
+        ctx.arc(17, 10, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
     } else if (kind === 'puzzlebobble' || kind === 'puzzlebobble2' || kind === 'puzzlebobble3') {
       // Shimmering 2.5D jewel bubble cluster (classic trio, PB2 star-fairy pink, PB3 rainbow prism)
       const bbs: Array<[number, number, string, string]> =
@@ -2160,6 +2363,8 @@ export function GameEmblem({
     case 'scramble':
     case 'moonpatrol':
     case 'timepilot':
+    case 'timepilot84':
+    case 'timepilot2016evo':
     case 'ww1942':
     case 'ww1943':
     case 'starwars':
@@ -2167,6 +2372,7 @@ export function GameEmblem({
     case 'starwarsrotj':
     case 'berzerk':
     case 'robotron':
+    case 'robotron2016evo':
     case 'frogger':
     case 'frogger2':
     case 'joust':
@@ -2174,6 +2380,7 @@ export function GameEmblem({
     case 'popeye':
     case 'mrdo':
     case 'spyhunter':
+    case 'spyhunter2':
     case 'tapper':
     case 'roottapper':
     case 'puzzlebobble':

@@ -47,10 +47,11 @@ export function createRealmTextures(
   realm: RealmDef | null,
   maxAniso: number
 ): RealmTextureSet {
-  const floorBase = realm ? realm.floorHex : '#3a344d';
-  const floorAcc = realm ? realm.floorAccentHex : '#63567d';
-  const wallBase = realm ? realm.wallHex : '#433b59';
-  const wallAcc = realm ? realm.wallAccentHex : '#796aa1';
+  // Authentic 2000 Midway Gauntlet: Dark Legacy earthy medieval gothic stone palettes
+  const floorBase = realm ? realm.floorHex : '#5a4a3a';
+  const floorAcc = realm ? realm.floorAccentHex : '#46382b';
+  const wallBase = realm ? realm.wallHex : '#4e4238';
+  const wallAcc = realm ? realm.wallAccentHex : '#6b5b4b';
   const hazHex = realm ? realm.hazardHex : '#f97316';
 
   const floor = makeCanvasTexture(
@@ -58,37 +59,55 @@ export function createRealmTextures(
     (ctx, s) => {
       ctx.fillStyle = floorBase;
       ctx.fillRect(0, 0, s, s);
-      // Carved stone tiles with subtle mortar seams & weathering
-      const step = realmId === 'hub' ? 64 : 64;
-      for (let y = 0; y < s; y += step) {
-        for (let x = 0; x < s; x += step) {
-          const checker = ((x / step + y / step) & 1) === 1;
-          ctx.fillStyle = checker ? floorAcc : floorBase;
-          ctx.fillRect(x + 2, y + 2, step - 4, step - 4);
-          // Bevel highlight
-          ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x + 3, y + 3, step - 6, step - 6);
-          // Dark mortar border
-          ctx.strokeStyle = 'rgba(0,0,0,0.42)';
+      // Hand-hewn irregular medieval cobblestones & worn flagstones (NOT neon checkerboard!)
+      const rows = 4;
+      const rowH = s / rows;
+      for (let r = 0; r < rows; r++) {
+        const shift = (r % 2) * 34;
+        for (let bx = -48; bx < s + 48; bx += 64) {
+          const x = bx + shift;
+          const y = r * rowH;
+          const v = ((r * 13 + Math.abs(bx) * 7) % 5) / 5;
+          ctx.fillStyle = v > 0.55 ? floorAcc : floorBase;
+          ctx.fillRect(x + 2, y + 2, 60, rowH - 4);
+          // Warm worn stone top highlight
+          ctx.fillStyle = 'rgba(255, 232, 195, 0.1)';
+          ctx.fillRect(x + 4, y + 4, 56, 5);
+          // Deep shadowed mortar seam
+          ctx.strokeStyle = 'rgba(12, 8, 5, 0.62)';
           ctx.lineWidth = 3;
-          ctx.strokeRect(x + 1, y + 1, step - 2, step - 2);
+          ctx.strokeRect(x + 1, y + 1, 62, rowH - 2);
+          // Subtle weathered stone fissure
+          if (v > 0.65) {
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.34)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(x + 14, y + 10);
+            ctx.lineTo(x + 28, y + 26);
+            ctx.lineTo(x + 42, y + 22);
+            ctx.stroke();
+          }
         }
       }
-      // Fine stone speckle
-      for (let i = 0; i < 420; i++) {
-        const px = (i * 73) % s;
-        const py = (i * 137) % s;
-        ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.14)';
-        ctx.fillRect(px, py, 2, 2);
+      // Organic stone grit, dirt & subtle moss speckles
+      for (let i = 0; i < 650; i++) {
+        const px = (i * 73 + 11) % s;
+        const py = (i * 137 + 29) % s;
+        ctx.fillStyle =
+          i % 11 === 0 && realmId !== 'ice' && realmId !== 'desert'
+            ? 'rgba(72, 102, 56, 0.22)'
+            : i % 2 === 0
+              ? 'rgba(255, 240, 210, 0.06)'
+              : 'rgba(10, 6, 4, 0.18)';
+        ctx.fillRect(px, py, 2 + (i % 2), 2);
       }
       if (realmId === 'hub') {
-        // Golden inlaid runic filigree for Sumner's Tower floor
-        ctx.strokeStyle = 'rgba(251,191,36,0.34)';
+        // Sumner's Tower authentic warm carved sandstone & antique bronze compass inlay
+        ctx.strokeStyle = 'rgba(217, 165, 68, 0.38)';
         ctx.lineWidth = 3;
-        ctx.strokeRect(8, 8, s - 16, s - 16);
+        ctx.strokeRect(10, 10, s - 20, s - 20);
         ctx.beginPath();
-        ctx.arc(s / 2, s / 2, s * 0.24, 0, Math.PI * 2);
+        ctx.arc(s / 2, s / 2, s * 0.26, 0, Math.PI * 2);
         ctx.stroke();
       }
     },
@@ -100,28 +119,41 @@ export function createRealmTextures(
     (ctx, s) => {
       ctx.fillStyle = wallBase;
       ctx.fillRect(0, 0, s, s);
-      // Staggered ashlar masonry courses
-      const rows = 4;
+      // Heavy chiseled medieval castle ashlar masonry courses
+      const rows = 5;
       const rowH = s / rows;
       for (let r = 0; r < rows; r++) {
-        const offset = (r % 2) * 44;
-        for (let bx = -64; bx < s + 64; bx += 86) {
+        const offset = (r % 2) * 42;
+        for (let bx = -64; bx < s + 64; bx += 84) {
           const x = bx + offset;
           const y = r * rowH;
-          ctx.fillStyle = (r + Math.floor(bx / 86)) % 2 === 0 ? wallBase : wallAcc;
-          ctx.fillRect(x + 2, y + 2, 82, rowH - 4);
-          ctx.fillStyle = 'rgba(255,255,255,0.12)';
-          ctx.fillRect(x + 3, y + 3, 80, 4);
-          ctx.fillStyle = 'rgba(0,0,0,0.28)';
-          ctx.fillRect(x + 3, y + rowH - 7, 80, 4);
-          ctx.strokeStyle = 'rgba(0,0,0,0.52)';
-          ctx.lineWidth = 3;
-          ctx.strokeRect(x + 1, y + 1, 84, rowH - 2);
+          const alt = ((r * 7 + Math.abs(bx)) % 3) === 0;
+          ctx.fillStyle = alt ? wallAcc : wallBase;
+          ctx.fillRect(x + 2, y + 2, 80, rowH - 4);
+          // Chiseled upper bevel catching torchlight
+          ctx.fillStyle = 'rgba(255, 232, 195, 0.14)';
+          ctx.fillRect(x + 3, y + 3, 78, 4);
+          // Deep recessed underside shadow
+          ctx.fillStyle = 'rgba(10, 6, 4, 0.38)';
+          ctx.fillRect(x + 3, y + rowH - 6, 78, 4);
+          // Thick medieval mortar joint
+          ctx.strokeStyle = 'rgba(10, 6, 4, 0.68)';
+          ctx.lineWidth = 3.5;
+          ctx.strokeRect(x + 1, y + 1, 82, rowH - 2);
         }
       }
-      // Subtle top stone trim band
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
-      ctx.fillRect(0, 0, s, 10);
+      // Weathered stone grain & bottom grime gradient
+      const grime = ctx.createLinearGradient(0, s * 0.62, 0, s);
+      grime.addColorStop(0, 'rgba(0,0,0,0)');
+      grime.addColorStop(1, 'rgba(15, 10, 6, 0.45)');
+      ctx.fillStyle = grime;
+      ctx.fillRect(0, s * 0.62, s, s * 0.38);
+
+      // Carved stone cornice molding along top edge
+      ctx.fillStyle = 'rgba(225, 200, 160, 0.2)';
+      ctx.fillRect(0, 0, s, 12);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.fillRect(0, 12, s, 4);
     },
     maxAniso
   );
@@ -131,17 +163,21 @@ export function createRealmTextures(
     (ctx, s) => {
       ctx.fillStyle = wallAcc;
       ctx.fillRect(0, 0, s, s);
+      // Fluted gothic limestone column channels
       for (let x = 0; x < s; x += 16) {
-        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.fillStyle = 'rgba(12, 8, 5, 0.32)';
         ctx.fillRect(x, 0, 5, s);
-        ctx.fillStyle = 'rgba(255,255,255,0.14)';
+        ctx.fillStyle = 'rgba(255, 238, 210, 0.16)';
         ctx.fillRect(x + 6, 0, 3, s);
       }
-      ctx.fillStyle = '#fbbf24';
-      ctx.globalAlpha = 0.28;
-      ctx.fillRect(0, 12, s, 8);
-      ctx.fillRect(0, s - 20, s, 8);
-      ctx.globalAlpha = 1;
+      // Hammered antique bronze column collars
+      ctx.fillStyle = '#9a7132';
+      ctx.fillRect(0, 10, s, 10);
+      ctx.fillRect(0, s - 20, s, 10);
+      ctx.strokeStyle = 'rgba(20, 12, 5, 0.65)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, 10, s, 10);
+      ctx.strokeRect(0, s - 20, s, 10);
     },
     maxAniso
   );
@@ -157,8 +193,8 @@ export function createRealmTextures(
       grad.addColorStop(1, '#1a0a0a');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, s, s);
-      // Glowing molten/acid veins
-      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      // Crusty cooled magma / swamp bubble veins
+      ctx.strokeStyle = 'rgba(255, 224, 150, 0.55)';
       ctx.lineWidth = 3;
       for (let i = 0; i < 6; i++) {
         ctx.beginPath();
@@ -175,14 +211,14 @@ export function createRealmTextures(
     (ctx, s) => {
       ctx.fillStyle = wallBase;
       ctx.fillRect(0, 0, s, s);
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.strokeStyle = 'rgba(10, 6, 4, 0.6)';
       ctx.lineWidth = 3;
-      for (let y = 0; y < s; y += 64) {
-        ctx.strokeRect(2, y + 2, s - 4, 60);
+      for (let y = 0; y < s; y += 52) {
+        ctx.strokeRect(2, y + 2, s - 4, 48);
       }
-      // Subtle glowing secret fissure cracks
-      ctx.strokeStyle = '#fbbf24';
-      ctx.lineWidth = 4;
+      // Deep jagged dark fracture lines with subtle golden treasure glint inside!
+      ctx.strokeStyle = '#0c0805';
+      ctx.lineWidth = 6;
       ctx.beginPath();
       ctx.moveTo(s * 0.25, 0);
       ctx.lineTo(s * 0.48, s * 0.34);
@@ -190,6 +226,9 @@ export function createRealmTextures(
       ctx.lineTo(s * 0.68, s);
       ctx.moveTo(s * 0.48, s * 0.34);
       ctx.lineTo(s * 0.78, s * 0.48);
+      ctx.stroke();
+      ctx.strokeStyle = '#d97706';
+      ctx.lineWidth = 2;
       ctx.stroke();
     },
     maxAniso
@@ -473,18 +512,18 @@ export function buildHeroModel(
     leftArm.add(offOrb);
   }
 
-  // Elemental Ground Aura Ring (visible evolution as level grows!)
+  // Classic Gauntlet P1–P4 Ground Medallion Ring (subtle metallic team indicator, no neon glare)
   const auraRing = new THREE.Mesh(
-    new THREE.RingGeometry(0.54, 0.72, 24),
+    new THREE.RingGeometry(0.56, 0.68, 24),
     new THREE.MeshBasicMaterial({
-      color: glow,
+      color: primary,
       transparent: true,
-      opacity: Math.min(0.85, 0.32 + level * 0.04),
+      opacity: 0.42,
       side: THREE.DoubleSide,
     })
   );
   auraRing.rotation.x = -Math.PI / 2;
-  auraRing.position.y = 0.05;
+  auraRing.position.y = 0.04;
   root.add(auraRing);
 
   // Anti-Death Golden Halo (hidden until Relic active)
@@ -924,55 +963,132 @@ export function buildBossModel(bossType: RealmDef['bossType'], trueSkorne = fals
 // 3D Dungeon Props (3-Tier Generators, Chests, Barrels, Portals, Food, Runestones, Weapons)
 // ---------------------------------------------------------------------------
 export function buildGeneratorModel(tier: 1 | 2 | 3): THREE.Group {
+  // Authentic Gauntlet: Dark Legacy Medieval Monster Spawners (Wood Totem / Stone Mausoleum / Iron Demon Forge!)
   const g = new THREE.Group();
-  const baseCol = tier === 1 ? 0x78350f : tier === 2 ? 0x64748b : 0x334155;
-  const crystalCol = tier === 1 ? 0x4ade80 : tier === 2 ? 0x38bdf8 : 0xf43f5e;
-  const base = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.55, 0.72, 1.25 + tier * 0.25, tier === 1 ? 6 : 8),
-    new THREE.MeshStandardMaterial({
-      color: baseCol,
-      roughness: tier === 3 ? 0.28 : 0.72,
-      metalness: tier === 3 ? 0.8 : 0.2,
-    })
+  const bodyCol = tier === 1 ? 0x6b3e1f : tier === 2 ? 0x6b645c : 0x3b3332;
+  const trimCol = tier === 1 ? 0x45220e : tier === 2 ? 0x8c8276 : 0x9a7132;
+  const emberCol = tier === 1 ? 0xf59e0b : tier === 2 ? 0x84cc16 : 0xef4444;
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: bodyCol,
+    roughness: tier === 3 ? 0.42 : 0.85,
+    metalness: tier === 3 ? 0.68 : 0.1,
+  });
+  const trimMat = new THREE.MeshStandardMaterial({
+    color: trimCol,
+    roughness: 0.55,
+    metalness: tier === 3 ? 0.75 : 0.2,
+  });
+  const fireMat = new THREE.MeshStandardMaterial({
+    color: emberCol,
+    emissive: emberCol,
+    emissiveIntensity: 1.15,
+    roughness: 0.3,
+  });
+
+  // Stepped stone/timber plinth
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.34, 1.45), trimMat);
+  plinth.position.y = 0.17;
+  plinth.castShadow = true;
+  plinth.receiveShadow = true;
+
+  // Crypt / Forge chamber walls
+  const h = 1.15 + tier * 0.25;
+  const chamber = new THREE.Mesh(new THREE.BoxGeometry(1.18, h, 1.18), mat);
+  chamber.position.y = 0.34 + h * 0.5;
+  chamber.castShadow = true;
+
+  // Pitched gothic crypt roof / iron crown
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(0.96, 0.68, 4), trimMat);
+  roof.position.y = 0.34 + h + 0.34;
+  roof.rotation.y = Math.PI / 4;
+  roof.castShadow = true;
+
+  // Recessed glowing monster doorway / bone skull emblem (named 'crystal' for spin/pulse compatibility)
+  const doorway = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.72, 0.22), fireMat);
+  doorway.position.set(0, 0.72, 0.56);
+  doorway.name = 'crystal';
+
+  // Carved skull ornament above doorway
+  const skull = new THREE.Mesh(
+    new THREE.SphereGeometry(0.2, 8, 8),
+    new THREE.MeshStandardMaterial({ color: 0xe7dfd1, roughness: 0.6 })
   );
-  base.position.y = (1.25 + tier * 0.25) * 0.5;
-  base.castShadow = true;
-  const crystal = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.38),
-    new THREE.MeshStandardMaterial({
-      color: crystalCol,
-      emissive: crystalCol,
-      emissiveIntensity: 1.4,
-      roughness: 0.15,
-    })
-  );
-  crystal.position.y = 1.55 + tier * 0.28;
-  crystal.name = 'crystal';
-  g.add(base, crystal);
+  skull.position.set(0, 0.34 + h - 0.1, 0.62);
+
+  g.add(plinth, chamber, roof, doorway, skull);
   return g;
 }
 
 export function buildPortalModel(colorHex: string, scale = 1): THREE.Group {
+  // Authentic Sumner's Tower Carved Gothic Stone Archway Portal with Hanging Realm Banner!
   const g = new THREE.Group();
   const col = new THREE.Color(colorHex);
-  const arch = new THREE.Mesh(
-    new THREE.TorusGeometry(1.15 * scale, 0.18 * scale, 8, 22),
-    new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.65, roughness: 0.35 })
+  const stoneMat = new THREE.MeshStandardMaterial({
+    color: 0x6e6254,
+    roughness: 0.84,
+    metalness: 0.12,
+  });
+  const bronzeMat = new THREE.MeshStandardMaterial({
+    color: 0xa67c37,
+    roughness: 0.38,
+    metalness: 0.72,
+  });
+
+  // Left & Right carved stone pilasters
+  const colGeo = new THREE.BoxGeometry(0.36 * scale, 2.35 * scale, 0.44 * scale);
+  const colL = new THREE.Mesh(colGeo, stoneMat);
+  colL.position.set(-1.12 * scale, 1.18 * scale, 0);
+  colL.castShadow = true;
+  const colR = new THREE.Mesh(colGeo, stoneMat);
+  colR.position.set(1.12 * scale, 1.18 * scale, 0);
+  colR.castShadow = true;
+
+  // Gothic keystone arch & lintel
+  const lintel = new THREE.Mesh(
+    new THREE.BoxGeometry(2.75 * scale, 0.38 * scale, 0.56 * scale),
+    stoneMat
   );
-  arch.position.y = 1.25 * scale;
+  lintel.position.set(0, 2.48 * scale, 0);
+  lintel.castShadow = true;
+
+  const archTrim = new THREE.Mesh(
+    new THREE.TorusGeometry(1.06 * scale, 0.14 * scale, 7, 18, Math.PI),
+    bronzeMat
+  );
+  archTrim.position.set(0, 1.35 * scale, 0.04);
+
+  // Hanging embroidered medieval realm banner crest above the arch!
+  const banner = new THREE.Mesh(
+    new THREE.BoxGeometry(0.75 * scale, 0.82 * scale, 0.08 * scale),
+    new THREE.MeshStandardMaterial({ color: col, roughness: 0.72, metalness: 0.1 })
+  );
+  banner.position.set(0, 2.95 * scale, 0.18 * scale);
+
+  // Shimmering stained-glass / arcane doorway membrane inside the stone arch
   const vortex = new THREE.Mesh(
-    new THREE.CircleGeometry(1.0 * scale, 20),
-    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.68, side: THREE.DoubleSide })
+    new THREE.PlaneGeometry(1.92 * scale, 2.28 * scale),
+    new THREE.MeshStandardMaterial({
+      color: col,
+      emissive: col,
+      emissiveIntensity: 0.72,
+      transparent: true,
+      opacity: 0.74,
+      roughness: 0.25,
+      side: THREE.DoubleSide,
+    })
   );
-  vortex.position.y = 1.25 * scale;
+  vortex.position.set(0, 1.18 * scale, 0);
   vortex.name = 'vortex';
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(0.85 * scale, 1.3 * scale, 22),
-    new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
+
+  // Stone threshold step
+  const step = new THREE.Mesh(
+    new THREE.BoxGeometry(2.65 * scale, 0.14 * scale, 0.9 * scale),
+    stoneMat
   );
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.y = 0.06;
-  g.add(arch, vortex, ring);
+  step.position.set(0, 0.07 * scale, 0.12 * scale);
+
+  g.add(colL, colR, lintel, archTrim, banner, vortex, step);
   return g;
 }
 
@@ -1200,18 +1316,29 @@ export function buildPickupModel(
 }
 
 export function buildBrazierModel(): THREE.Group {
+  // Authentic wrought-iron medieval dungeon tripod fire brazier with blazing coals
   const g = new THREE.Group();
-  const bowl = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.42, 0.22, 0.78, 8),
-    new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.75, roughness: 0.35 })
+  const ironMat = new THREE.MeshStandardMaterial({ color: 0x2b2623, metalness: 0.78, roughness: 0.42 });
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.36, 0.66, 8), ironMat);
+  stem.position.y = 0.33;
+  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.24, 0.34, 8), ironMat);
+  bowl.position.y = 0.78;
+  const coals = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.4, 0.35, 0.12, 8),
+    new THREE.MeshStandardMaterial({ color: 0xdc2626, emissive: 0xea580c, emissiveIntensity: 1.4 })
   );
-  bowl.position.y = 0.39;
+  coals.position.y = 0.92;
   const flame = new THREE.Mesh(
-    new THREE.ConeGeometry(0.28, 0.65, 7),
+    new THREE.ConeGeometry(0.28, 0.74, 7),
     new THREE.MeshBasicMaterial({ color: 0xf97316 })
   );
-  flame.position.y = 1.02;
+  flame.position.y = 1.25;
   flame.name = 'flame';
-  g.add(bowl, flame);
+  const innerFlame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.15, 0.48, 6),
+    new THREE.MeshBasicMaterial({ color: 0xfef08a })
+  );
+  innerFlame.position.y = 1.16;
+  g.add(stem, bowl, coals, flame, innerFlame);
   return g;
 }

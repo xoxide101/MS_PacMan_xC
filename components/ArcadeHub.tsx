@@ -477,11 +477,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Scramble',
     year: 1981,
     category: 'shooters',
-    meta: '1981 · Konami · 6 Cavern Zones · Lasers, Bombs & Fuel',
+    meta: '1981 · Konami · All 6 Authentic Sectors · Lasers, Bombs & Fuel',
     description:
-      'Skim through hostile caverns firing forward lasers and arcing bombs—shatter glowing FUEL tanks to keep flying past launching rockets, fireballs, and the Super-Base.',
-    footerLabel: '6-Stage Raid',
-    footerSummary: 'Dual Laser + Bomb · Fuel Raids · Caverns',
+      'Independent Konami 6-sector raid engine: weave past Mountains, Caverns, Fireballs, City Skyscrapers, Maze Tunnels, and the Base Core while bombing glowing FUEL tanks and launching missiles!',
+    footerLabel: '6-Sector Konami Raid',
+    footerSummary: 'Mountains → Caverns → Fireballs → City → Maze → Base',
     titleColorClass: 'text-green-400',
     scoreColorClass: 'text-green-200',
     borderHoverClass: 'hover:border-green-400/50',
@@ -507,15 +507,45 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Time Pilot',
     year: 1982,
     category: 'shooters',
-    meta: '1982 · Konami · 360° Free-Flight · 1910 to 2001 Eras',
+    meta: '1982 · Konami · 360° Free-Flight · 1910 to 2001 Eras & Parachutists',
     description:
-      'Bank 360 degrees through endless open skies across 1910 Biplanes, 1940 Monoplanes, 1970 Choppers, 1982 Jets, and 2001 UFOs to defeat each era’s Mothership!',
-    footerLabel: '5 Time Eras',
-    footerSummary: '360° Dogfights · Pilot Rescues · Motherships',
-    titleColorClass: 'text-blue-400',
-    scoreColorClass: 'text-blue-200',
-    borderHoverClass: 'hover:border-blue-400/50',
-    buttonClass: 'bg-blue-500 hover:bg-blue-400 text-white focus-visible:ring-blue-300',
+      'Independent 360° open-sky dogfight engine spanning 1910 Biplanes, 1940 Monoplanes, 1970 Choppers, 1982 Jets, and 2001 UFOs—rescue parachutists up to 5,000 pts and down each era’s Boss Mothership!',
+    footerLabel: '5 Classic Eras',
+    footerSummary: '360° Dogfights · Escalating Rescues · 5 Era Bosses',
+    titleColorClass: 'text-sky-400',
+    scoreColorClass: 'text-sky-200',
+    borderHoverClass: 'hover:border-sky-400/50',
+    buttonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
+  },
+  {
+    id: 'timepilot84',
+    title: "Time Pilot '84",
+    year: 1984,
+    category: 'shooters',
+    meta: '1984 · Konami · Metallic Alien Worlds · Homing Missile Lock-On',
+    description:
+      'Konami’s futuristic sequel over shimmering metallic planetary cities! Blast light fighters with Vulcan fire, lock onto armored saucers and ground turrets with target reticles, and launch homing missiles!',
+    footerLabel: '1984 Sequel',
+    footerSummary: 'Metallic Terrain · Target Lock-On · Armored Bosses',
+    titleColorClass: 'text-cyan-400',
+    scoreColorClass: 'text-cyan-200',
+    borderHoverClass: 'hover:border-cyan-400/50',
+    buttonClass: 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 focus-visible:ring-cyan-200',
+  },
+  {
+    id: 'timepilot2016evo',
+    title: 'Time Pilot: 2016 Evo',
+    year: 2016,
+    category: 'shooters',
+    meta: '2016 · Evolution Edition · Prism Trails · Multi-Lock & Chrono Salvo',
+    description:
+      'Hyper-evolved 360° dogfighter packed with psychedelic prism feedback trails, chromatic warp rings, 4-target multi-lock homing missiles, combo multipliers, and screen-clearing Chrono Salvos!',
+    footerLabel: '2016 Evo FX',
+    footerSummary: 'Prism Feedback · 4× Multi-Lock · Chrono Salvo',
+    titleColorClass: 'text-fuchsia-400',
+    scoreColorClass: 'text-fuchsia-200',
+    borderHoverClass: 'hover:border-fuchsia-400/50',
+    buttonClass: 'bg-fuchsia-500 hover:bg-fuchsia-400 text-white focus-visible:ring-fuchsia-300',
   },
   {
     id: 'ww1942',
@@ -576,6 +606,21 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     scoreColorClass: 'text-pink-200',
     borderHoverClass: 'hover:border-pink-400/50',
     buttonClass: 'bg-pink-500 hover:bg-pink-400 text-white focus-visible:ring-pink-300',
+  },
+  {
+    id: 'robotron2016evo',
+    title: 'Robotron: 2016 Evo',
+    year: 2016,
+    category: 'action',
+    meta: '2016 · Evolution Edition · Melt-o-Vision Feedback · Chromatic RGB & Melt-Nova',
+    description:
+      'Psychedelic Melt-o-Vision twin-stick evolution! Paint liquid-neon feedback ribbons, trigger chromatic RGB shockwaves, evolve through 4 Overdrive weapon tiers, unleash Melt-Nova bursts, and topple Overlord Motherbrains!',
+    footerLabel: 'Melt-o-Vision Evo',
+    footerSummary: 'Offscreen Melt FX · 4 Overdrive Tiers · Melt-Nova · Motherbrains',
+    titleColorClass: 'text-fuchsia-400',
+    scoreColorClass: 'text-fuchsia-200',
+    borderHoverClass: 'hover:border-fuchsia-400/50',
+    buttonClass: 'bg-fuchsia-500 hover:bg-fuchsia-400 text-white focus-visible:ring-fuchsia-300',
   },
   {
     id: 'frogger',
@@ -672,41 +717,56 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Spy Hunter',
     year: 1983,
     category: 'racing',
-    meta: '1983 · Bally Midway · G-6155 Interceptor · Weapons Van',
+    meta: '1983 · Bally Midway · G-6155 Interceptor · Boat Mode · Weapons Van',
     description:
-      'Tear down winding highways to a driving noir chase groove—board the red Weapons Van for Oil Slicks, Smoke Screens, and Missiles while battling Switch Blades & Choppers.',
-    footerLabel: 'Secret Agent Kit',
-    footerSummary: 'Weapons Van · Oil & Smoke · Surface Missiles',
+      'Independent overhead espionage highway engine! Drive into the red Weapons Van for Oil Slicks, Smoke Screens & Missiles, take boathouse forks into Speedboat Mode, and battle Road Lords, Switch Blades & Mad Bombers!',
+    footerLabel: '1983 Interceptor',
+    footerSummary: 'Weapons Van · Boat Mode · Oil / Smoke / Missiles · Forks',
     titleColorClass: 'text-slate-200',
     scoreColorClass: 'text-slate-200',
     borderHoverClass: 'hover:border-slate-300/50',
     buttonClass: 'bg-slate-200 hover:bg-white text-slate-950 focus-visible:ring-slate-300',
   },
   {
-    id: 'tapper',
-    title: 'Tapper',
-    year: 1983,
-    category: 'action',
-    meta: '1983 · Bally Midway · 4 Bustling Bar Lanes · Catch Empties',
+    id: 'spyhunter2',
+    title: 'Spy Hunter II',
+    year: 1987,
+    category: 'racing',
+    meta: '1987 · Bally Midway · 3D Behind-Car Chase · Snow, Desert & Canyon',
     description:
-      'Dash between four crowded saloon counters pouring and sliding frosty mugs to thirsty patrons, snagging returning empty glasses and tips before anyone reaches the tap!',
-    footerLabel: 'Saloon Rush',
-    footerSummary: '4 Bar Counters · Empty Mug Catch · Tip Show',
+      'Authentic 1987 pseudo-3D behind-the-car chase sequel! Pilot the G-8155 across Highway, Snow, Desert, and Night Canyon zones—dock with the Weapons Truck for Twin Lasers, Missiles, Oil, Smoke & Turbo Boost!',
+    footerLabel: '3D Chase Sequel',
+    footerSummary: '3D Perspective · 4 Biomes · Twin Lasers & Turbo · Truck Dock',
     titleColorClass: 'text-amber-400',
     scoreColorClass: 'text-amber-200',
     borderHoverClass: 'hover:border-amber-400/50',
     buttonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
   },
   {
+    id: 'tapper',
+    title: 'Tapper',
+    year: 1983,
+    category: 'action',
+    meta: '1983 · Bally Midway · Authentic Budweiser Evolution · 4 Saloons & Shaken Can Bonus',
+    description:
+      'Authentic 1983 Budweiser saloon evolution! Pull gleaming brass crimson-crest kegs across Western, Sports, Punk & Alien bars, catch empty mugs, trigger Can-Can Dancer distractions, and ace the Shaken Can Bonus Round!',
+    footerLabel: '1983 Saloon Evo',
+    footerSummary: 'Crimson Crest Kegs · 4 Saloons · Can-Can Tips · Shaken Can Bonus',
+    titleColorClass: 'text-red-400',
+    scoreColorClass: 'text-amber-200',
+    borderHoverClass: 'hover:border-red-400/50',
+    buttonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
+  },
+  {
     id: 'roottapper',
     title: 'Root Beer Tapper',
     year: 1984,
     category: 'action',
-    meta: '1984 · Bally Midway · Root Beer Saloon · 4 Themed Bars',
+    meta: '1984 · Bally Midway · Soda Fountain Evolution · 4 Themed Parlors & Bonus',
     description:
-      'Serve frosty mugs of Root Beer across Wild West, Sports, Punk Rock, and Outer Space soda bars to upbeat ragtime polka—catching every sliding mug without a spill!',
-    footerLabel: '4 Soda Arcades',
-    footerSummary: 'Wild West · Sports · Punk · Alien Space Bar',
+      'Authentic 1984 Soda Fountain evolution! Pour frosty dark-amber Root Beer across Wild West, Sports, Punk Rock & Outer Space parlors, snag sliding mugs & glowing tips, and beat the Shaken Root Beer Can Bonus!',
+    footerLabel: '1984 Soda Evo',
+    footerSummary: 'Soda Fountain Kegs · 4 Parlors · Can-Can Show · Shaken Can Bonus',
     titleColorClass: 'text-orange-400',
     scoreColorClass: 'text-orange-200',
     borderHoverClass: 'hover:border-orange-400/50',
@@ -946,15 +1006,15 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Gauntlet: Dark Legacy',
     year: 2000,
     category: 'action',
-    meta: '2000 · Midway · Genuine 3D WebGL Engine · 12 Heroes × 4 Elements · 9 Realms & Bosses',
+    meta: '2000 · Midway · Authentic Gothic 3D Engine · Sumner’s Tower · 12 Heroes × 4 Elements',
     description:
-      'Genuine real-time Three.js 3D engine copying Arcade & Console mechanics! Explore Sumner’s Tower 3D Hub, play 8 core + 4 secret heroes in 4 elemental colors, hunt 13 Runestones & 9 Boss-Weakening Legendary Weapons, use 10 Console Inventory Relics (Anti-Death Halo, Phoenix, Growth, X-Ray), and defeat 2-phase True Skorne!',
-    footerLabel: 'Genuine 3D Engine',
-    footerSummary: 'Three.js 3D · Sumner’s Tower · 9 Bosses · 10 Relics · 13 Runestones',
-    titleColorClass: 'text-purple-400',
-    scoreColorClass: 'text-purple-200',
-    borderHoverClass: 'hover:border-purple-400/50',
-    buttonClass: 'bg-purple-500 hover:bg-purple-400 text-white focus-visible:ring-purple-300',
+      'Faithfully overhauled 2000 Midway Gothic 3D dungeon crawler! Roam torchlit cobblestone halls and Sumner’s stained-glass Tower with riveted bronze-and-stone bottom arcade plaques, crypt spawners, 13 Runestones, 9 Legendary Weapons, 10 Console Relics, and 2-phase True Skorne!',
+    footerLabel: 'Authentic 2000 3D',
+    footerSummary: 'Gothic Stonework · Bronze Arcade HUD · 9 Realms · 13 Runestones',
+    titleColorClass: 'text-amber-400',
+    scoreColorClass: 'text-amber-200',
+    borderHoverClass: 'hover:border-amber-400/50',
+    buttonClass: 'bg-amber-500 hover:bg-amber-400 text-slate-950 focus-visible:ring-amber-300',
   },
   {
     id: 'mappy',
@@ -1442,7 +1502,7 @@ const CABINET_CARDS: CabinetCardConfig[] = [
 ];
 
 const FILTER_TABS: Array<{ id: FilterCategory; label: string; shortLabel: string }> = [
-  { id: 'all', label: 'All 89', shortLabel: 'All' },
+  { id: 'all', label: 'All 93', shortLabel: 'All' },
   { id: 'shooters', label: 'Shooters', shortLabel: 'Shooters' },
   { id: 'action', label: 'Action', shortLabel: 'Action' },
   { id: 'platformers', label: 'Platformers', shortLabel: 'Platform' },
@@ -1472,6 +1532,7 @@ function getLetterKey(title: string): string {
 
 function getAccentHex(titleColorClass: string): string {
   if (titleColorClass.includes('pink')) return '#F472B6';
+  if (titleColorClass.includes('fuchsia')) return '#E879F9';
   if (titleColorClass.includes('yellow')) return '#FACC15';
   if (titleColorClass.includes('emerald')) return '#34D399';
   if (titleColorClass.includes('green')) return '#4ADE80';
@@ -2006,7 +2067,7 @@ export default function ArcadeHub() {
               </a>
             ) : (
               <span className="text-xs font-mono tabular-nums text-slate-400 whitespace-nowrap shrink-0">
-                89 Cabinets
+                93 Cabinets
               </span>
             )}
           </div>
@@ -2204,7 +2265,7 @@ export default function ArcadeHub() {
               }}
               className="mt-4 px-4 py-2 rounded-lg bg-white text-slate-950 text-xs font-semibold cursor-pointer hover:bg-slate-200 transition-colors"
             >
-              Reset Filter &amp; Show All 89
+              Reset Filter &amp; Show All 93
             </button>
           </div>
         )}

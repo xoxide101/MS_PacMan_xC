@@ -2,7 +2,7 @@
  * Procedural 5-Channel (4 Pitched + Percussion) Arcade BGM Synthesizer (Pure Web Audio API)
  * Zero external audio files — works 100% offline including standalone index.html.
  * Simulates classic 1979–1995 arcade PSG / POKEY / YM2151 FM / SNES 4+ channel chiptune
- * & orchestral synth background music mapped across all 87 cabinets.
+ * & orchestral synth background music mapped across all 93 cabinets.
  */
 
 type Wave = OscillatorType;
@@ -2063,6 +2063,8 @@ const GAME_TO_TRACK: Record<string, string> = {
   scramble: 'sky_squadron_march',
   moonpatrol: 'lunar_funk',
   timepilot: 'sky_squadron_march',
+  timepilot84: 'cyber_pulse',
+  timepilot2016evo: 'breakout_evo_rave',
   ww1942: 'ww1942_morse',
   ww1943: 'ww1943_midway',
   defender: 'defender_frontier',
@@ -2082,6 +2084,7 @@ const GAME_TO_TRACK: Record<string, string> = {
   // Arena, Maze & Classic Action
   berzerk: 'berzerk_voltage',
   robotron: 'cyber_pulse',
+  robotron2016evo: 'breakout_evo_rave',
   frogger: 'arcade_cheerful',
   frogger2: 'arcade_cheerful',
   joust: 'joust_colosseum',
@@ -2096,6 +2099,7 @@ const GAME_TO_TRACK: Record<string, string> = {
   gauntlet2: 'fantasy_quest',
   gauntletdl: 'dark_legacy_anthem',
   spyhunter: 'spy_hunter_chase',
+  spyhunter2: 'spy_hunter_chase',
   tapper: 'tapper_saloon',
   roottapper: 'tapper_saloon',
   crystalcastles: 'crystal_castles_baroque',

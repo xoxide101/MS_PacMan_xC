@@ -401,8 +401,8 @@ export class Gauntlet3DEngine {
     container.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color('#19142b');
-    this.scene.fog = new THREE.FogExp2('#19142b', 0.017);
+    this.scene.background = new THREE.Color('#1d1510');
+    this.scene.fog = new THREE.FogExp2('#1d1510', 0.0155);
 
     // RoomEnvironment IBL on ALL devices (never skip on software WebGL)
     this.pmremGenerator = new THREE.PMREMGenerator(this.renderer);
@@ -411,14 +411,14 @@ export class Gauntlet3DEngine {
     this.scene.environment = this.envRT.texture;
     roomEnv.dispose();
 
-    this.camera = new THREE.PerspectiveCamera(46, w / h, 0.5, 160);
+    this.camera = new THREE.PerspectiveCamera(45, w / h, 0.5, 160);
     this.camera.position.copy(this.camPos);
 
-    // Three-point + Hemisphere lighting
-    this.hemiLight = new THREE.HemisphereLight('#c4b5fd', '#2e1f3a', 0.85);
+    // Authentic 2000 Midway Dark Legacy warm torchlit medieval gothic lighting (NO purple/cyan neon wash!)
+    this.hemiLight = new THREE.HemisphereLight('#d6b98c', '#291c14', 0.82);
     this.scene.add(this.hemiLight);
 
-    this.keyLight = new THREE.DirectionalLight('#fff1d6', 1.85);
+    this.keyLight = new THREE.DirectionalLight('#ffdba8', 1.95);
     this.keyLight.position.set(16, 28, 18);
     if (!this.isSoftwareGl) {
       this.keyLight.castShadow = true;
@@ -435,11 +435,12 @@ export class Gauntlet3DEngine {
     this.scene.add(this.keyLight);
     this.scene.add(this.keyLight.target);
 
-    this.fillLight = new THREE.DirectionalLight('#7dd3fc', 0.55);
+    this.fillLight = new THREE.DirectionalLight('#8a9bb5', 0.42);
     this.fillLight.position.set(-18, 14, -14);
     this.scene.add(this.fillLight);
 
-    this.heroLight = new THREE.PointLight('#ff7b3b', 2.4, 12, 1.5);
+    // Warm medieval torchlight following hero
+    this.heroLight = new THREE.PointLight('#ffaa44', 2.8, 14, 1.45);
     this.scene.add(this.heroLight);
 
     this.fxLight = new THREE.PointLight('#fbbf24', 0, 18, 1.4);
@@ -934,11 +935,11 @@ export class Gauntlet3DEngine {
     const layout = generateRealmDungeon(realmId, isBossArena);
     this.layout = layout;
 
-    // Atmosphere: Horizon-matched FogExp2 + Lighting
-    const fogHex = realmDef ? realmDef.fogHex : '#18132c';
-    const ambHex = realmDef ? realmDef.ambientHex : '#7c6aad';
+    // Atmosphere: Horizon-matched warm medieval FogExp2 + torchlit ambient balance
+    const fogHex = realmDef ? realmDef.fogHex : '#1f1610';
+    const ambHex = realmDef ? realmDef.ambientHex : '#c9a679';
     this.scene.background = new THREE.Color(fogHex);
-    this.scene.fog = new THREE.FogExp2(fogHex, realmId === 'hub' ? 0.014 : 0.0175);
+    this.scene.fog = new THREE.FogExp2(fogHex, realmId === 'hub' ? 0.013 : 0.0165);
     this.hemiLight.color.set(ambHex);
     this.hemiLight.groundColor.set(fogHex);
 
@@ -978,24 +979,22 @@ export class Gauntlet3DEngine {
         } else if (code === 3) {
           hazardCoords.push([tx, tz]);
         } else if (code === 4 || code === 5) {
-          // Interactive Locked Gate or Cracked Secret Wall
-          const gGeo = new THREE.BoxGeometry(ts, 2.8, ts);
+          // Interactive Medieval Iron Portcullis Gate OR Cracked Secret Stone Wall
+          const gGeo = new THREE.BoxGeometry(ts, 2.9, code === 4 ? ts * 0.35 : ts);
           const gMat =
             code === 4
               ? new THREE.MeshStandardMaterial({
-                  color: 0xd97706,
-                  metalness: 0.82,
-                  roughness: 0.28,
-                  emissive: 0x78350f,
-                  emissiveIntensity: 0.25,
+                  color: 0x8f6626,
+                  metalness: 0.78,
+                  roughness: 0.35,
                 })
               : new THREE.MeshStandardMaterial({
                   map: this.realmTextures.crackedWall,
-                  roughness: 0.72,
-                  metalness: 0.12,
+                  roughness: 0.82,
+                  metalness: 0.08,
                 });
           const mesh = new THREE.Mesh(gGeo, gMat);
-          mesh.position.set(toWorldX(tx), 1.4, toWorldZ(tz));
+          mesh.position.set(toWorldX(tx), 1.45, toWorldZ(tz));
           mesh.castShadow = !this.isSoftwareGl;
           mesh.receiveShadow = true;
           this.worldGroup.add(mesh);
@@ -1136,21 +1135,62 @@ export class Gauntlet3DEngine {
     const cx = toWorldX(10);
     const cz = toWorldZ(10);
 
-    // Central Sumner Dais + Sumner 3D Archmage Model + 13 Orbiting Runestone Slots!
-    const daisGeo = new THREE.CylinderGeometry(2.4, 2.8, 0.45, 16);
+    // Central Sumner Carved Sandstone Dais + Bronze Trim + Oak Spellbook Lectern!
+    const daisGeo = new THREE.CylinderGeometry(2.5, 3.0, 0.48, 12);
     const daisMat = new THREE.MeshStandardMaterial({
-      color: 0x3b2f63,
-      metalness: 0.55,
-      roughness: 0.35,
+      color: 0x6b5842,
+      metalness: 0.18,
+      roughness: 0.78,
     });
     const dais = new THREE.Mesh(daisGeo, daisMat);
-    dais.position.set(cx, 0.22, cz);
+    dais.position.set(cx, 0.24, cz);
+    dais.receiveShadow = true;
     this.worldGroup.add(dais);
     this.worldDisposables.push(daisGeo, daisMat);
 
-    // Sumner NPC model
-    const sumnerRig = buildHeroModel('sumner', 'yellow', 25);
-    sumnerRig.root.position.set(cx, 0.45, cz);
+    // Decorative antique bronze inlaid celestial floor ring around Sumner's Tower
+    const inlayGeo = new THREE.RingGeometry(4.4, 4.85, 32);
+    const inlayMat = new THREE.MeshStandardMaterial({
+      color: 0xb0843c,
+      metalness: 0.74,
+      roughness: 0.36,
+      side: THREE.DoubleSide,
+    });
+    const inlay = new THREE.Mesh(inlayGeo, inlayMat);
+    inlay.rotation.x = -Math.PI / 2;
+    inlay.position.set(cx, 0.03, cz);
+    this.worldGroup.add(inlay);
+    this.worldDisposables.push(inlayGeo, inlayMat);
+
+    // Tall Gothic Stained-Glass Cathedral Windows & Crimson Tapestries around Sumner's Tower walls!
+    const glassGeo = new THREE.BoxGeometry(1.75, 4.2, 0.24);
+    const frameGeo = new THREE.BoxGeometry(2.1, 4.6, 0.32);
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x473c32, roughness: 0.85 });
+    const glassColors = [0xd97706, 0xb91c1c, 0x2563eb, 0x15803d];
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const wx = cx + Math.cos(a) * 20.6;
+      const wz = cz + Math.sin(a) * 20.6;
+      const gMat = new THREE.MeshStandardMaterial({
+        color: glassColors[i % glassColors.length],
+        emissive: glassColors[i % glassColors.length],
+        emissiveIntensity: 0.52,
+        roughness: 0.25,
+      });
+      const frame = new THREE.Mesh(frameGeo, frameMat);
+      frame.position.set(wx, 3.6, wz);
+      frame.lookAt(cx, 3.6, cz);
+      const glass = new THREE.Mesh(glassGeo, gMat);
+      glass.position.set(cx + Math.cos(a) * 20.4, 3.6, cz + Math.sin(a) * 20.4);
+      glass.lookAt(cx, 3.6, cz);
+      this.worldGroup.add(frame, glass);
+      this.worldDisposables.push(gMat);
+    }
+    this.worldDisposables.push(glassGeo, frameGeo, frameMat);
+
+    // Sumner NPC model standing beside his medieval oak spellbook podium
+    const sumnerRig = buildHeroModel('sumner', 'blue', 25);
+    sumnerRig.root.position.set(cx, 0.48, cz);
     sumnerRig.root.scale.setScalar(1.18);
     this.entityGroup.add(sumnerRig.root);
     this.props.push({
@@ -1162,17 +1202,18 @@ export class Gauntlet3DEngine {
       active: true,
     });
 
-    // 13-Runestone Ring floating above Sumner's Dais
+    // 13-Runestone Medallions orbiting above Sumner's Tower Dais
     const runeCount = this.collectedRunestones.size;
     for (let i = 0; i < 13; i++) {
       const a = (i / 13) * Math.PI * 2;
       const lit = i < runeCount;
       const rGeo = new THREE.OctahedronGeometry(0.24, 0);
       const rMat = new THREE.MeshStandardMaterial({
-        color: lit ? 0x38bdf8 : 0x334155,
-        emissive: lit ? 0x0ea5e9 : 0x000000,
-        emissiveIntensity: lit ? 1.7 : 0,
-        roughness: 0.2,
+        color: lit ? 0xfbbf24 : 0x4a4035,
+        emissive: lit ? 0xd97706 : 0x000000,
+        emissiveIntensity: lit ? 1.4 : 0,
+        roughness: 0.28,
+        metalness: 0.55,
       });
       const gem = new THREE.Mesh(rGeo, rMat);
       gem.position.set(cx + Math.cos(a) * 2.5, 3.1, cz + Math.sin(a) * 2.5);
@@ -1180,8 +1221,8 @@ export class Gauntlet3DEngine {
       this.worldDisposables.push(rGeo, rMat);
     }
 
-    // Hero Pedestal (West) & Sumner's Armory Shop (East)
-    const heroStand = buildPortalModel('#a855f7', 0.85);
+    // Hero Hall Archway (West) & Sumner's Medieval Armory Forge (East)
+    const heroStand = buildPortalModel('#b91c1c', 0.85);
     heroStand.position.set(cx - 5.8, 0, cz + 2.8);
     this.entityGroup.add(heroStand);
     this.props.push({
@@ -1193,7 +1234,7 @@ export class Gauntlet3DEngine {
       active: true,
     });
 
-    const armoryStand = buildPortalModel('#fbbf24', 0.85);
+    const armoryStand = buildPortalModel('#d97706', 0.85);
     armoryStand.position.set(cx + 5.8, 0, cz + 2.8);
     this.entityGroup.add(armoryStand);
     this.props.push({

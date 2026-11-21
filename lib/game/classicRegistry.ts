@@ -5,11 +5,7 @@ import { BreakerArcadeGame } from './breakerGame';
 import { Breakout2016EvoGame } from './breakout2016EvoGame';
 import { CentipedeGame } from './centipedeGame';
 import { MrDoArcadeGame } from './classicActionPack1';
-import {
-  DragonsLairArcadeGame,
-  SpyHunterArcadeGame,
-  TapperArcadeGame,
-} from './classicActionPack2';
+import { DragonsLairArcadeGame } from './classicActionPack2';
 import { CrystalCastlesGame } from './crystalCastlesGame';
 import { JoustGame } from './joustGame';
 import { PuzzleBobbleGame } from './puzzleBobbleGame';
@@ -36,17 +32,23 @@ import { PolePositionGame } from './polePositionGame';
 import { PopeyeArcadeGame } from './popeyeGame';
 import { QixArcadeGame } from './qixArcadeGame';
 import { RampageArcadeGame } from './rampageGame';
+import { RobotronEvoGame } from './robotronEvoGame';
 import { RobotronArcadeGame } from './robotronGame';
+import { ScrambleArcadeGame } from './scrambleGame';
 import { ScrollingShooterGame } from './scrollingShooterGame';
 import { SonicGame } from './sonicGame';
 import { SprintGame } from './sprintGame';
+import { SpyHunter2ArcadeGame } from './spyHunter2Game';
+import { SpyHunterArcadeGame } from './spyHunterGame';
 import { StarWars1983Game } from './starWars1983Game';
 import { StarWarsEsbGame } from './starWarsEsbGame';
 import { StarWarsRotjGame } from './starWarsRotjGame';
 import { SuperMarioGame } from './superMarioGame';
+import { TapperArcadeGame } from './tapperGame';
 import { Tempest1981Game } from './tempest1981Game';
 import { Tempest2000Game } from './tempest2000Game';
 import { Tempest3000Game } from './tempest3000Game';
+import { TimePilotArcadeGame } from './timePilotGame';
 import { VectorSpaceGame } from './vectorSpaceGame';
 import { Ww1942Game } from './ww1942Game';
 import { Ww1943Game } from './ww1943Game';
@@ -278,10 +280,10 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     title: 'Gauntlet: Dark Legacy',
     year: 2000,
     publisher: 'Midway Games',
-    accentTextClass: 'text-purple-400',
-    accentButtonClass: 'bg-purple-500 hover:bg-purple-400 text-white focus-visible:ring-purple-300',
-    borderHoverClass: 'hover:border-purple-400/50',
-    subtitle: '2000 · Genuine Three.js 3D · Sumner’s Tower · 12 Heroes × 4 Elements · 9 Realms & Bosses',
+    accentTextClass: 'text-amber-400',
+    accentButtonClass: 'bg-amber-600 hover:bg-amber-500 text-white focus-visible:ring-amber-300',
+    borderHoverClass: 'hover:border-amber-500/50',
+    subtitle: '2000 · Authentic Midway Gothic 3D · Torchlit Stonework · Sumner’s Tower · 9 Bosses & 10 Relics',
     controls: [
       { key: 'WASD / Arrows / Thumbstick', desc: 'Explore Sumner’s Tower & 9 Realms in full 3D (V cycles camera)' },
       { key: 'Space / Z / Left-Click', desc: '3-Hit Melee Combo up close · Elemental Ranged Shot at distance' },
@@ -289,8 +291,8 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
       { key: 'T (Turbo) · Q (Potion) · 1–5', desc: 'Elemental Turbo Special · Screen-Clear Potion · Activate Console Relics' },
     ],
     tips: [
-      'Explore all 9 Realms (Mountain, Castle, Province, Forest, Desert, Ice, Sky, Dream, Desecrated Temple) to collect 13 Runestones & 9 Boss-Weakening Legendary Weapons!',
-      'Find or buy 10 Console Inventory Relics at Sumner’s Armory: Anti-Death Halo (slays Red Death!), Phoenix Familiar, 3-Way Shot, Super Shot, Reflect Shield, Growth, Levitation & X-Ray Glasses.',
+      'Explore torchlit stone sanctuaries across all 9 Realms to collect 13 Runestones & 9 Boss-Weakening Legendary Weapons!',
+      'Find or buy 10 Console Inventory Relics at Sumner’s Armory: Anti-Death Halo, Phoenix Familiar, 3-Way Shot, Super Shot, Reflect Shield, Growth, Levitation & X-Ray Glasses.',
       'Enter secret console codes (SUMNER, MEDUSA, JACKAL, OGRE, LEGEND) at Sumner’s Hero Pedestal or unlock them by collecting Runestones!',
     ],
   },
@@ -1168,16 +1170,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-green-400',
     accentButtonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
     borderHoverClass: 'hover:border-green-400/50',
-    subtitle: '1981 · 6-Zone Cavern Assault · Lasers, Bombs & Fuel Tank Raids',
+    subtitle: '1981 · Authentic 6-Sector Konami Cavern Run · Laser & Parabolic Bombs · FUEL & ? Bases',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Fly through scrolling caverns' },
-      { key: 'Space / Z', desc: 'Fire forward laser & drop arcing bombs' },
-      { key: 'Shift / X', desc: 'Dedicated air-to-ground bomb release' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Pilot Jet through all 6 authentic Konami sectors' },
+      { key: 'Space / Z', desc: 'Fire forward Twin Laser cannons (destroys UFOs & Rockets)' },
+      { key: 'Shift / X', desc: 'Drop parabolic air-to-ground Bombs onto FUEL & Base Cores' },
     ],
     tips: [
-      'Bomb glowing FUEL depots constantly to keep your fuel gauge topped up!',
-      'Destroy ground rockets before they ignite and launch straight up into your flight lane.',
-      'Thread the narrow City and Base tunnels to bomb the final Super-Base reactor.',
+      'Conquer all 6 Konami sectors in sequence: 1 Mountains, 2 Cavern + UFOs, 3 Fireballs, 4 City, 5 Tight Maze, and 6 Base Core (+800)!',
+      'Bomb glowing FUEL depots (+150 & instant refill) and ? Mystery Targets (100/200/300 random bonus) before your gauge runs dry.',
+      'Sector 3 Fireballs are indestructible—weave cleanly through their streaking lanes!',
     ],
   },
   moonpatrol: {
@@ -1208,16 +1210,56 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-blue-400',
     accentButtonClass: 'bg-blue-500 hover:bg-blue-400 text-white focus-visible:ring-blue-300',
     borderHoverClass: 'hover:border-blue-400/50',
-    subtitle: '1982 · 360° Free-Flight Dogfights · 1910, 1940, 1970, 1982 & 2001',
+    subtitle: '1982 · 360° Free-Flight Dogfights · 1910 Blimp, 1940 B-25, 1970 CH-47, 1982 B-52 & 2001 UFO',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Steer fighter smoothly in 360° open sky' },
-      { key: 'Space / Z', desc: 'Rapid-fire nose cannon' },
-      { key: 'P', desc: 'Pause / resume cabinet' },
+      { key: 'Arrows / WASD / Mouse', desc: 'Bank Konami Time Fighter smoothly in 360° open sky' },
+      { key: 'Space / Z / Click', desc: 'Fire rapid nose autocannon' },
+      { key: 'Shift / X', desc: 'Afterburner speed boost' },
     ],
     tips: [
-      'Shoot down the required squadrons to summon each era’s giant Mothership boss!',
-      'Rescue parachuting pilots for escalating 1,000 to 5,000-point bonuses.',
-      'Stay alert in 1970 and 1982 for heat-seeking missiles—shoot them down or pull tight turns.',
+      'Shoot down the required squadron count to summon each era’s giant Mothership boss and warp forward through time!',
+      'Rescue floating parachutists for escalating 1,000 → 2,000 → 3,000 → 4,000 → 5,000 bonuses, and wipe V-formations for +2,000!',
+      'Shoot down heat-seeking missiles in 1970 and 1982 before they curve into your tail.',
+    ],
+  },
+  timepilot84: {
+    id: 'timepilot84',
+    title: 'Time Pilot ’84',
+    year: 1984,
+    publisher: 'Konami',
+    accentTextClass: 'text-sky-400',
+    accentButtonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
+    borderHoverClass: 'hover:border-sky-400/50',
+    subtitle: '1984 · Metallic Overworld · Dual Vulcan + Auto Lock-On Homing Missiles & Ground Turrets',
+    controls: [
+      { key: 'Arrows / WASD / Mouse', desc: 'Steer 360° overscrolling metallic industrial overworld' },
+      { key: 'Space / Z / Click', desc: 'Fire Dual Vulcan lasers at enemy air fighters' },
+      { key: 'Shift / X', desc: 'Launch Lock-On Homing Missiles at armored ground turrets & Silver Bosses!' },
+    ],
+    tips: [
+      'Authentic 1984 Konami mechanic: Vulcan shots shred air squadrons, while Lock-On Missiles (Shift/X) crack armored metallic ground structures & bosses!',
+      'Keep your glowing green crosshair locked over flashing Silver/Gold Boss ships when launching missiles for massive damage.',
+      'Weave past rotating turret spreads across the 3D-shaded industrial alloy overworld!',
+    ],
+  },
+  timepilot2016evo: {
+    id: 'timepilot2016evo',
+    title: 'Time Pilot: 2016 Evo',
+    year: 2016,
+    publisher: 'Konami / Evo',
+    accentTextClass: 'text-pink-400',
+    accentButtonClass: 'bg-pink-500 hover:bg-pink-400 text-white focus-visible:ring-pink-300',
+    borderHoverClass: 'hover:border-pink-400/50',
+    subtitle: '2016 Evo · Melt-O-Vision Warp Trails · 4-Target Homing Salvos · Chain Lightning & Chrono Shift',
+    controls: [
+      { key: 'Arrows / WASD / Mouse', desc: '360° Chrono-Fighter dogfighting through Melt-O-Vision eras' },
+      { key: 'Space / Z / Click', desc: 'Fire Overdrive Plasma + automatic Chain Lightning arcs' },
+      { key: 'Shift / X', desc: 'Unleash 4-Target Homing Missile Salvo + Chrono Time-Dilation!' },
+    ],
+    tips: [
+      'Build continuous kill combos to crank Melt-O-Vision warp trails, chromatic shockwaves, and multi-barrel Evo Plasma cannons!',
+      'Press Shift/X to trigger Chrono Time-Dilation (slowing enemy bullets) while firing a 4-target homing missile salvo!',
+      'Rescue luminous Chrono-Pilots to recharge your Warp Gauge and annihilate towering Era Dreadnoughts!',
     ],
   },
   ww1942: {
@@ -1365,6 +1407,26 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
       'Eliminate Brains quickly before they reprogram surviving humans into lethal chasing Progs.',
     ],
   },
+  robotron2016evo: {
+    id: 'robotron2016evo',
+    title: 'Robotron: 2016 Evo',
+    year: 2016,
+    publisher: 'Williams / Evo',
+    accentTextClass: 'text-rose-400',
+    accentButtonClass: 'bg-rose-500 hover:bg-rose-400 text-white focus-visible:ring-rose-300',
+    borderHoverClass: 'hover:border-rose-400/50',
+    subtitle: '2016 Evo · Psychedelic Melt-O-Vision Feedback · Chromatic RGB · Overdrive & Melt-Nova',
+    controls: [
+      { key: 'WASD / Arrows / Tilt', desc: 'Weave through reactive warping Melt-O-Vision battle grids' },
+      { key: 'Mouse + Click / Space', desc: '360° Twin-Stick Hyper-Plasma (auto-evolves through 4 Overdrive tiers!)' },
+      { key: 'Shift / X', desc: 'Detonate MELT-NOVA Shockwave (vaporizes projectiles & melts hordes!)' },
+    ],
+    tips: [
+      'Chain rapid kills & rescue Last Family survivors to surge your Overdrive Multiplier through Single → Twin → Triple Fan → Prism Rail!',
+      'Fill your Melt-Nova meter and fire Shift/X to unleash a chromatic RGB shockwave that shreds Enforcers, Tanks & Brains!',
+      'Every 5th wave summons a towering Overlord Motherbrain—dodge its radial plasma rings and shatter its core!',
+    ],
+  },
   frogger: {
     id: 'frogger',
     title: 'Frogger',
@@ -1493,16 +1555,36 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-slate-200',
     accentButtonClass: 'bg-slate-200 hover:bg-white text-slate-950 focus-visible:ring-slate-300',
     borderHoverClass: 'hover:border-slate-300/50',
-    subtitle: '1983 · G-6155 Interceptor · Weapons Van · Oil Slick, Smoke & Missiles',
+    subtitle: '1983 · G-6155 Interceptor · Boat House River Transform · Weapons Van & Mad Bomber',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Steer Interceptor & control highway speed' },
-      { key: 'Space / Z', desc: 'Fire hood machine guns' },
-      { key: 'Shift / X', desc: 'Deploy Oil Slick, Smoke Screen, or Surface Missiles' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Steer G-6155 Interceptor / Spy Boat & modulate speed' },
+      { key: 'Space / Z', desc: 'Fire dual hood machine guns (never shoot civilian cars!)' },
+      { key: 'Shift / X', desc: 'Deploy Oil Slick, Smoke Screen, or Surface-to-Air Missiles' },
     ],
     tips: [
-      'Drive right into the red Weapons Van ramp to equip Oil Slicks, Smoke Screens, and Missiles!',
-      'Ram enemies like Switch Blades off the road, but never shoot civilian blue/yellow cars.',
-      'Take branching forks cleanly and watch for Mad Bomber helicopters overhead!',
+      'Pull cleanly into the Red Weapons Van’s rear ramp to restock Oil Slicks, Smoke Screens, and Anti-Chopper SAM Missiles!',
+      'Enter glowing BOAT HOUSE forks to transform your G-6155 into the armored Spy Boat across river stages with Doctor Torpedo!',
+      'Knock wheel-slashing Switch Blades & armored Road Lords off the road while locking SAM Missiles onto the Mad Bomber chopper!',
+    ],
+  },
+  spyhunter2: {
+    id: 'spyhunter2',
+    title: 'Spy Hunter II',
+    year: 1987,
+    publisher: 'Bally Midway',
+    accentTextClass: 'text-yellow-400',
+    accentButtonClass: 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 focus-visible:ring-yellow-200',
+    borderHoverClass: 'hover:border-yellow-400/50',
+    subtitle: '1987 · 3D Behind-the-Car Chase · G-8155 + Yellow Wingman · Seeker Missiles, Flames & Pyro Gyro',
+    controls: [
+      { key: 'Arrows / WASD / Tilt', desc: 'Steer G-8155 down 3D curving highways & snow passes' },
+      { key: 'Space / Z', desc: 'Fire heavy cannon & track Seeker Missiles' },
+      { key: 'Shift / X', desc: 'Trigger Weapons Van gadget (Oil, Smoke, Flame Jets, Seeker Missiles, Spikes)' },
+    ],
+    tips: [
+      'Race alongside your AI Yellow Wingman Interceptor in authentic 1987 behind-the-car 3D chase perspective!',
+      'Dock with the Red Weapons Van to cycle through Oil Slicks, Smoke Screens, Flame Jets, Spiked Tires & Seeker Missiles.',
+      'Blast armored Road Lords, Switchblade bikes, Molotov Maniacs & overhead Pyro Gyro helicopters across 4 road zones!',
     ],
   },
   tapper: {
@@ -1510,19 +1592,19 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     title: 'Tapper',
     year: 1983,
     publisher: 'Bally Midway',
-    accentTextClass: 'text-amber-400',
-    accentButtonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
-    borderHoverClass: 'hover:border-amber-400/50',
-    subtitle: '1983 · 4 Bustling Bar Lanes · Pour & Slide Mugs · Catch Empties & Tips',
+    accentTextClass: 'text-red-400',
+    accentButtonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
+    borderHoverClass: 'hover:border-red-400/50',
+    subtitle: '1983 · Authentic Budweiser Evolution · 4 Saloons · Can-Can Tip Show & Shaken Can Bonus',
     controls: [
-      { key: 'Up / Down (W / S)', desc: 'Hop swiftly between the 4 bar counters' },
-      { key: 'Left / Right (A / D)', desc: 'Run along bar to scoop tips & empty mugs' },
-      { key: 'Space / Z', desc: 'Fill & slide frothy mug down the counter' },
+      { key: 'Up / Down (W / S)', desc: 'Snap instantly between all 4 mahogany Budweiser bar taps' },
+      { key: 'Left / Right (A / D)', desc: 'Sprint along the bar to scoop returning mugs & golden Tips' },
+      { key: 'Space / Z', desc: 'Fill frothy draft from brass keg & slide down bar (or pick can in Bonus!)' },
     ],
     tips: [
-      'Never let an empty mug slide off the right edge—and don’t toss an extra mug down an empty bar!',
-      'Run down the bar to grab glowing Tips ($1,500) to trigger a brief distraction show!',
-      'Serve rushing patrons cleanly before they reach the tap end of any lane.',
+      'Serve Cowboys, Jocks, Punk Rockers, and Aliens across all 4 authentic Bally Midway saloons—catch every sliding empty mug!',
+      'Sprint down the counter to grab glowing Tips ($1,500) and trigger the authentic Can-Can Dancer show that distracts patrons!',
+      'Between stages, track the unshaken can during the playable Bandit Shaken Can Bonus Round for +3,000 pts!',
     ],
   },
   roottapper: {
@@ -1533,16 +1615,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-orange-400',
     accentButtonClass: 'bg-orange-500 hover:bg-orange-400 text-slate-950 focus-visible:ring-orange-200',
     borderHoverClass: 'hover:border-orange-400/50',
-    subtitle: '1984 · Frothy Root Beer Saloon · Wild West, Sports, Punk & Space Bars',
+    subtitle: '1984 · Authentic Root Beer Evolution · Frothy Soda Kegs · 4 Saloons & Shaken Can Bonus',
     controls: [
-      { key: 'Up / Down (W / S)', desc: 'Switch between the 4 soda-bar lanes' },
-      { key: 'Left / Right (A / D)', desc: 'Sprint along counter to catch empties & tips' },
-      { key: 'Space / Z', desc: 'Pour & slide cold Root Beer mugs' },
+      { key: 'Up / Down (W / S)', desc: 'Zip between all 4 frosty Root Beer fountain taps' },
+      { key: 'Left / Right (A / D)', desc: 'Dash down the oak bar to catch empty mugs & glowing Tips' },
+      { key: 'Space / Z', desc: 'Pour & slide creamy Root Beer mugs (and pick the unshaken can in Bonus!)' },
     ],
     tips: [
-      'Keep every patron pushed back with frosty Root Beer mugs across 4 themed arcades.',
-      'Scoop up returning glass mugs as soon as patrons finish drinking.',
-      'Collect glowing Tips to distract the crowd when multiple lanes surge at once!',
+      'Authentic 1984 Bally Midway soda-fountain edition featuring oak barrel Root Beer kegs, creamy foam trails & 4 vibrant saloons!',
+      'Grab Tips on the bar for +1,500 and a stage-wide Can-Can Dancer distraction whenever patrons surge!',
+      'Keep your eyes locked on the untouched Root Beer can during the Bandit Shaken Can Bonus Round for +3,000!',
     ],
   },
   puzzlebobble: {
@@ -1880,11 +1962,15 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
     case 'gyruss':
       return new GalaxianShooterGame('gyruss');
     case 'scramble':
-      return new ScrollingShooterGame('scramble');
+      return new ScrambleArcadeGame();
     case 'moonpatrol':
       return new ScrollingShooterGame('moonpatrol');
     case 'timepilot':
-      return new ScrollingShooterGame('timepilot');
+      return new TimePilotArcadeGame('timepilot');
+    case 'timepilot84':
+      return new TimePilotArcadeGame('timepilot84');
+    case 'timepilot2016evo':
+      return new TimePilotArcadeGame('timepilot2016evo');
     case 'ww1942':
       return new Ww1942Game();
     case 'ww1943':
@@ -1899,6 +1985,8 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
       return new BerzerkGame();
     case 'robotron':
       return new RobotronArcadeGame();
+    case 'robotron2016evo':
+      return new RobotronEvoGame();
     case 'frogger':
       return new FroggerArcadeGame('frogger');
     case 'frogger2':
@@ -1913,6 +2001,8 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
       return new MrDoArcadeGame();
     case 'spyhunter':
       return new SpyHunterArcadeGame();
+    case 'spyhunter2':
+      return new SpyHunter2ArcadeGame();
     case 'tapper':
       return new TapperArcadeGame(false);
     case 'roottapper':
