@@ -637,6 +637,7 @@ type ClassicIconKind =
   | 'starcastle'
   | 'missilecommand'
   | 'qix'
+  | 'superqix'
   | 'galaxian'
   | 'galaga'
   | 'phoenix'
@@ -652,6 +653,7 @@ type ClassicIconKind =
   | 'berzerk'
   | 'robotron'
   | 'frogger'
+  | 'frogger2'
   | 'joust'
   | 'pengo'
   | 'popeye'
@@ -1464,6 +1466,33 @@ function ClassicIconCanvas({
       ctx.lineTo(15, 16);
       ctx.closePath();
       ctx.fill();
+    } else if (kind === 'superqix') {
+      // Super Qix: Revealed 16-bit sunset mosaic + golden dragon glow + power-up orb
+      const sg = ctx.createLinearGradient(4, 4, 28, 28);
+      sg.addColorStop(0, '#4C1D95');
+      sg.addColorStop(0.5, '#DB2777');
+      sg.addColorStop(1, '#F59E0B');
+      ctx.fillStyle = sg;
+      ctx.fillRect(4, 14, 15, 14);
+      ctx.strokeStyle = '#FACC15';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(4, 4, 24, 24);
+      ctx.strokeStyle = '#38BDF8';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(14, 7);
+      ctx.lineTo(25, 13);
+      ctx.moveTo(16, 20);
+      ctx.lineTo(26, 8);
+      ctx.stroke();
+      ctx.fillStyle = '#4ADE80';
+      ctx.beginPath();
+      ctx.arc(10, 10, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(10, 10, 1.3, 0, Math.PI * 2);
+      ctx.fill();
     } else if (kind === 'galaxian' || kind === 'galaga' || kind === 'phoenix' || kind === 'gyruss') {
       // Iconic galactic flagship / Galaga fighter / Phoenix bird / Gyruss ring
       if (kind === 'gyruss') {
@@ -1763,6 +1792,30 @@ function ClassicIconCanvas({
       ctx.beginPath();
       ctx.arc(12.5, 11, 2.5, 0, Math.PI * 2);
       ctx.arc(19.5, 11, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === 'frogger2') {
+      // ThreeeDeep: 3-tier Sky / Surface / Reef backdrop + leaping cyan-green frog
+      ctx.fillStyle = '#38BDF8';
+      ctx.fillRect(2, 2, 28, 9);
+      ctx.fillStyle = '#0284C7';
+      ctx.fillRect(2, 11, 28, 9);
+      ctx.fillStyle = '#1E3A8A';
+      ctx.fillRect(2, 20, 28, 10);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillRect(4, 4, 8, 3);
+      ctx.fillRect(20, 5, 7, 3);
+      ctx.fillStyle = '#4ADE80';
+      ctx.beginPath();
+      ctx.ellipse(16, 17, 6.5, 7.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(7, 13, 4, 3);
+      ctx.fillRect(21, 13, 4, 3);
+      ctx.fillRect(7, 20, 4, 4);
+      ctx.fillRect(21, 20, 4, 4);
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.arc(13.2, 12.2, 2.1, 0, Math.PI * 2);
+      ctx.arc(18.8, 12.2, 2.1, 0, Math.PI * 2);
       ctx.fill();
     } else if (kind === 'joust') {
       // Volcanic Colosseum Ostrich Knight + Gleaming Lance + Magma Glow
@@ -2099,6 +2152,7 @@ export function GameEmblem({
     case 'starcastle':
     case 'missilecommand':
     case 'qix':
+    case 'superqix':
     case 'galaxian':
     case 'galaga':
     case 'phoenix':
@@ -2114,6 +2168,7 @@ export function GameEmblem({
     case 'berzerk':
     case 'robotron':
     case 'frogger':
+    case 'frogger2':
     case 'joust':
     case 'pengo':
     case 'popeye':

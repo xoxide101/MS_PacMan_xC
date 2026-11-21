@@ -1,19 +1,12 @@
-import { ArenaTwinStickGame } from './arenaTwinStickGame';
 import { ClassicArcadeGameId } from './arcadeTypes';
 import { BerzerkGame } from './berzerkGame';
 import { BoulderDashGame } from './boulderdashGame';
 import { BreakerArcadeGame } from './breakerGame';
 import { Breakout2016EvoGame } from './breakout2016EvoGame';
 import { CentipedeGame } from './centipedeGame';
-import {
-  FroggerArcadeGame,
-  MrDoArcadeGame,
-  PengoArcadeGame,
-  PopeyeArcadeGame,
-} from './classicActionPack1';
+import { MrDoArcadeGame } from './classicActionPack1';
 import {
   DragonsLairArcadeGame,
-  RampageArcadeGame,
   SpyHunterArcadeGame,
   TapperArcadeGame,
 } from './classicActionPack2';
@@ -25,6 +18,7 @@ import { DefenderGame } from './defenderGame';
 import { DigDugGame } from './digdugGame';
 import { DonkeyKongGame } from './donkeyKongGame';
 import { FoodFightGame } from './foodfightGame';
+import { FroggerArcadeGame } from './froggerGame';
 import { GalaxianShooterGame } from './galaxianShooterGame';
 import { GauntletDarkLegacyGame } from './gauntletDarkLegacyGame';
 import { GauntletGame } from './gauntletGame';
@@ -35,8 +29,14 @@ import { MappyGame } from './mappyGame';
 import { MarioBrosGame } from './marioBrosGame';
 import { MarioWorldGame } from './marioWorldGame';
 import { MillipedeGame } from './millipedeGame';
-import { MissileCommandGame, QixArcadeGame } from './missileQixGame';
+import { MissileCommandGame } from './missileQixGame';
+import { MuleArcadeGame } from './muleGame';
+import { PengoArcadeGame } from './pengoGame';
 import { PolePositionGame } from './polePositionGame';
+import { PopeyeArcadeGame } from './popeyeGame';
+import { QixArcadeGame } from './qixArcadeGame';
+import { RampageArcadeGame } from './rampageGame';
+import { RobotronArcadeGame } from './robotronGame';
 import { ScrollingShooterGame } from './scrollingShooterGame';
 import { SonicGame } from './sonicGame';
 import { SprintGame } from './sprintGame';
@@ -50,7 +50,7 @@ import { Tempest3000Game } from './tempest3000Game';
 import { VectorSpaceGame } from './vectorSpaceGame';
 import { Ww1942Game } from './ww1942Game';
 import { Ww1943Game } from './ww1943Game';
-import { MuleArcadeGame, YsActionRpgGame } from './ysMuleGame';
+import { YsActionRpgGame } from './ysMuleGame';
 
 export interface ClassicCabinetSpec {
   id: ClassicArcadeGameId;
@@ -281,17 +281,17 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-purple-400',
     accentButtonClass: 'bg-purple-500 hover:bg-purple-400 text-white focus-visible:ring-purple-300',
     borderHoverClass: 'hover:border-purple-400/50',
-    subtitle: '2000 · Custom 2.5D Engine · 8 Heroes × 4 Colors · Melee Combos · Turbo & 5 Realms',
+    subtitle: '2000 · Genuine Three.js 3D · Sumner’s Tower · 12 Heroes × 4 Elements · 9 Realms & Bosses',
     controls: [
-      { key: 'Arrows / WASD / Click', desc: 'Select Hero & Color at Sumner’s Tower · 8-way movement' },
-      { key: 'Space / Z / Click', desc: '3-Hit Melee Combo up close · Ranged Weapon at distance' },
-      { key: 'Shift / X', desc: 'Unleash Class Turbo Elemental Attack (at 50%+ Turbo)' },
-      { key: 'R', desc: 'Return to Sumner’s Tower Hero Pedestal' },
+      { key: 'WASD / Arrows / Thumbstick', desc: 'Explore Sumner’s Tower & 9 Realms in full 3D (V cycles camera)' },
+      { key: 'Space / Z / Left-Click', desc: '3-Hit Melee Combo up close · Elemental Ranged Shot at distance' },
+      { key: 'Shift / X / Right-Click', desc: 'Heavy 360° Fighting Attack · Ctrl/C to Block' },
+      { key: 'T (Turbo) · Q (Potion) · 1–5', desc: 'Elemental Turbo Special · Screen-Clear Potion · Activate Console Relics' },
     ],
     tips: [
-      'No passive health drain! Slay monsters to earn XP, Level Up into a Dark Legend, and charge your golden Turbo Gauge.',
-      'Smash Explosive Powder Kegs near generators, collect 2 Glowing Runestones per realm, and grab Phoenix Familiar & 3-Way Shot relics.',
-      'Spend Gold Coins at Sumner’s Armory between realms to upgrade Strength, Speed, Armor, Health & Potions before facing Skorne!',
+      'Explore all 9 Realms (Mountain, Castle, Province, Forest, Desert, Ice, Sky, Dream, Desecrated Temple) to collect 13 Runestones & 9 Boss-Weakening Legendary Weapons!',
+      'Find or buy 10 Console Inventory Relics at Sumner’s Armory: Anti-Death Halo (slays Red Death!), Phoenix Familiar, 3-Way Shot, Super Shot, Reflect Shield, Growth, Levitation & X-Ray Glasses.',
+      'Enter secret console codes (SUMNER, MEDUSA, JACKAL, OGRE, LEGEND) at Sumner’s Hero Pedestal or unlock them by collecting Runestones!',
     ],
   },
   polepos: {
@@ -1048,16 +1048,36 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-pink-400',
     accentButtonClass: 'bg-pink-500 hover:bg-pink-400 text-white focus-visible:ring-pink-300',
     borderHoverClass: 'hover:border-pink-400/50',
-    subtitle: '1981 · Stix Territory Carving · Fast vs 2× Slow Draw · Sparx & Qix',
+    subtitle: '1981 · Neon Ribbon Qix · Fast vs 2× Slow Draw · Twin Qix Split & Super Sparx',
     controls: [
       { key: 'Arrows / WASD', desc: 'Glide Marker along safe border' },
-      { key: 'Hold Space + Dir', desc: 'Fast Draw Stix into open field' },
-      { key: 'Hold Shift/X + Dir', desc: 'Slow Draw Stix for 2× territory bonus!' },
+      { key: 'Hold Space + Dir', desc: 'Fast Draw Stix (1× cyan territory)' },
+      { key: 'Hold Shift/X + Dir', desc: 'Slow Draw Stix (2× gold territory!)' },
     ],
     tips: [
-      'Claim 75% or more of the playfield to clear the level and earn bonus percentage points.',
-      'Never stop mid-draw—the burning Fuse will race up your unfinished Stix line!',
-      'Watch perimeter Sparx patrolling the borders and trap the erratic Qix in small pockets.',
+      'Claim 75% or more of the playfield—every percentage point over 75% earns +1,000 bonus points!',
+      'On Stage 3+, carve a Stix wall straight between the Twin Qix to split them and boost your permanent score multiplier!',
+      'Never stall mid-draw or the burning Fuse will race up your Stix line—and watch Sparx evolve into Super Sparx.',
+    ],
+  },
+  superqix: {
+    id: 'superqix',
+    title: 'Super Qix',
+    year: 1987,
+    publisher: 'Taito',
+    accentTextClass: 'text-yellow-400',
+    accentButtonClass: 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 focus-visible:ring-yellow-200',
+    borderHoverClass: 'hover:border-yellow-400/50',
+    subtitle: '1987 · Official Qix Sequel · Hidden 16-Bit Art Reveals · Enclose Power-Ups & Warp',
+    controls: [
+      { key: 'Arrows / WASD', desc: 'Glide Marker along revealed picture borders' },
+      { key: 'Hold Space + Dir', desc: 'Fast Draw Stix to unveil hidden 16-bit artwork' },
+      { key: 'Hold Shift/X + Dir', desc: 'Slow Draw for 2× gold scoring & precision traps' },
+    ],
+    tips: [
+      'Enclose floating glowing capsules inside your claimed territory to trigger FREEZE, SHIELD, SPEED, +5,000 BONUS, or WARP!',
+      'Unveil Golden Dragon, Samurai Citadel, Cyber Phoenix, Emerald Kraken, and Star Temple artwork beneath the curtain.',
+      'Push past 90% coverage before clearing a board to claim the massive Master Reveal Bonus!',
     ],
   },
   galaxian: {
@@ -1333,16 +1353,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-pink-400',
     accentButtonClass: 'bg-pink-500 hover:bg-pink-400 text-white focus-visible:ring-pink-300',
     borderHoverClass: 'hover:border-pink-400/50',
-    subtitle: '1982 · Twin-Stick Arena Frenzy · Grunts, Hulks, Brains & Last Humans',
+    subtitle: '1982 · Full Jarvis Cast · Grunts, Hulks, Spheroids, Quarks, Brains, Progs & Last Family',
     controls: [
-      { key: 'WASD / Arrows', desc: 'Run 8 directions through neon arena' },
-      { key: 'Mouse + Click / Space', desc: '360° independent twin-stick laser fire' },
-      { key: 'P', desc: 'Pause / resume cabinet' },
+      { key: 'WASD / Arrows', desc: 'Run 8 directions through neon battle grid' },
+      { key: 'Mouse + Click / Space', desc: '360° twin-stick rapid plasma stream (auto-aims if no mouse)' },
+      { key: 'Shift / X', desc: '8-way radial Panic Plasma Burst (short cooldown)' },
     ],
     tips: [
-      'Move with WASD/Arrows while aiming with your Mouse for true twin-stick arcade precision!',
-      'Rescue Mom, Dad, and Mikey in succession for escalating 1,000 → 5,000-point bonuses.',
-      'Indestructible green Hulks push back when shot—focus fire on Brains and Spheroids first!',
+      'Rescue Mommy, Daddy, and Mikey in unbroken streaks for escalating 1,000 → 2,000 → 3,000 → 4,000 → 5,000 bonuses!',
+      'Indestructible Hulks knock back under fire—prioritize Spheroids (Enforcers), Quarks (ricochet Tanks), and Wave 5+ Brains!',
+      'Eliminate Brains quickly before they reprogram surviving humans into lethal chasing Progs.',
     ],
   },
   frogger: {
@@ -1353,15 +1373,36 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-green-400',
     accentButtonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
     borderHoverClass: 'hover:border-green-400/50',
-    subtitle: '1981 · 5-Lane Highway · River Logs, Diving Turtles & 5 Lily Pad Homes',
+    subtitle: '1981 · 5-Lane Highway · Diving Turtles, Snapping Gators, Median Snakes & Lady Frog',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Hop one grid lane in any direction' },
+      { key: 'Arrows / WASD', desc: 'Hop one crisp lane in any direction' },
+      { key: 'Space / Z', desc: 'Quick forward hop' },
       { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Watch flashing turtles—they dive beneath the water a moment later!',
-      'Hop onto pink Lady Frogs riding logs or snatch glowing Bonus Flies in home berths (+200).',
-      'Fill all 5 lily pad homes before the timer bar runs out to advance to faster traffic.',
+      'Watch red turtle pods carefully—they flash as a warning just before diving underwater!',
+      'Ride the backs of Alligators safely, never their snapping jaws, and pick up pink Lady Frogs on logs for +200!',
+      'Snatch buzzing Bonus Flies in empty lily pad alcoves while avoiding sneaking alcove alligators.',
+    ],
+  },
+  frogger2: {
+    id: 'frogger2',
+    title: 'Frogger II: ThreeeDeep!',
+    year: 1984,
+    publisher: 'Parker Bros / Sega',
+    accentTextClass: 'text-sky-400',
+    accentButtonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
+    borderHoverClass: 'hover:border-sky-400/50',
+    subtitle: '1984 · 3-Zone Vertical Odyssey · Underwater Reef → Surface Lagoon → Sky Kingdom',
+    controls: [
+      { key: 'Arrows / WASD', desc: 'Swim reef currents, hop surface rafts & leap clouds' },
+      { key: 'Space / Z', desc: 'Quick upward hop / ascent' },
+      { key: 'P', desc: 'Pause / resume cabinet' },
+    ],
+    tips: [
+      'Zone 1 (Underwater): dodge killer whales, sharks, subs & electric eels while riding glowing bubble rafts up to the surface!',
+      'Zone 2 (Surface): hop across rafts, boats, and diving hippos—watch out for hippos submerging beneath your feet.',
+      'Zone 3 (Sky Kingdom): leap across drifting clouds, biplanes, and balloons to claim all 3 rainbow Sky Island nests!',
     ],
   },
   joust: {
@@ -1388,20 +1429,20 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     id: 'pengo',
     title: 'Pengo',
     year: 1982,
-    publisher: 'Sega',
+    publisher: 'Coreland / Sega',
     accentTextClass: 'text-sky-400',
     accentButtonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
     borderHoverClass: 'hover:border-sky-400/50',
-    subtitle: '1982 · Sliding Ice Maze · Crush Sno-Bees & Align 3 Diamond Blocks',
+    subtitle: '1982 · 13×15 Polar Ice Maze · Multi-Squash Combos · Wall Shake & 3 Diamond Blocks',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Waddle Pengo through ice corridors' },
-      { key: 'Space / Z', desc: 'Shove ice block, shatter blocked cube, or shake outer wall' },
+      { key: 'Arrows / WASD', desc: 'Waddle Pengo through 5 color-coded Polar Acts' },
+      { key: 'Space / Z', desc: 'Slide ice block, shatter backed cube, or electrify outer wall' },
       { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Shove an ice block into a row of Sno-Bees for multi-crush 400–6,400 point bonuses!',
-      'Push against an outer perimeter wall to stun any Sno-Bee touching it, then run over them.',
-      'Line up all 3 golden Diamond Blocks in a row for a massive 10,000-point bonus!',
+      'Crush 1, 2, 3, or 4 Sno-Bees in a single ice slide for 400 / 1,600 / 3,200 / 6,400 combo points!',
+      'Align all 3 golden Diamond Blocks in a row (10,000 pts open field, 5,000 on wall) to freeze every Sno-Bee solid!',
+      'Push any outer perimeter wall to ripple a shockwave that stuns edge Sno-Bees—then waddle over them to stomp (+100)!',
     ],
   },
   popeye: {
@@ -1412,16 +1453,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-blue-400',
     accentButtonClass: 'bg-blue-500 hover:bg-blue-400 text-white focus-visible:ring-blue-300',
     borderHoverClass: 'hover:border-blue-400/50',
-    subtitle: '1982 · Catch Olive’s Hearts & Notes · Spinach Power · Knockout Bluto',
+    subtitle: '1982 · All 3 Authentic Stages · The Docks, Sweet Haven Seesaw & Pirate Ship',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Run decks & climb stairways' },
-      { key: 'Space / Z', desc: 'Throw Popeye’s punch (shatters bottles & skulls!)' },
+      { key: 'Arrows / WASD', desc: 'Run decks, wrap sides & climb ladders/stairs' },
+      { key: 'Space / Z', desc: 'Throw Popeye’s punch (shatters bottles, skulls & drops barrel!)' },
       { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Catch every falling Heart, Musical Note, or HELP letter from Olive Oyl before it sinks!',
-      'Punch Sea Hag’s flying bottles and skulls right out of the air for extra points.',
-      'Grab the Spinach can to power up and knock Bluto straight off the ship for 3,000 points!',
+      'Stage 1 (The Docks): punch the hanging Punching Bag to drop the barrel onto Brutus’s head for a hilarious stun!',
+      'Stage 2 (Sweet Haven): bounce on Wimpy’s Teeter-Totter Seesaw to rocket up and rescue Swee’Pea for +1,500!',
+      'Stage 3 (Pirate Ship): ride the moving deck elevator, dodge Bernard the Vulture, and grab Spinach to KO Brutus (+3,000)!',
     ],
   },
   mrdo: {
@@ -1595,17 +1636,17 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-green-400',
     accentButtonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
     borderHoverClass: 'hover:border-green-400/50',
-    subtitle: '1986 · Giant Monster Destruction · George, Lizzie & Ralph · City Siege',
+    subtitle: '1986 · 6 Destructible Cities · George, Lizzie & Ralph · Structural Collapse & Choppers',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Walk streets & climb skyscraper facades' },
-      { key: 'Space / Z', desc: 'Smash windows, punch helicopters & eat snacks' },
-      { key: 'Shift / X', desc: 'Leap across streets or jump off collapsing towers' },
-      { key: 'R', desc: 'Switch Monster (George, Lizzie, Ralph)' },
+      { key: 'Arrows / WASD', desc: 'Stomp streets & climb skyscraper windows' },
+      { key: 'Space / Z', desc: 'Smash facade, swat helicopters & devour window loot' },
+      { key: 'Shift / X', desc: 'Leap across roofs (or stand still on street to swap monster)' },
+      { key: 'R', desc: 'Instant swap: George (Ape) / Lizzie (Dino) / Ralph (Wolf)' },
     ],
     tips: [
-      'Punch windows to uncover delicious roasts and civilians that refill your Monster Energy!',
-      'Avoid eating flashing green poison flasks or grabbing live electric toasters.',
-      'Jump clear before a weakened skyscraper collapses, and smash every building to advance cities!',
+      'Crack windows for juicy Roasts, Citizens, and Cash—watch out for shocking Toasters, green Poison, and Dynamite!',
+      'Once a skyscraper hits 58% damage it cascades downward—leap to the next building before riding the rubble!',
+      'Swat military Helicopters straight out of the sky and crush Tanks across Peoria, Chicago, NYC, SF, Tokyo & DC!',
     ],
   },
   dragonslair: {
@@ -1716,16 +1757,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-amber-400',
     accentButtonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
     borderHoverClass: 'hover:border-amber-400/50',
-    subtitle: '1983 · Planet Irata Colony Sim · Land Plots, M.U.L.E.s & Wampus Hunt',
+    subtitle: '1983 · 8 Alien Species · 12-Month Irata Colony · Tethered M.U.L.E.s, Pub & Live Auctions',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Move colonist & select Irata land plots' },
-      { key: 'Space / Z', desc: 'Claim plot, outfit M.U.L.E., install & catch Wampus!' },
-      { key: 'Shift / X', desc: 'Cycle M.U.L.E. outfit (Food / Energy / Smithore)' },
+      { key: 'Arrows / WASD', desc: 'Select Species, claim plots, walk Irata & set auction prices' },
+      { key: 'Space / Z', desc: 'Confirm plot, buy/outfit/install M.U.L.E., catch Wampus, trade' },
+      { key: 'Shift / X', desc: 'Cycle M.U.L.E. outfit (Food / Energy / Smithore / Crystite)' },
     ],
     tips: [
-      'Claim River plots for Food, Plains for Energy, and Mountain plots for rich Smithore yields!',
-      'Visit the Store to outfit a M.U.L.E. before the timer runs out—and catch the roaming Mountain Wampus for instant cash!',
-      'Balance Food and Energy every month so your colony thrives against the 3 rival AI colonists.',
+      'Choose from all 8 classic species (Flapper, Humanoid, Packer, Spheroid, Mechtron, Gollumer, Bonzoid, Leggite)!',
+      'Lead your tethered M.U.L.E. out of Town to install on River (Food), Plains (Energy), or 3-Tier Mountain (Smithore/Crystite) plots.',
+      'Catch the glowing Mountain Wampus for instant cash, gamble at the Town Pub before time runs out, and dominate the monthly Auction!',
     ],
   },
 };
@@ -1827,7 +1868,9 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
     case 'missilecommand':
       return new MissileCommandGame();
     case 'qix':
-      return new QixArcadeGame();
+      return new QixArcadeGame('qix');
+    case 'superqix':
+      return new QixArcadeGame('superqix');
     case 'galaxian':
       return new GalaxianShooterGame('galaxian');
     case 'galaga':
@@ -1855,9 +1898,11 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
     case 'berzerk':
       return new BerzerkGame();
     case 'robotron':
-      return new ArenaTwinStickGame('robotron');
+      return new RobotronArcadeGame();
     case 'frogger':
-      return new FroggerArcadeGame();
+      return new FroggerArcadeGame('frogger');
+    case 'frogger2':
+      return new FroggerArcadeGame('frogger2');
     case 'joust':
       return new JoustGame();
     case 'pengo':

@@ -27,6 +27,7 @@ import { LEVEL_FRUIT_ORDER } from '@/lib/game/types';
 import CabinetPreviewCanvas from './CabinetPreviewCanvas';
 import ClassicArcadeShell from './ClassicArcadeShell';
 import ClassicPacManArcade from './ClassicPacManArcade';
+import GauntletDarkLegacy3D from './GauntletDarkLegacy3D';
 import JrPacManArcade from './JrPacManArcade';
 import {
   ClassicBonusEmblem,
@@ -326,11 +327,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'M.U.L.E.',
     year: 1983,
     category: 'rpg',
-    meta: '1983 · Ozark / EA · Planet Irata Colony Sim · Wampus Hunt',
+    meta: '1983 · Ozark / EA · 8 Alien Species · 12-Month Irata Colony Sim',
     description:
-      'Claim River, Plains, and Mountain plots on Planet Irata, outfit robotic M.U.L.E.s for Food, Energy, and Smithore, hunt the elusive Wampus, and out-earn 3 rival colonists.',
-    footerLabel: 'Frontier Strategy',
-    footerSummary: 'Land Grants · M.U.L.E. Outfitting · Live Market',
+      'Pick from 8 classic species and conquer Planet Irata over 12 months—claim River, Plains & 3-Tier Mountain plots, walk tethered M.U.L.E.s from Town, hunt the Mountain Wampus, gamble at the Pub, and dominate live Auctions!',
+    footerLabel: 'Full Colony Sim',
+    footerSummary: '8 Species · Tethered M.U.L.E.s · Pub & Wampus · Live Market',
     titleColorClass: 'text-amber-400',
     scoreColorClass: 'text-amber-200',
     borderHoverClass: 'hover:border-amber-400/50',
@@ -386,15 +387,30 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Qix',
     year: 1981,
     category: 'puzzle',
-    meta: '1981 · Taito · Stix Territory Carving · 2× Slow Draw',
+    meta: '1981 · Taito · Neon Ribbon Qix · Twin Split & Super Sparx',
     description:
-      'Claim 75% of the playfield by drawing Stix polygons around the erratic neon Qix—risk Slow Draw for 2× points while dodging perimeter Sparx and burning Fuses.',
+      'Claim 75%+ of the geometric arena by carving Fast cyan or 2× Slow gold Stix polygons around the erratic neon Qix—outrun the burning Fuse, dodge evolving Super Sparx, and split Twin Qix on Stage 3+ for multiplier chains!',
     footerLabel: 'Territory Strategy',
-    footerSummary: 'Fast vs 2× Slow Draw · Sparx · Fuse Timer',
+    footerSummary: 'Fast vs 2× Slow Draw · Twin Qix Split · Super Sparx',
     titleColorClass: 'text-pink-400',
     scoreColorClass: 'text-pink-200',
     borderHoverClass: 'hover:border-pink-400/50',
     buttonClass: 'bg-pink-500 hover:bg-pink-400 text-white focus-visible:ring-pink-300',
+  },
+  {
+    id: 'superqix',
+    title: 'Super Qix',
+    year: 1987,
+    category: 'puzzle',
+    meta: '1987 · Taito · Official Qix Sequel · 16-Bit Art Reveals & Power-Ups',
+    description:
+      'Taito’s celebrated 1987 arcade sequel unveils lush 16-bit hidden artwork—Golden Dragon, Samurai Citadel, Cyber Phoenix, Kraken & Star Temple—as you trap floating Freeze, Shield, Speed, +5,000 Bonus & Warp capsules!',
+    footerLabel: '1987 Sequel',
+    footerSummary: 'Hidden 16-Bit Art · 5 Enclose Power-Ups · 90% Master Bonus',
+    titleColorClass: 'text-yellow-400',
+    scoreColorClass: 'text-yellow-200',
+    borderHoverClass: 'hover:border-yellow-400/50',
+    buttonClass: 'bg-yellow-400 hover:bg-yellow-300 text-slate-950 focus-visible:ring-yellow-200',
   },
   {
     id: 'asteroidsdeluxe',
@@ -551,11 +567,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Robotron: 2084',
     year: 1982,
     category: 'action',
-    meta: '1982 · Williams · Twin-Stick Frenzy · Save Last Humans',
+    meta: '1982 · Williams · Full Jarvis Cast · Grunts, Hulks, Quarks & Brains',
     description:
-      'Pure electric twin-stick adrenaline—dodge swarming Grunts, indestructible Hulks, Brains, and Electrodes while rescuing the last surviving human family!',
+      'Pure electric twin-stick adrenaline featuring the full Williams roster—Grunts, indestructible knockback Hulks, Spheroids spawning Enforcers, Quarks deploying ricochet Tanks, and Wave 5+ Brains mutating humans into Progs!',
     footerLabel: 'Twin-Stick Action',
-    footerSummary: 'WASD + Mouse Aim · Human Rescues · Swarms',
+    footerSummary: '360° Aim + Panic Burst · 1K–5K Family Chain · Full Roster',
     titleColorClass: 'text-pink-400',
     scoreColorClass: 'text-pink-200',
     borderHoverClass: 'hover:border-pink-400/50',
@@ -566,15 +582,30 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Frogger',
     year: 1981,
     category: 'action',
-    meta: '1981 · Konami / Sega · 5-Lane Highway · Logs & Turtles',
+    meta: '1981 · Konami / Sega · 5-Lane Highway · Diving Turtles & Gators',
     description:
-      'Leap across five lanes of roaring rush-hour traffic, ride river logs and diving turtles, hitch a lift with Lady Frog, and claim all five lily pad homes.',
+      'Leap across five gleaming rush-hour highway lanes with headlight beams, sidestep median snakes, ride river logs, diving turtle pods, and snapping alligators, rescue pink Lady Frogs, and claim all 5 lily pad berths!',
     footerLabel: 'Arcade Classic',
-    footerSummary: '5-Lane Highway · Diving Turtles · 5 Berths',
+    footerSummary: '5-Lane Highway · Diving Turtles · Gators & Lady Frog',
     titleColorClass: 'text-green-400',
     scoreColorClass: 'text-green-200',
     borderHoverClass: 'hover:border-green-400/50',
     buttonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
+  },
+  {
+    id: 'frogger2',
+    title: 'Frogger II: ThreeeDeep!',
+    year: 1984,
+    category: 'action',
+    meta: '1984 · Parker Bros / Sega · Underwater Reef · Lagoon · Sky Kingdom',
+    description:
+      'Climb through all three iconic vertical ecosystems per stage—dodge killer whales, sharks & subs underwater, hop diving hippos & speedboats on the surface, then ride clouds & biplanes to the rainbow Sky Island nests!',
+    footerLabel: '3-Zone Sequel',
+    footerSummary: 'Underwater Reef · Surface Lagoon · Sky Kingdom Nests',
+    titleColorClass: 'text-sky-400',
+    scoreColorClass: 'text-sky-200',
+    borderHoverClass: 'hover:border-sky-400/50',
+    buttonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
   },
   {
     id: 'joust',
@@ -596,11 +627,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Pengo',
     year: 1982,
     category: 'action',
-    meta: '1982 · Sega · Sliding Ice Maze · Crush Sno-Bees & Diamonds',
+    meta: '1982 · Coreland / Sega · 13×15 Polar Maze · Multi-Squash & Diamonds',
     description:
-      'Waddle through an icy labyrinth shoving frost cubes to flatten Sno-Bees, rattle outer walls to stun foes, and align all three sparkling Diamond Blocks for 10,000 points!',
+      'Slide crystalline ice blocks across 5 color-coded Polar Acts to trigger 400–6,400 multi-squash Sno-Bee combos, electrify outer walls to stun & stomp edge foes, and align all 3 glowing Diamond Blocks for 10,000 points!',
     footerLabel: 'Ice Labyrinth',
-    footerSummary: 'Sliding Ice Crush · Wall Stun · 3 Diamonds',
+    footerSummary: 'Multi-Squash Combos · Wall Shockwave · 3 Diamond Freeze',
     titleColorClass: 'text-sky-400',
     scoreColorClass: 'text-sky-200',
     borderHoverClass: 'hover:border-sky-400/50',
@@ -611,11 +642,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Popeye',
     year: 1982,
     category: 'action',
-    meta: '1982 · Nintendo · Catch Olive’s Hearts · Spinach & Bluto',
+    meta: '1982 · Nintendo · All 3 Stages · Docks, Seesaw Village & Pirate Ship',
     description:
-      'Catch every Heart, Musical Note, and HELP letter dropped by Olive Oyl across multi-deck ships while punching bottles and downing Spinach to send Bluto flying!',
-    footerLabel: 'Sailor Action',
-    footerSummary: 'Heart Catching · Spinach Power · Punch Bluto',
+      'Battle across all three authentic Nintendo stages—drop the Docks punching barrel onto Brutus, launch off Wimpy’s Sweet Haven Seesaw to rescue Swee’Pea, ride the Pirate Ship elevator, and eat Spinach for a 3,000-pt KO!',
+    footerLabel: '3 Nintendo Stages',
+    footerSummary: 'Docks Barrel · Wimpy Seesaw · Pirate Ship · Spinach KO',
     titleColorClass: 'text-blue-400',
     scoreColorClass: 'text-blue-200',
     borderHoverClass: 'hover:border-blue-400/50',
@@ -701,11 +732,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Rampage',
     year: 1986,
     category: 'action',
-    meta: '1986 · Bally Midway · George, Lizzie & Ralph · City Siege',
+    meta: '1986 · Bally Midway · 6 Destructible Cities · George, Lizzie & Ralph',
     description:
-      'Scale towering skyscrapers as giant ape George, lizard Lizzie, or werewolf Ralph—smash windows for snacks, swat military choppers, and bring every city block crashing down!',
-    footerLabel: 'Monster Mayhem',
-    footerSummary: '3 Playable Kaiju · Skyscraper Collapse · Snacks',
+      'Scale skyscrapers across Peoria, Chicago, NYC, San Francisco, Tokyo & DC as George, Lizzie, or Ralph—smash windows for turkey roasts & cash, avoid toasters & poison, swat choppers, and trigger massive structural collapses!',
+    footerLabel: '6-City Siege',
+    footerSummary: 'George · Lizzie · Ralph · Skyscraper Collapse · Choppers',
     titleColorClass: 'text-green-400',
     scoreColorClass: 'text-green-200',
     borderHoverClass: 'hover:border-green-400/50',
@@ -915,11 +946,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Gauntlet: Dark Legacy',
     year: 2000,
     category: 'action',
-    meta: '2000 · Midway · Custom 2.5D Engine · 8 Heroes × 4 Colors · 5 Realms',
+    meta: '2000 · Midway · Genuine 3D WebGL Engine · 12 Heroes × 4 Elements · 9 Realms & Bosses',
     description:
-      'Built on its own extruded 2.5D engine! Pick from 8 heroes in 4 colors at Sumner’s Tower, unleash 3-hit melee combos & elemental Turbo attacks, level up with XP, hunt Runestones, upgrade at Sumner’s Armory, and defeat Skorne.',
-    footerLabel: 'Dark Legacy Engine',
-    footerSummary: '8 Classes × 4 Colors · Melee + Turbo · 5 Realm Bosses',
+      'Genuine real-time Three.js 3D engine copying Arcade & Console mechanics! Explore Sumner’s Tower 3D Hub, play 8 core + 4 secret heroes in 4 elemental colors, hunt 13 Runestones & 9 Boss-Weakening Legendary Weapons, use 10 Console Inventory Relics (Anti-Death Halo, Phoenix, Growth, X-Ray), and defeat 2-phase True Skorne!',
+    footerLabel: 'Genuine 3D Engine',
+    footerSummary: 'Three.js 3D · Sumner’s Tower · 9 Bosses · 10 Relics · 13 Runestones',
     titleColorClass: 'text-purple-400',
     scoreColorClass: 'text-purple-200',
     borderHoverClass: 'hover:border-purple-400/50',
@@ -1411,7 +1442,7 @@ const CABINET_CARDS: CabinetCardConfig[] = [
 ];
 
 const FILTER_TABS: Array<{ id: FilterCategory; label: string; shortLabel: string }> = [
-  { id: 'all', label: 'All 87', shortLabel: 'All' },
+  { id: 'all', label: 'All 89', shortLabel: 'All' },
   { id: 'shooters', label: 'Shooters', shortLabel: 'Shooters' },
   { id: 'action', label: 'Action', shortLabel: 'Action' },
   { id: 'platformers', label: 'Platformers', shortLabel: 'Platform' },
@@ -1769,6 +1800,14 @@ export default function ArcadeHub() {
     [stepSelection]
   );
 
+  if (screen === 'gauntletdl') {
+    return (
+      <GauntletDarkLegacy3D
+        onSwitchGame={(g) => handleSelectGame(g)}
+        onOpenLobby={() => handleSelectGame('select')}
+      />
+    );
+  }
   if (screen !== 'select' && isClassicArcadeGameId(screen)) {
     return (
       <ClassicArcadeShell
@@ -1967,7 +2006,7 @@ export default function ArcadeHub() {
               </a>
             ) : (
               <span className="text-xs font-mono tabular-nums text-slate-400 whitespace-nowrap shrink-0">
-                87 Cabinets
+                89 Cabinets
               </span>
             )}
           </div>
@@ -2165,7 +2204,7 @@ export default function ArcadeHub() {
               }}
               className="mt-4 px-4 py-2 rounded-lg bg-white text-slate-950 text-xs font-semibold cursor-pointer hover:bg-slate-200 transition-colors"
             >
-              Reset Filter &amp; Show All 87
+              Reset Filter &amp; Show All 89
             </button>
           </div>
         )}

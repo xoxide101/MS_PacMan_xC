@@ -2046,6 +2046,7 @@ const GAME_TO_TRACK: Record<string, string> = {
   puzzlebobble2: 'puzzle_bobble_party',
   puzzlebobble3: 'puzzle_bobble_evo',
   qix: 'cyber_pulse',
+  superqix: 'cyber_pulse',
 
   // Space & Vector Shooters
   invaders: 'space_invader_groove',
@@ -2082,6 +2083,7 @@ const GAME_TO_TRACK: Record<string, string> = {
   berzerk: 'berzerk_voltage',
   robotron: 'cyber_pulse',
   frogger: 'arcade_cheerful',
+  frogger2: 'arcade_cheerful',
   joust: 'joust_colosseum',
   pengo: 'arcade_cheerful',
   popeye: 'dk_girder',

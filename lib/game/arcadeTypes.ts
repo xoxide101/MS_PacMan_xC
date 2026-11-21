@@ -49,6 +49,7 @@ export type ClassicArcadeGameId =
   | 'starcastle'
   | 'missilecommand'
   | 'qix'
+  | 'superqix'
   | 'galaxian'
   | 'galaga'
   | 'phoenix'
@@ -64,6 +65,7 @@ export type ClassicArcadeGameId =
   | 'berzerk'
   | 'robotron'
   | 'frogger'
+  | 'frogger2'
   | 'joust'
   | 'pengo'
   | 'popeye'
@@ -286,7 +288,7 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Gauntlet: Dark Legacy',
     year: 2000,
     category: 'action',
-    tagline: 'Custom 2.5D Engine · 8 Heroes × 4 Colors · Melee Combos, Turbo & 5 Bosses',
+    tagline: 'Genuine Three.js 3D · Sumner’s Tower · 12 Heroes × 4 Elements · 9 Bosses & 10 Relics',
     accentHex: '#A855F7',
     storageKey: 'gauntlet_dark_legacy_hd_highscore_v1',
   },
@@ -607,9 +609,18 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Qix',
     year: 1981,
     category: 'puzzle',
-    tagline: 'Stix Territory Carving · Fast vs 2× Slow Draw · Sparx & Qix',
+    tagline: 'Stix Territory Carving · Fast vs 2× Slow Draw · Twin Qix Split & Super Sparx',
     accentHex: '#F472B6',
     storageKey: 'qix_hd_highscore_v1',
+  },
+  {
+    id: 'superqix',
+    title: 'Super Qix',
+    year: 1987,
+    category: 'puzzle',
+    tagline: '1987 Taito Sequel · Reveal Hidden 16-Bit Art · Enclose Power-Ups & Warp',
+    accentHex: '#FACC15',
+    storageKey: 'superqix_hd_highscore_v1',
   },
 
   // Vector, Galactic & Scrolling Shooters (+16)
@@ -773,7 +784,7 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Robotron: 2084',
     year: 1982,
     category: 'action',
-    tagline: 'Twin-Stick Mayhem · Save Last Human Family · Electrodes',
+    tagline: 'Twin-Stick Frenzy · Grunts, Hulks, Spheroids, Quarks, Brains & Progs',
     accentHex: '#EC4899',
     storageKey: 'robotron_hd_highscore_v1',
   },
@@ -782,9 +793,18 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Frogger',
     year: 1981,
     category: 'action',
-    tagline: '5-Lane Highway · River Logs & Diving Turtles · 5 Home Berths',
+    tagline: '5-Lane Highway · Diving Turtles, Snapping Gators, Lady Frog & 5 Berths',
     accentHex: '#22C55E',
     storageKey: 'frogger_hd_highscore_v1',
+  },
+  {
+    id: 'frogger2',
+    title: 'Frogger II: ThreeeDeep!',
+    year: 1984,
+    category: 'action',
+    tagline: '3-Zone Adventure · Underwater Reef → Surface Lagoon → Sky Kingdom',
+    accentHex: '#38BDF8',
+    storageKey: 'frogger2_hd_highscore_v1',
   },
   {
     id: 'joust',
@@ -800,7 +820,7 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Pengo',
     year: 1982,
     category: 'action',
-    tagline: 'Slide Ice Blocks · Crush Sno-Bees · Align 3 Diamond Blocks',
+    tagline: '13×15 Polar Ice Maze · Multi-Squash Combos · Wall Shake & 3 Diamonds',
     accentHex: '#38BDF8',
     storageKey: 'pengo_hd_highscore_v1',
   },
@@ -809,7 +829,7 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Popeye',
     year: 1982,
     category: 'action',
-    tagline: 'Catch Olive’s Hearts · Grab Spinach · Knockout Bluto',
+    tagline: 'All 3 Nintendo Stages · Docks, Seesaw Village & Ship · Spinach KO Brutus',
     accentHex: '#60A5FA',
     storageKey: 'popeye_hd_highscore_v1',
   },
@@ -854,7 +874,7 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Rampage',
     year: 1986,
     category: 'action',
-    tagline: 'Climb & Smash Skyscrapers · George, Lizzie & Ralph · Helicopters',
+    tagline: '6 Destructible Cities · George, Lizzie & Ralph · Structural Collapses',
     accentHex: '#22C55E',
     storageKey: 'rampage_hd_highscore_v1',
   },
@@ -903,7 +923,7 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'M.U.L.E.',
     year: 1983,
     category: 'rpg',
-    tagline: 'Planet Irata Colony Sim · Outfitter M.U.L.E.s · Wampus & Market',
+    tagline: '8 Alien Species · 12-Month Irata Colony Sim · Tethered M.U.L.E.s & Auctions',
     accentHex: '#F59E0B',
     storageKey: 'mule_hd_highscore_v1',
   },
