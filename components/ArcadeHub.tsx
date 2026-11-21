@@ -327,15 +327,30 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'M.U.L.E.',
     year: 1983,
     category: 'rpg',
-    meta: '1983 · Ozark / EA · 8 Alien Species · 12-Month Irata Colony Sim',
+    meta: '1983 · Ozark / EA · HD Vector Remaster · 8 Illustrated Species & Walk-In Store',
     description:
-      'Pick from 8 classic species and conquer Planet Irata over 12 months—claim River, Plains & 3-Tier Mountain plots, walk tethered M.U.L.E.s from Town, hunt the Mountain Wampus, gamble at the Pub, and dominate live Auctions!',
-    footerLabel: 'Full Colony Sim',
-    footerSummary: '8 Species · Tethered M.U.L.E.s · Pub & Wampus · Live Market',
+      'Graphically overhauled 1983 classic! Command illustrated animated alien colonists and four-legged mechanical M.U.L.E.s across Planet Irata, walk the Colony Store corridor, Assay Crystite plots, catch the Mountain Wampus, and compete on the visual Auction floor!',
+    footerLabel: '1983 HD Remaster',
+    footerSummary: '8 Animated Species · Colony Store · Assay & Pub · Visual Auction',
     titleColorClass: 'text-amber-400',
     scoreColorClass: 'text-amber-200',
     borderHoverClass: 'hover:border-amber-400/50',
     buttonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
+  },
+  {
+    id: 'muleevo',
+    title: 'M.U.L.E. Returns: Evolved',
+    year: 2026,
+    category: 'rpg',
+    meta: '2026 · Evolution Edition · Live Spy-HUD · Synergy Conduits · Mk III Rigs & Abilities',
+    description:
+      'Expanded M.U.L.E. Returns evolution! Spy on rivals in real time, link matching plots with glowing Synergy Conduits, upgrade rigs to Mk III, Jet-Dash & Geo-Scan for Crystite, race live AI colonists for Supply Pods & Golden Wampuses, and close Private Rival Deals!',
+    footerLabel: 'Evolved Edition',
+    footerSummary: 'Spy-HUD · Synergy Beams · Mk III Rigs · Jet-Dash · Live AI',
+    titleColorClass: 'text-cyan-400',
+    scoreColorClass: 'text-cyan-200',
+    borderHoverClass: 'hover:border-cyan-400/50',
+    buttonClass: 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 focus-visible:ring-cyan-200',
   },
   {
     id: 'arkanoid',
@@ -1502,7 +1517,7 @@ const CABINET_CARDS: CabinetCardConfig[] = [
 ];
 
 const FILTER_TABS: Array<{ id: FilterCategory; label: string; shortLabel: string }> = [
-  { id: 'all', label: 'All 93', shortLabel: 'All' },
+  { id: 'all', label: 'All 94', shortLabel: 'All' },
   { id: 'shooters', label: 'Shooters', shortLabel: 'Shooters' },
   { id: 'action', label: 'Action', shortLabel: 'Action' },
   { id: 'platformers', label: 'Platformers', shortLabel: 'Platform' },
@@ -2067,7 +2082,7 @@ export default function ArcadeHub() {
               </a>
             ) : (
               <span className="text-xs font-mono tabular-nums text-slate-400 whitespace-nowrap shrink-0">
-                93 Cabinets
+                94 Cabinets
               </span>
             )}
           </div>
@@ -2265,7 +2280,7 @@ export default function ArcadeHub() {
               }}
               className="mt-4 px-4 py-2 rounded-lg bg-white text-slate-950 text-xs font-semibold cursor-pointer hover:bg-slate-200 transition-colors"
             >
-              Reset Filter &amp; Show All 93
+              Reset Filter &amp; Show All 94
             </button>
           </div>
         )}

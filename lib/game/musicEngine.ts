@@ -2,7 +2,7 @@
  * Procedural 5-Channel (4 Pitched + Percussion) Arcade BGM Synthesizer (Pure Web Audio API)
  * Zero external audio files — works 100% offline including standalone index.html.
  * Simulates classic 1979–1995 arcade PSG / POKEY / YM2151 FM / SNES 4+ channel chiptune
- * & orchestral synth background music mapped across all 93 cabinets.
+ * & orchestral synth background music mapped across all 94 cabinets.
  */
 
 type Wave = OscillatorType;
@@ -2121,6 +2121,7 @@ const GAME_TO_TRACK: Record<string, string> = {
 
   // Strategy & Action RPG
   mule: 'mule_frontier',
+  muleevo: 'mule_frontier',
   ys1: 'ys_falcom_rock',
   ys2: 'ys_falcom_rock',
 };

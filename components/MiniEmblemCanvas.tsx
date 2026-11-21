@@ -675,7 +675,8 @@ type ClassicIconKind =
   | 'smw2'
   | 'ys1'
   | 'ys2'
-  | 'mule';
+  | 'mule'
+  | 'muleevo';
 
 function ClassicIconCanvas({
   kind,
@@ -2266,14 +2267,56 @@ function ClassicIconCanvas({
       ctx.fillRect(14.5, 7, 3, 18);
       ctx.fillRect(10, 18, 12, 3);
     } else if (kind === 'mule') {
-      // Robot M.U.L.E. silhouette
-      ctx.fillStyle = '#F59E0B';
-      ctx.fillRect(8, 11, 16, 9);
-      ctx.fillRect(21, 7, 6, 7);
-      ctx.fillRect(9, 20, 3, 8);
-      ctx.fillRect(20, 20, 3, 8);
+      // M.U.L.E. (1983 HD): Planet Irata ochre horizon + articulated mechanical M.U.L.E.
+      const mg = ctx.createLinearGradient(0, 0, 0, 32);
+      mg.addColorStop(0, '#2A120E');
+      mg.addColorStop(0.65, '#B45309');
+      mg.addColorStop(1, '#78350F');
+      ctx.fillStyle = mg;
+      ctx.fillRect(0, 0, 32, 32);
+      // River stripe
+      ctx.fillStyle = '#0284C7';
+      ctx.fillRect(2, 22, 28, 4);
+      // Articulated white/amber M.U.L.E.
+      ctx.fillStyle = '#E2E8F0';
+      ctx.fillRect(6, 13, 15, 7);
+      ctx.fillRect(19, 8, 6.5, 6);
+      ctx.fillStyle = '#4ADE80';
+      ctx.fillRect(8, 9, 9, 4.5);
+      ctx.fillStyle = '#94A3B8';
+      ctx.fillRect(7, 20, 2.5, 7);
+      ctx.fillRect(11.5, 20, 2.5, 7);
+      ctx.fillRect(16, 20, 2.5, 7);
+      ctx.fillRect(19.5, 20, 2.5, 7);
+      ctx.fillStyle = '#FACC15';
+      ctx.fillRect(22.5, 10, 2, 2);
+    } else if (kind === 'muleevo') {
+      // M.U.L.E. Returns: Evolved — Orbital twilight + cyan Synergy Conduit M.U.L.E. + Crystite Spire
+      const eg = ctx.createLinearGradient(0, 0, 0, 32);
+      eg.addColorStop(0, '#070B1A');
+      eg.addColorStop(0.6, '#1E1B4B');
+      eg.addColorStop(1, '#431407');
+      ctx.fillStyle = eg;
+      ctx.fillRect(0, 0, 32, 32);
+      // Glowing cyan radar ring
+      ctx.strokeStyle = '#22D3EE';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(16, 16, 12.5, 0, Math.PI * 2);
+      ctx.stroke();
+      // Mechanical Evolved M.U.L.E. with Crystite plasma core
+      ctx.fillStyle = '#F8FAFC';
+      ctx.fillRect(6, 14, 15, 6.5);
+      ctx.fillRect(19.5, 9, 6, 5.5);
+      ctx.fillStyle = '#E879F9';
+      ctx.fillRect(8, 9.5, 9, 4.5);
       ctx.fillStyle = '#38BDF8';
-      ctx.fillRect(11, 13, 8, 4);
+      ctx.fillRect(7.5, 20.5, 2.4, 6.5);
+      ctx.fillRect(12, 20.5, 2.4, 6.5);
+      ctx.fillRect(16.5, 20.5, 2.4, 6.5);
+      ctx.fillRect(20, 20.5, 2.4, 6.5);
+      ctx.fillStyle = '#22D3EE';
+      ctx.fillRect(22.8, 10.6, 2.2, 2.2);
     }
 
     ctx.restore();
@@ -2394,6 +2437,7 @@ export function GameEmblem({
     case 'ys1':
     case 'ys2':
     case 'mule':
+    case 'muleevo':
       return <ClassicIconCanvas kind={gameId} size={size} className={className} />;
     default:
       return <ClassicPacManEmblem size={size} className={className} />;

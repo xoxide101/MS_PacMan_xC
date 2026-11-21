@@ -87,7 +87,8 @@ export type ClassicArcadeGameId =
   | 'smw2'
   | 'ys1'
   | 'ys2'
-  | 'mule';
+  | 'mule'
+  | 'muleevo';
 
 export type GameId = PacManGameId | ClassicArcadeGameId;
 
@@ -963,8 +964,17 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'M.U.L.E.',
     year: 1983,
     category: 'rpg',
-    tagline: '8 Alien Species · 12-Month Irata Colony Sim · Tethered M.U.L.E.s & Auctions',
+    tagline: '1983 HD Remaster · 8 Illustrated Species · Colony Store, Assay & Visual Auctions',
     accentHex: '#F59E0B',
     storageKey: 'mule_hd_highscore_v1',
+  },
+  {
+    id: 'muleevo',
+    title: 'M.U.L.E. Returns: Evolved',
+    year: 2026,
+    category: 'rpg',
+    tagline: 'Live Spy-HUD · Synergy Conduits · Mk III Rigs · Jet-Dash, Geo-Scan & Live Rivals',
+    accentHex: '#22D3EE',
+    storageKey: 'mule_returns_evo_hs_v1',
   },
 ];

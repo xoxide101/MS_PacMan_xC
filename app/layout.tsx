@@ -33,20 +33,20 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Retro Arcade Collection — 87 Classic & Evo Cabinets in 60fps HD',
+  title: 'Retro Arcade Collection — 94 Classic & Evo Cabinets in 60fps HD',
   description:
-    'Play 87 Golden Age and modern evolved arcade classics in high-resolution 60fps with mouse steering, multi-touch virtual joystick, foldable/tablet adaptive layouts, and synthesized music.',
+    'Play 94 Golden Age and modern evolved arcade classics in high-resolution 60fps with mouse steering, multi-touch virtual joystick, foldable/tablet adaptive layouts, and synthesized music.',
   openGraph: {
-    title: 'Retro Arcade Collection — 87 Classic & Evo Cabinets in 60fps HD',
+    title: 'Retro Arcade Collection — 94 Classic & Evo Cabinets in 60fps HD',
     description:
-      'Play 87 Golden Age and modern evolved arcade classics in high-resolution 60fps with mouse steering, multi-touch virtual joystick, foldable/tablet adaptive layouts, and synthesized music.',
+      'Play 94 Golden Age and modern evolved arcade classics in high-resolution 60fps with mouse steering, multi-touch virtual joystick, foldable/tablet adaptive layouts, and synthesized music.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Retro Arcade Collection — 87 Classic & Evo Cabinets in 60fps HD',
+    title: 'Retro Arcade Collection — 94 Classic & Evo Cabinets in 60fps HD',
     description:
-      'Play 87 Golden Age and modern evolved arcade classics in high-resolution 60fps with mouse steering, multi-touch virtual joystick, foldable/tablet adaptive layouts, and synthesized music.',
+      'Play 94 Golden Age and modern evolved arcade classics in high-resolution 60fps with mouse steering, multi-touch virtual joystick, foldable/tablet adaptive layouts, and synthesized music.',
   },
 };
 

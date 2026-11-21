@@ -26,6 +26,7 @@ import { MarioBrosGame } from './marioBrosGame';
 import { MarioWorldGame } from './marioWorldGame';
 import { MillipedeGame } from './millipedeGame';
 import { MissileCommandGame } from './missileQixGame';
+import { MuleEvoArcadeGame } from './muleEvoGame';
 import { MuleArcadeGame } from './muleGame';
 import { PengoArcadeGame } from './pengoGame';
 import { PolePositionGame } from './polePositionGame';
@@ -1839,16 +1840,36 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-amber-400',
     accentButtonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
     borderHoverClass: 'hover:border-amber-400/50',
-    subtitle: '1983 · 8 Alien Species · 12-Month Irata Colony · Tethered M.U.L.E.s, Pub & Live Auctions',
+    subtitle: '1983 HD Remaster · 8 Illustrated Species · Walk-In Colony Store, Assay Office & Live Auctions',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Select Species, claim plots, walk Irata & set auction prices' },
-      { key: 'Space / Z', desc: 'Confirm plot, buy/outfit/install M.U.L.E., catch Wampus, trade' },
-      { key: 'Shift / X', desc: 'Cycle M.U.L.E. outfit (Food / Energy / Smithore / Crystite)' },
+      { key: 'Arrows / WASD', desc: 'Choose Species, claim plots, walk Irata & Store bays, trade' },
+      { key: 'Space / Z / Click', desc: 'Claim plot, enter Irata Town Store, install M.U.L.E., Assay or Pub' },
+      { key: 'Shift / X', desc: 'Cycle preferred M.U.L.E. outfit quick-preset' },
     ],
     tips: [
-      'Choose from all 8 classic species (Flapper, Humanoid, Packer, Spheroid, Mechtron, Gollumer, Bonzoid, Leggite)!',
-      'Lead your tethered M.U.L.E. out of Town to install on River (Food), Plains (Energy), or 3-Tier Mountain (Smithore/Crystite) plots.',
-      'Catch the glowing Mountain Wampus for instant cash, gamble at the Town Pub before time runs out, and dominate the monthly Auction!',
+      'Walk into central Irata Town and press Space to enter the illustrated Colony Store, Assay Office & Pub corridor!',
+      'Assay your owned plots to reveal hidden Crystite richness (LOW / MED / HIGH) before outfitting expensive Crystite M.U.L.E.s.',
+      'Catch the animated Mountain Wampus for instant cash, watch out for runaway M.U.L.E.s, and beat rivals on the visual Auction bar chart!',
+    ],
+  },
+  muleevo: {
+    id: 'muleevo',
+    title: 'M.U.L.E. Returns: Evolved',
+    year: 2026,
+    publisher: 'Evolution Edition',
+    accentTextClass: 'text-cyan-400',
+    accentButtonClass: 'bg-cyan-400 hover:bg-cyan-300 text-slate-950 focus-visible:ring-cyan-200',
+    borderHoverClass: 'hover:border-cyan-400/50',
+    subtitle: 'Evolved Edition · Live 4-Colonist Spy-HUD · Synergy Conduits · Mk III Rigs · Jet-Dash & Geo-Scan',
+    controls: [
+      { key: 'Arrows / WASD', desc: 'Select Commander, claim sectors, walk Irata & Plaza bays, trade' },
+      { key: 'Space / Z / Click', desc: 'Enter Megadome Plaza, install M.U.L.E./Shield, or Upgrade plot (Mk I→III)' },
+      { key: 'Shift / X', desc: 'Jet-Dash Sprint on map · Accept Private Rival Deal in Exchange' },
+    ],
+    tips: [
+      'Place matching outfits on adjacent owned plots to forge glowing Synergy Conduits (+1 yield per link)!',
+      'Stand on any outfitted plot you own with empty tether and press Space to upgrade it to Mk II and Mk III machinery!',
+      'Race live AI colonists for dropping Orbital Supply Pods and Golden Wampuses, time the Cantina 2× Jackpot bar, and accept high-margin Private Rival Deals!',
     ],
   },
 };
@@ -2029,6 +2050,8 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
       return new YsActionRpgGame('ys2');
     case 'mule':
       return new MuleArcadeGame();
+    case 'muleevo':
+      return new MuleEvoArcadeGame();
   }
 }
 
