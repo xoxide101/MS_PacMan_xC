@@ -58,6 +58,10 @@ export function VirtualJoystick({
       const nx = maxRadius > 0 ? kx / maxRadius : 0;
       const ny = maxRadius > 0 ? ky / maxRadius : 0;
       const mag = Math.hypot(nx, ny);
+      // Progressive micro-precision curve: small thumb movements give fine control, rim gives full speed
+      const curvedMag = mag > 0.001 ? Math.pow(Math.min(1, mag), 1.55) : 0;
+      const curvedX = mag > 0.001 ? (nx / mag) * curvedMag : 0;
+      const curvedY = mag > 0.001 ? (ny / mag) * curvedMag : 0;
 
       let up = false;
       let down = false;
@@ -89,7 +93,7 @@ export function VirtualJoystick({
       }
       lastDirKey.current = dirKey;
 
-      onVectorChange({ up, down, left, right, dx: nx, dy: ny });
+      onVectorChange({ up, down, left, right, dx: curvedX, dy: curvedY });
     },
     [deadzone, maxRadius, mode, onVectorChange]
   );
@@ -163,12 +167,20 @@ export function VirtualJoystick({
             : 'inset 0 2px 14px rgba(0,0,0,0.65), 0 8px 20px rgba(0,0,0,0.45)',
         }}
       >
-        {/* Inner arcade gate ring */}
+        {/* Outer arcade gate ring */}
         <div
           className="pointer-events-none absolute rounded-full border border-white/[0.08]"
           style={{
             width: `${Math.round(size * 0.68)}px`,
             height: `${Math.round(size * 0.68)}px`,
+          }}
+        />
+        {/* Inner micro-precision dotted ring */}
+        <div
+          className="pointer-events-none absolute rounded-full border border-dashed border-white/[0.14]"
+          style={{
+            width: `${Math.round(size * 0.36)}px`,
+            height: `${Math.round(size * 0.36)}px`,
           }}
         />
 

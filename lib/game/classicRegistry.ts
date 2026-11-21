@@ -1,23 +1,24 @@
 import { ArenaTwinStickGame } from './arenaTwinStickGame';
 import { ClassicArcadeGameId } from './arcadeTypes';
+import { BerzerkGame } from './berzerkGame';
 import { BoulderDashGame } from './boulderdashGame';
 import { BreakerArcadeGame } from './breakerGame';
 import { Breakout2016EvoGame } from './breakout2016EvoGame';
 import { CentipedeGame } from './centipedeGame';
 import {
   FroggerArcadeGame,
-  JoustArcadeGame,
   MrDoArcadeGame,
   PengoArcadeGame,
   PopeyeArcadeGame,
 } from './classicActionPack1';
 import {
-  CrystalCastlesArcadeGame,
   DragonsLairArcadeGame,
   RampageArcadeGame,
   SpyHunterArcadeGame,
   TapperArcadeGame,
 } from './classicActionPack2';
+import { CrystalCastlesGame } from './crystalCastlesGame';
+import { JoustGame } from './joustGame';
 import { PuzzleBobbleGame } from './puzzleBobbleGame';
 import { ArcadeGameInstance } from './classicArcadeInterface';
 import { DefenderGame } from './defenderGame';
@@ -47,6 +48,8 @@ import { Tempest1981Game } from './tempest1981Game';
 import { Tempest2000Game } from './tempest2000Game';
 import { Tempest3000Game } from './tempest3000Game';
 import { VectorSpaceGame } from './vectorSpaceGame';
+import { Ww1942Game } from './ww1942Game';
+import { Ww1943Game } from './ww1943Game';
 import { MuleArcadeGame, YsActionRpgGame } from './ysMuleGame';
 
 export interface ClassicCabinetSpec {
@@ -71,16 +74,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-lime-400',
     accentButtonClass: 'bg-lime-400 hover:bg-lime-300 text-slate-950 focus-visible:ring-lime-200',
     borderHoverClass: 'hover:border-lime-400/50',
-    subtitle: '1981 · Splitting Chains · Spiders, Fleas & Poisoning Scorpions',
+    subtitle: '1981 · Neon Mushroom Garden · Precision Aim · Spiders, Fleas & Poisoning Scorpions',
     controls: [
-      { key: 'Arrows / WASD / Mouse', desc: 'Move blaster in lower zone' },
-      { key: 'Space / Click', desc: 'Rapid-fire plasma shots' },
+      { key: 'Arrows / WASD / Mouse / Tilt', desc: 'Precision-damped movement (cycle 55%/78%/100% Speed)' },
+      { key: 'Space / Click', desc: 'Rapid-fire plasma darts along laser sightline' },
       { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Shoot a middle segment to split the centipede and turn it into a mushroom.',
-      'Poisoned magenta mushrooms make centipedes dive straight down—clear them fast.',
-      'Hit the bouncing spider up close for 900 points.',
+      'Use the top-bar Speed (55% Fine / 78% Smooth) or Tilt button for authentic Atari trackball accuracy.',
+      'Poisoned magenta mushrooms trigger vertical dives—blast Scorpions early (+1,000) and clear poison caps fast.',
+      'Intercept bouncing Spiders at close range for 900 CLOSE! bonus popups.',
     ],
   },
   millipede: {
@@ -91,16 +94,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-orange-400',
     accentButtonClass: 'bg-orange-500 hover:bg-orange-400 text-slate-950 focus-visible:ring-orange-200',
     borderHoverClass: 'hover:border-orange-400/50',
-    subtitle: '1982 · DDT Bomb Blasts · Inchworm Slow-Mo · Beetles & Mosquitoes',
+    subtitle: '1982 · Sunset Swarm Overdrive · 3× DDT Chains · Inchworm Slow-Mo & Dragonflies',
     controls: [
-      { key: 'Arrows / WASD / Mouse', desc: 'Move blaster freely' },
-      { key: 'Space / Click', desc: 'Fire plasma bolts' },
+      { key: 'Arrows / WASD / Mouse / Tilt', desc: 'Precision-tuned blaster control (55%/78%/100% Speed)' },
+      { key: 'Space / Click', desc: 'Fire cyan energy bolts & detonate DDT canisters' },
       { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Shoot red DDT canisters when bugs cluster nearby for massive 3× blast points.',
-      'Blast the green Inchworm to trigger temporary slow-motion across all bugs.',
-      'Watch out for Beetles—they turn mushrooms into diving-trigger flowers.',
+      'Detonate red DDT canisters as millipedes or swarms pass for 3× chain-reaction blasts and screen shake!',
+      'Shoot green Inchworms for 4.5s Icy Slow-Mo, and intercept zig-zagging Dragonflies (500 pts) on Wave 2+.',
+      'Watch out for Beetles turning mushrooms into diving flowers and Mosquitoes scrolling the whole garden down!',
     ],
   },
   digdug: {
@@ -530,16 +533,17 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-amber-400',
     accentButtonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
     borderHoverClass: 'hover:border-amber-400/50',
-    subtitle: '1981 · Wrap-Around Scanner Radar · Mid-Air Humanoid Rescues · Smart Bombs',
+    subtitle: '1981 · Crimson Frontier · Williams Scanner · Mid-Air Rescues & Hyperspace (R)',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Thrust left/right & climb/dive' },
-      { key: 'Space / Z', desc: 'Fire horizontal streaking laser' },
-      { key: 'Shift / X', desc: 'Detonate Smart Bomb (clears screen)' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Precision-tuned thrust & vertical flight (55%/78%/100% Speed)' },
+      { key: 'Space / Z', desc: 'Fire horizontal streaking Williams laser' },
+      { key: 'Shift / X', desc: 'Detonate Smart Bomb (clears onscreen foes)' },
+      { key: 'R', desc: 'Emergency Hyperspace Warp across planet' },
     ],
     tips: [
-      'Watch the top Williams Scanner to spot Landers abducting Humanoids across the planet.',
-      'Shoot an abducting Lander mid-air, catch the falling Humanoid (+500), and land gently (+500)!',
-      'If all 10 Humanoids perish, the planet explodes into relentless Mutant Space.',
+      'Watch the top Williams Scanner for red flashing abduction beams—shoot Landers, catch falling Humanoids (+500), and land gently (+500)!',
+      'Tap R for authentic 1981 Hyperspace warp when cornered by Mutants, Bombers, or Swarmers.',
+      'If all 10 Humanoids perish, the crimson mountain frontier explodes into relentless Mutant Space!',
     ],
   },
   defender2: {
@@ -550,17 +554,17 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-purple-400',
     accentButtonClass: 'bg-purple-500 hover:bg-purple-400 text-white focus-visible:ring-purple-300',
     borderHoverClass: 'hover:border-purple-400/50',
-    subtitle: '1981 · Inviso Cloak Shield · Warp Gate Rescue · Firebombers & Mutants',
+    subtitle: '1981 · Violet Nebula & Crystal Spires · Inviso Cloak Ram · Warp Gate & Space Mines',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Thrust & reverse instantly' },
-      { key: 'Space / Z', desc: 'Fire streaking plasma laser' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Precision Delta-Wing thrust & climb/dive' },
+      { key: 'Space / Z', desc: 'Fire magenta plasma laser streaks' },
       { key: 'Shift / X', desc: 'Trigger Smart Bomb' },
-      { key: 'R', desc: 'Toggle rechargeable Inviso Cloak' },
+      { key: 'R', desc: 'Toggle rechargeable Inviso Cloak (+250 Ram Kills!)' },
     ],
     tips: [
-      'Tap R to engage your Inviso Cloak—you become invulnerable and can ram enemies!',
-      'Fly into the glowing central Warp Gate to teleport directly to an endangered Humanoid.',
-      'Keep an eye on Firebombers whose drifting mines track your altitude.',
+      'Engage Inviso Cloak (R) to turn translucent and ram directly through Firebombers and chasing Space Mines for +250 RAM bonuses!',
+      'Fly into the glowing violet Warp Gate to instantly teleport right beside an abducted Humanoid.',
+      'Use the top-bar Speed or Tilt control for fine dodging through dense nebula minefields.',
     ],
   },
   stargate: {
@@ -571,17 +575,17 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-sky-400',
     accentButtonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
     borderHoverClass: 'hover:border-sky-400/50',
-    subtitle: '1981 · Stargate Hyperspace Portal · Inviso Cloak · Smart Bombs & Swarmers',
+    subtitle: '1981 · Cyan Hyperspace Portal · 3D Warp Tunnel · Yllabian Hums, Dynamos & Munchies',
     controls: [
-      { key: 'Arrows / WASD', desc: 'High-speed fighter thrust' },
-      { key: 'Space / Z', desc: 'Fire neon laser beam' },
-      { key: 'Shift / X', desc: 'Detonate Smart Bomb' },
-      { key: 'R', desc: 'Activate Inviso Cloak' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Twin-Prong Starfighter precision thrust' },
+      { key: 'Space / Z', desc: 'Fire cyan multi-band laser beam' },
+      { key: 'Shift / X', desc: 'Detonate Prismatic Smart Bomb' },
+      { key: 'R', desc: 'Activate Inviso Cloak shield' },
     ],
     tips: [
-      'Fly into the cyan Stargate to warp directly to any Lander kidnapping a Humanoid.',
-      'Keep 4+ Humanoids alive and enter the Stargate near wave end for a 2,000-pt Wave Warp!',
-      'Combine Inviso Cloak (R) with Smart Bombs (Shift/X) to survive dense Swarmer pods.',
+      'Fly into the cyan Stargate Vortex to rescue abducted Humanoids—or keep 4+ alive near wave end to enter the 3D Hyperspace Warp Tunnel (+2,000 & skip waves)!',
+      'Watch spinning Yllabian Space Hums split into twin Dynamos, and stop ground-stalking Munchies from chomping Humanoids.',
+      'Combine Inviso Cloak (R) with Prismatic Smart Bombs (Shift/X) to survive Swarmer surges.',
     ],
   },
   tempest: {
@@ -654,16 +658,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-sky-400',
     accentButtonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
     borderHoverClass: 'hover:border-sky-400/50',
-    subtitle: '1983 · 6-Story Mansion · 4-Bounce Trampolines · Paired Loot & Microwave Doors',
+    subtitle: '1983 · 4 Victorian Mansion Themes · Attic Bells · Balloon Bonus Round & Gosenzo Coin',
     controls: [
-      { key: 'Left / Right (A / D)', desc: 'Run floors & exit trampoline shafts' },
-      { key: 'Space / Z', desc: 'Slam doors & trigger Microwave Beams' },
+      { key: 'Left / Right / Tilt', desc: 'Precision run & time trampoline shaft exits' },
+      { key: 'Space / Z / Shift', desc: 'Slam doors, trigger Microwave Waves & drop Attic Bells' },
       { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Mappy is completely safe from cats while airborne in a trampoline shaft!',
-      'Trampolines turn Green → Blue → Yellow → Red → SNAP on 4 straight bounces—land on a floor to reset!',
-      'Collect matching treasure pairs back-to-back for 2×–6× bonus multipliers, and slam glowing doors to sweep cats!',
+      'Watch for the flashing PAIR! halo to grab matching stolen items back-to-back for up to 6× bonuses—and catch Big Goro peeking behind loot for +1,000!',
+      'On Round 2+, drop hanging Brass Attic Bells onto pursuing cats for +500 BELL KO stuns, and beware the golden Gosenzo Coin if HURRY UP triggers!',
+      'Every 3rd round enters the iconic Namco Balloon Trampoline Bonus Stage—pop the Giant Goro Balloon for +2,000 and clear all 16 for +5,000!',
     ],
   },
 
@@ -696,16 +700,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-orange-400',
     accentButtonClass: 'bg-orange-500 hover:bg-orange-400 text-slate-950 focus-visible:ring-orange-200',
     borderHoverClass: 'hover:border-orange-400/50',
-    subtitle: '1981 · Slanted Girders & Rivets · Rolling Barrels & Golden Hammer',
+    subtitle: '1981 · All 4 Authentic Stages · 25m Girders · 50m Pie Factory · 75m Elevators · 100m Rivets',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Run girders & climb blue ladders' },
-      { key: 'Space / Z', desc: 'Jump over rolling barrels (+100)' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Precision run girders, ride elevators & climb ladders' },
+      { key: 'Space / Z', desc: 'Jump over barrels, cement pies & bouncing Jack Springs' },
       { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Grab a suspended Hammer to smash rolling barrels for 300–500 points each.',
-      'Reach Pauline on the top girder to clear 25m, or pull all 8 yellow rivets to collapse 100m!',
-      'Jump cleanly over approaching barrels for quick 100-point leap bonuses.',
+      'Conquer all 4 authentic 1981 stages: 25m Girders (with Oil-ignited Fireballs), 50m Pie Factory Conveyors, 75m Elevators & Springs, and 100m Rivets!',
+      'Grab suspended Golden Hammers to smash Barrels, Pies & Fireballs (+300/+500), and scoop Pauline’s Umbrella, Hat & Purse for bonus points.',
+      'Pull all 8 golden rivets on 100m to drop the steel tower and send Donkey Kong tumbling!',
     ],
   },
   dkongjr: {
@@ -716,16 +720,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-green-400',
     accentButtonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
     borderHoverClass: 'hover:border-green-400/50',
-    subtitle: '1982 · Dual-Vine Climbing · Falling Jungle Fruit · Rescue Papa Kong',
+    subtitle: '1982 · 3 Authentic Stages · Jungle Vines · Springboard Canopy · Mario’s Electric Hideout',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Climb vines (2 vines = fast up, 1 vine = fast down)' },
-      { key: 'Space / Z', desc: 'Leap across jungle vines & gaps' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Climb vines (2 vines = 2× fast up, 1 vine = fast slide)' },
+      { key: 'Space / Z', desc: 'Leap across jungle vines, islands & Springboard' },
       { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Hold between two adjacent vines to climb upward nearly twice as fast!',
-      'Touch suspended tropical fruits to drop them onto Snapjaws climbing below (+800).',
-      'Collect all 3 golden keys at the top deck to unlock Papa Kong’s cage.',
+      'Play all 3 authentic 1982 stages: Waterfall Jungle Vines, Springboard & Moving Islands (with Nitpicker Birds), and Mario’s Electric Hideout (6 Keys & Sparks)!',
+      'Grip between two vines to climb upward nearly twice as fast, and drop hanging fruits onto Snapjaws for 400→800→1600 chain crushes.',
+      'Unlock all golden keys beneath Papa Kong’s barred cage while Mario paces overhead!',
     ],
   },
   dkong3: {
@@ -736,16 +740,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-lime-400',
     accentButtonClass: 'bg-lime-400 hover:bg-lime-300 text-slate-950 focus-visible:ring-lime-200',
     borderHoverClass: 'hover:border-lime-400/50',
-    subtitle: '1983 · Stanley’s Greenhouse · Bug Spray · Super Spray & 5 Flowers',
+    subtitle: '1983 · 3 Conservatory Themes · Stanley’s Bug Spray · Super Can · Coconuts & 5 Flowers',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Move Stanley across 3 greenhouse decks' },
-      { key: 'Space / Z', desc: 'Blast upward Bug Spray at DK & insects' },
-      { key: 'P', desc: 'Pause / resume cabinet' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Move Stanley across 3 sunlit greenhouse decks & ladders' },
+      { key: 'Space / Z', desc: 'Blast upward Bug Spray & Golden Super Spray' },
+      { key: 'Shift / X (or Up off ladder)', desc: 'Hop cleanly over Creepy caterpillars & DK Coconuts' },
     ],
     tips: [
-      'Spray Donkey Kong upward until his head hits the golden beehive at the top!',
-      'Push DK halfway up to shake loose the flashing Super Spray can for hyper-rapid blasts.',
-      'Intercept Buzzbees and Beespies before they steal your 5 potted flowers.',
+      'Blast Donkey Kong straight up into the golden beehive while dodging falling Coconuts and intercepting flower-stealing Buzzbees & Beespies!',
+      'Push DK halfway up to shake loose the flashing golden Super Spray Can for hyper-rapid blasts.',
+      'Protect all 5 individually blooming potted flowers across Blue, Amber, and Crimson Conservatory halls!',
     ],
   },
   smb1: {
@@ -1201,19 +1205,20 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     title: '1942',
     year: 1984,
     publisher: 'Capcom',
-    accentTextClass: 'text-slate-200',
+    accentTextClass: 'text-slate-100',
     accentButtonClass: 'bg-slate-200 hover:bg-white text-slate-950 focus-visible:ring-slate-300',
     borderHoverClass: 'hover:border-slate-300/50',
-    subtitle: '1984 · P-38 Super Ace · Barrel Roll Invincibility · Wingmen & Carriers',
+    subtitle: '1984 · USS Hornet Carrier Launch · 3D Loop-the-Loop · Twin Wingmen & Ayako Boss',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Pilot P-38 Lightning over Pacific' },
-      { key: 'Space / Z', desc: 'Rapid-fire twin guns' },
-      { key: 'Shift / X', desc: 'Execute invulnerable Barrel Roll Loop (3/stage)' },
+      { key: 'Arrows / WASD / Mouse', desc: 'Pilot silver P-38 Lightning across 4 Pacific theaters' },
+      { key: 'Space / Z / Click', desc: 'Fire Twin or POW Quad-Guns (+ Wingmen escorts)' },
+      { key: 'Shift / X', desc: 'Execute 3D Loop-the-Loop invulnerable roll (3/stage)' },
+      { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Destroy complete Red Fighter formations to drop POW icons for Quad Guns, Wingmen, and Smart Clears!',
-      'Trigger a Barrel Roll Loop (Shift/X) right before colliding with bullets or dive bombers.',
-      'Focus sustained fire on giant Ayako heavy bombers for massive point payouts.',
+      'Wipe out complete Red Fighter formations to drop iconic POWs: Quad Guns, Twin Wingmen, Screen Crash, Extra Roll, Yashichi, or 1-UP!',
+      'Trigger a 3D Loop-the-Loop (Shift/X) to dodge dense spreads and land back on USS Hornet for Shoot-Down % & Roll bonuses.',
+      'Focus Quad-Gun fire on the giant 4-engine Ayako Super-Bomber’s rotating turret and engines to push TO TOKYO!',
     ],
   },
   ww1943: {
@@ -1221,19 +1226,20 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     title: '1943: The Battle of Midway',
     year: 1987,
     publisher: 'Capcom',
-    accentTextClass: 'text-sky-400',
-    accentButtonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
-    borderHoverClass: 'hover:border-sky-400/50',
-    subtitle: '1987 · Energy Bar · Shotgun & 3-Way · Lightning Mega-Crash & Battleships',
+    accentTextClass: 'text-emerald-400',
+    accentButtonClass: 'bg-emerald-400 hover:bg-emerald-300 text-slate-950 focus-visible:ring-emerald-200',
+    borderHoverClass: 'hover:border-emerald-400/50',
+    subtitle: '1987 · Shoot-to-Cycle POW Arsenal · Energy Gauge · Lightning Mega-Crash · Yamato Fleet',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Maneuver P-38 over Midway fleet' },
-      { key: 'Space / Z', desc: 'Fire upgraded special weapons' },
-      { key: 'Shift / X', desc: 'Unleash Lightning Mega-Crash (clears bullets & damages fleet)' },
+      { key: 'Arrows / WASD / Mouse', desc: 'Pilot emerald-trim P-38 over Midway naval armada' },
+      { key: 'Space / Z / Click', desc: 'Fire Shotgun, 3-Way, Auto, Shell, or Laser & shoot POWs to cycle' },
+      { key: 'Shift / X', desc: 'Unleash Lightning Mega-Crash (vaporizes bullets & shocks turrets)' },
+      { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Shoot POW icons to cycle weapon power-ups (3-Way, Shotgun, Auto-Fire) or grab Energy refills!',
-      'Your Shotgun blasts destroy enemy bullets mid-air—ideal against dense Battleship turrets.',
-      'Your Energy bar ticks down slowly; snag floating Energy drums to survive the Boss Assault.',
+      'Shoot floating POW icons to cycle between SHOTGUN, 3-WAY, AUTO, SHELL, LASER, ENERGY fuel refills, and Armored Side Wingmen!',
+      'Shotgun blasts erase incoming enemy bullets mid-air—vital when dismantling Cruiser Tone, Carrier Kaga, Ayako Mk-II, and Battleship Yamato.',
+      'Watch your draining Energy/Fuel bar and crack every rotating warship turret to push Destruction % to 100% and sink the flagship!',
     ],
   },
   starwars: {
@@ -1286,17 +1292,17 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-green-400',
     accentButtonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
     borderHoverClass: 'hover:border-green-400/50',
-    subtitle: '1984 · 2.5D Isometric Raster Deluxe · Ewok Traps & Gliders · Shield Bunker · DS-II Tunnel & Fireball',
+    subtitle: '1984 · 2.5D Isometric Raster · Weave, Jump & Duck · Ewok Traps · Reversed-Camera DS-II Escape',
     controls: [
-      { key: 'Mouse / Arrows / Joystick', desc: 'Steer Speeder Bike, AT-ST Walker & Millennium Falcon diagonally' },
-      { key: 'Click / Space', desc: 'Fire blasters, quad turrets & trigger Ewok Hanging Log-Traps' },
-      { key: 'Shift / X', desc: 'Turbo Ram (Endor) · Arcing Concussion Mortar (AT-ST) · Afterburner (Falcon)' },
+      { key: 'Mouse / Arrows / Joystick', desc: 'Weave Left/Right around Redwoods, Pylons & Rolling Logs' },
+      { key: 'Click / Space', desc: 'Fire blasters, shoot rolling logs (+500) & trigger Ewok Traps' },
+      { key: 'Shift / X', desc: 'JUMP / VAULT over fallen logs, ravines & low energy barriers (Afterburner climb in Falcon)' },
       { key: 'P', desc: 'Pause / resume cabinet' },
     ],
     tips: [
-      'Stage 1 (Leia): Hit Shift/X Turbo Ram to smash Scout Troopers into Redwoods (+1,000), shoot Ewok Log-Traps, and race to the Ewok Village!',
-      'Stage 2 (Chewbacca AT-ST): Let Ewok Hang-Gliders bomb turrets, clear mines with Concussion Mortars, and destroy flanking Power Conduits before shattering the Shield Dish!',
-      'Stage 3 (Lando Falcon): Thread Force-Gates into the interior Reactor Tunnel, knock out Core Conduits & Reactor Core, then hit Afterburner through Blast Doors to outrun the Fireball!',
+      'Stage 1 (Leia): Weave Left/Right around Redwoods, press Shift/X to JUMP over fallen logs & creek ravines, stay LOW under overhead branches, and lure tailing Scouts into Ewok traps!',
+      'Stage 2 (Chewbacca AT-ST): Shoot (+500) or Hydraulic-Hop (Shift/X) over rolling logs & mines, dodge catapulted rocks, and blow the flanking Power Conduits before shattering the Shield Dish!',
+      'Stage 3 (Lando Falcon + X-Wing Escorts): Climb OVER low barriers, fly UNDER ceiling beams into the Reactor Core—then survive the authentic 1984 REVERSED-CAMERA Fireball Escape!',
     ],
   },
   berzerk: {
@@ -1307,16 +1313,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-green-400',
     accentButtonClass: 'bg-green-500 hover:bg-green-400 text-slate-950 focus-visible:ring-green-200',
     borderHoverClass: 'hover:border-green-400/50',
-    subtitle: '1980 · Electrified Mazes · Smart Robots · Invincible Evil Otto',
+    subtitle: '1980 · High-Voltage Stern Maze · 6 Robot Tiers · Crossfire & Invincible Evil Otto',
     controls: [
-      { key: 'Arrows / WASD', desc: '8-way maze movement & aim direction' },
-      { key: 'Space / Z', desc: 'Fire directional laser pulse' },
-      { key: 'P', desc: 'Pause / resume cabinet' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Precision 8-way corridor movement (55%/78%/100% Speed)' },
+      { key: 'Space / Click', desc: 'Fire 8-way or Mouse-aimed neon laser bolt' },
+      { key: 'Shift / X (Hold)', desc: 'Plant feet to aim & fire without touching electric walls!' },
     ],
     tips: [
-      'Never brush against the electrified maze walls—use corners as cover against robot crossfire.',
-      'Lure robots into shooting each other or marching straight into walls for free kills!',
-      'Clear every robot for a room bonus, and exit before bouncing Evil Otto catches you.',
+      'Hold Shift/X (or use 55% Fine Speed) to pivot and fire cleanly around crackling high-voltage corridors.',
+      'Lure Cyclops robots into frying on electrified walls or shooting each other in crossfire!',
+      'Clear every robot for a Room Clear Bonus—then sprint through a pulsing exit before bouncing Evil Otto catches you!',
     ],
   },
   robotron: {
@@ -1366,16 +1372,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-amber-400',
     accentButtonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
     borderHoverClass: 'hover:border-amber-400/50',
-    subtitle: '1982 · Ostrich Wing-Flap Physics · Lance Height Duels & Lava Troll',
+    subtitle: '1982 · Volcanic Colosseum · Bounders, Hunters & Shadow Lords · Lava Troll & Pterodactyl',
     controls: [
-      { key: 'Left / Right (A / D)', desc: 'Gallop & steer ostrich mid-air' },
-      { key: 'Space / Up / W', desc: 'Flap ostrich wings to gain altitude' },
-      { key: 'P', desc: 'Pause / resume cabinet' },
+      { key: 'Left / Right / Tilt', desc: 'Precision gallop & aerial ostrich steering' },
+      { key: 'Space / Up / W', desc: 'Flap ostrich wings (tap fast to escape Lava Troll!)' },
+      { key: 'Shift / X / Down', desc: 'Skid Brake with sparks on stone ledges' },
     ],
     tips: [
-      'Collide with enemy Buzzard Riders while your lance is HIGHER than theirs to unseat them!',
-      'Scoop up falling Eggs mid-air (+500 bonus) before they hatch into stronger Shadow Lords.',
-      'Stay clear of the fiery lava floor—the Lava Troll grabs low-flying riders!',
+      'Strike Buzzard Knights with your lance HIGHER than theirs—equal height triggers a sparking Lance Clash bounce!',
+      'Snatch falling Eggs in MID-AIR (+500 bonus) before they hatch into tougher Hunters or Shadow Lords.',
+      'Beware crumbling outer magma bridges—and level your lance directly into a swooping Pterodactyl’s open mouth for +1,000!',
     ],
   },
   pengo: {
@@ -1569,16 +1575,16 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-purple-400',
     accentButtonClass: 'bg-purple-500 hover:bg-purple-400 text-white focus-visible:ring-purple-300',
     borderHoverClass: 'hover:border-purple-400/50',
-    subtitle: '1983 · Isometric 3D Gem Mazes · Bentley Bear · Magic Hat & Berthilda',
+    subtitle: '1983 · 8 3D Castles · Sculpted Stairs & Elevators · Expressive Bentley Bear · Berthilda',
     controls: [
-      { key: 'Arrows / WASD / Mouse', desc: 'Guide Bentley Bear across isometric stairs' },
-      { key: 'Space / Click', desc: 'Jump over Gem Eaters, Trees & Honey Pots' },
-      { key: 'P', desc: 'Pause / resume cabinet' },
+      { key: 'Arrows / WASD / Mouse / Tilt', desc: 'Precision isometric steering across stairs & crystal lifts' },
+      { key: 'Space / Click', desc: 'Jump over ledges, moat gaps, Gem Eaters & Crystal Balls' },
+      { key: 'Shift / X', desc: 'Bear Dash / Golden Magic Hat Dash burst' },
     ],
     tips: [
-      'Collect every sparkling gem across the 3D castle tiers—grab the last gem for a 500-pt bonus!',
-      'Jump over stalking Gem Eaters and Skeletons, or snag the Magic Hat to turn invulnerable.',
-      'Take the glowing elevator pads to reach upper parapets and secret warp shortcuts.',
+      'Climb sculpted 3D staircases and ride glowing moving Crystal Elevators up to high towers across 8 castles!',
+      'Jump over Gem Eaters—or catch them while they flash gold munching a gem to knock them out (+1,000)!',
+      'Don the starry Magic Hat to defeat Berthilda the Witch (+3,000), and jump onto cyan Warp Pads to skip ahead!',
     ],
   },
   rampage: {
@@ -1837,9 +1843,9 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
     case 'timepilot':
       return new ScrollingShooterGame('timepilot');
     case 'ww1942':
-      return new ScrollingShooterGame('ww1942');
+      return new Ww1942Game();
     case 'ww1943':
-      return new ScrollingShooterGame('ww1943');
+      return new Ww1943Game();
     case 'starwars':
       return new StarWars1983Game();
     case 'starwarsesb':
@@ -1847,13 +1853,13 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
     case 'starwarsrotj':
       return new StarWarsRotjGame();
     case 'berzerk':
-      return new ArenaTwinStickGame('berzerk');
+      return new BerzerkGame();
     case 'robotron':
       return new ArenaTwinStickGame('robotron');
     case 'frogger':
       return new FroggerArcadeGame();
     case 'joust':
-      return new JoustArcadeGame();
+      return new JoustGame();
     case 'pengo':
       return new PengoArcadeGame();
     case 'popeye':
@@ -1873,7 +1879,7 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
     case 'puzzlebobble3':
       return new PuzzleBobbleGame('puzzlebobble3');
     case 'crystalcastles':
-      return new CrystalCastlesArcadeGame();
+      return new CrystalCastlesGame();
     case 'rampage':
       return new RampageArcadeGame();
     case 'dragonslair':

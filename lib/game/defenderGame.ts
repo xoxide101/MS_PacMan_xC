@@ -1,4 +1,3 @@
-import { arcadeAudio } from './audio';
 import {
   ArcadeGameInstance,
   ArcadeInputState,
@@ -7,6 +6,7 @@ import {
   ScorePopup,
   SimpleParticle,
   createEmptyInput,
+  getPrecisionMoveVector,
   readHighScore,
   renderCrtOverlay,
   renderParticlesAndPopups,
@@ -14,30 +14,50 @@ import {
   spawnBurst,
   stepParticlesAndPopups,
 } from './classicArcadeInterface';
+import { arcadeAudio } from './audio';
+import { drawStarGlint } from './arcadeGfx';
 
 export type DefenderVariant = 'defender' | 'defender2' | 'stargate';
+
+const W = 720;
+const H = 640;
+const WORLD_W = 2880;
+const SCANNER_H = 74;
+const PLAY_TOP = SCANNER_H + 10;
+const PLAY_BOTTOM = H - 24;
+
+type EnemyKind =
+  | 'lander'
+  | 'mutant'
+  | 'bomber'
+  | 'pod'
+  | 'swarmer'
+  | 'baiter'
+  | 'firebomber'
+  | 'spacemine'
+  | 'yllabian'
+  | 'dynamo'
+  | 'munchie';
 
 interface Humanoid {
   id: number;
   x: number;
   y: number;
-  vx: number;
-  vy: number;
   state: 'walking' | 'abducted' | 'falling' | 'carried' | 'dead';
-  abductorId: number | null;
+  vy: number;
   fallStartY: number;
+  walkDir: -1 | 1;
+  abductorId: number | null;
 }
 
-type EnemyKind = 'lander' | 'mutant' | 'bomber' | 'pod' | 'swarmer' | 'baiter' | 'firebomber';
-
-interface Enemy {
+interface DefenderEnemy {
   id: number;
   kind: EnemyKind;
   x: number;
   y: number;
   vx: number;
   vy: number;
-  fireCd: number;
+  fireTimer: number;
   targetHumanoidId: number | null;
   phase: number;
   hp: number;
@@ -46,10 +66,10 @@ interface Enemy {
 interface LaserBeam {
   x: number;
   y: number;
-  dir: 1 | -1;
-  len: number;
+  dir: -1 | 1;
   life: number;
-  hue: number;
+  length: number;
+  color: string;
 }
 
 interface EnemyShot {
@@ -57,17 +77,26 @@ interface EnemyShot {
   y: number;
   vx: number;
   vy: number;
-  isMine: boolean;
   life: number;
+  isMine: boolean;
+  color: string;
 }
 
-const LOGICAL_W = 864;
-const LOGICAL_H = 640;
-const WORLD_W = 3456;
-const SCANNER_H = 88;
-const PLAY_TOP = SCANNER_H + 6;
-const PLAY_BOTTOM = LOGICAL_H - 18;
-const GROUND_BASE = LOGICAL_H - 56;
+interface StarDot {
+  x: number;
+  y: number;
+  size: number;
+  twinkle: number;
+  color: string;
+  parallax: number;
+}
+
+interface NebulaPuff {
+  x: number;
+  y: number;
+  r: number;
+  color: string;
+}
 
 function wrapX(x: number): number {
   let r = x % WORLD_W;
@@ -75,775 +104,1084 @@ function wrapX(x: number): number {
   return r;
 }
 
-function deltaX(from: number, to: number): number {
-  let d = to - from;
-  if (d > WORLD_W * 0.5) d -= WORLD_W;
-  if (d < -WORLD_W * 0.5) d += WORLD_W;
+function wrappedDeltaX(fromX: number, toX: number): number {
+  let d = toX - fromX;
+  if (d > WORLD_W / 2) d -= WORLD_W;
+  if (d < -WORLD_W / 2) d += WORLD_W;
   return d;
 }
 
 export class DefenderGame implements ArcadeGameInstance {
-  public readonly logicalWidth = LOGICAL_W;
-  public readonly logicalHeight = LOGICAL_H;
+  public readonly logicalWidth = W;
+  public readonly logicalHeight = H;
   public readonly supportsPointerAim = false;
-  public readonly primaryActionLabel = 'Laser';
-  public readonly secondaryActionLabel = 'Smart Bomb';
+  public readonly primaryActionLabel = 'LASER';
+  public readonly secondaryActionLabel = 'SMART BOMB';
 
-  private variant: DefenderVariant;
-  private storageKey: string;
+  private readonly variant: DefenderVariant;
   private phase: ClassicGamePhase = 'TITLE';
   private input: ArcadeInputState = createEmptyInput();
-
   private score = 0;
   private highScore = 0;
-  private nextExtraLife = 10000;
   private level = 1;
   private lives = 3;
   private smartBombs = 3;
-
-  private clock = 0;
+  private nextExtraLifeScore = 10000;
+  private time = 0;
   private phaseTimer = 0;
-  private screenFlash = 0;
-  private planetDestroyed = false;
-  private planetExplodeFlash = 0;
+  private bannerText = '';
 
-  // Player ship
-  private shipX = WORLD_W * 0.5;
-  private shipY = 320;
-  private shipVx = 0;
-  private shipVy = 0;
-  private facing: 1 | -1 = 1;
-  private fireCd = 0;
+  // Player fighter state
+  private px = WORLD_W * 0.5;
+  private py = 330;
+  private pvx = 0;
+  private pvy = 0;
+  private facing: -1 | 1 = 1;
+  private cameraX = WORLD_W * 0.5 - W * 0.35;
+  private fireCooldown = 0;
   private invulnTimer = 0;
-  private cameraX = WORLD_W * 0.5 - LOGICAL_W * 0.35;
-  private carriedHumanoidId: number | null = null;
+  private smartBombFlash = 0;
+  private screenShake = 0;
 
-  // Defender II / Stargate Inviso Cloak & Stargate Warp
-  private invisoEnergy = 100;
+  // Variant-specific special systems
+  // Defender (1981): Hyperspace cooldown + flash
+  private hyperspaceCooldown = 0;
+  private hyperspaceFlash = 0;
+  // Defender II & Stargate: Inviso Cloak + Stargate / Warp Gate
   private invisoActive = false;
-  private stargateX = WORLD_W * 0.25;
-  private stargateY = 250;
-  private warpCd = 0;
-  private waveElapsed = 0;
-  private baiterTimer = 28;
+  private invisoEnergy = 100;
+  private stargateX = WORLD_W * 0.5;
+  private stargateY = 270;
+  private stargateCooldown = 0;
+  private warpTunnelTimer = 0;
+  private warpBonusText = '';
 
-  private nextEntityId = 1;
-  private terrainHeights: number[] = [];
-  private stars: Array<{ x: number; y: number; r: number; c: string }> = [];
+  private carryingHumanoidId: number | null = null;
+  private planetDestroyed = false;
+  private waveTimer = 0;
+  private baiterSpawned = 0;
+
+  private terrain: number[] = [];
+  private stars: StarDot[] = [];
+  private nebulae: NebulaPuff[] = [];
   private humanoids: Humanoid[] = [];
-  private enemies: Enemy[] = [];
+  private enemies: DefenderEnemy[] = [];
   private lasers: LaserBeam[] = [];
   private enemyShots: EnemyShot[] = [];
   private particles: SimpleParticle[] = [];
   private popups: ScorePopup[] = [];
+  private nextEntityId = 1;
 
   constructor(variant: DefenderVariant) {
     this.variant = variant;
-    this.storageKey = `${variant}_hd_highscore_v1`;
-    this.highScore = readHighScore(this.storageKey);
-    this.buildTerrain();
-    this.buildStars();
-    this.setupAttract();
+    this.highScore = readHighScore(`arcade_hs_${variant}`);
+    this.buildBackdropAndTerrain();
+    this.setupWave(1, true);
+    this.bannerText = this.getTitleBanner();
   }
 
-  private getAccentColor(): string {
-    if (this.variant === 'defender') return '#F59E0B';
-    if (this.variant === 'defender2') return '#A855F7';
-    return '#38BDF8';
+  public get canRestartStage(): boolean {
+    return true;
   }
 
-  private getTitleName(): string {
-    if (this.variant === 'defender') return 'Defender';
-    if (this.variant === 'defender2') return 'Defender II';
-    return 'Stargate';
-  }
-
-  private buildTerrain(): void {
-    const samples = 144;
-    this.terrainHeights = [];
-    for (let i = 0; i < samples; i++) {
-      const t = (i / samples) * Math.PI * 2;
-      const h =
-        Math.sin(t * 3) * 24 +
-        Math.sin(t * 7 + 1.1) * 18 +
-        Math.cos(t * 13 + 2.4) * 11 +
-        Math.sin(t * 23) * 6;
-      this.terrainHeights.push(GROUND_BASE - Math.max(-18, h));
-    }
-  }
-
-  private terrainYAt(worldX: number): number {
-    if (this.planetDestroyed) return PLAY_BOTTOM - 10;
-    const x = wrapX(worldX);
-    const f = (x / WORLD_W) * this.terrainHeights.length;
-    const i0 = Math.floor(f) % this.terrainHeights.length;
-    const i1 = (i0 + 1) % this.terrainHeights.length;
-    const frac = f - Math.floor(f);
-    return this.terrainHeights[i0] * (1 - frac) + this.terrainHeights[i1] * frac;
-  }
-
-  private buildStars(): void {
-    this.stars = [];
-    const palette = ['#FFFFFF', '#93C5FD', '#FDE68A', '#F9A8D4', '#A5F3FC'];
-    for (let i = 0; i < 110; i++) {
-      this.stars.push({
-        x: (i * 313 + 79) % WORLD_W,
-        y: PLAY_TOP + 16 + ((i * 197 + 41) % (GROUND_BASE - PLAY_TOP - 80)),
-        r: (i % 3 === 0 ? 1.7 : 1.1),
-        c: palette[i % palette.length],
-      });
-    }
-  }
-
-  private setupAttract(): void {
-    this.phase = 'TITLE';
-    this.level = 1;
-    this.planetDestroyed = false;
-    this.spawnHumanoids();
-    this.spawnWave(1);
-    this.shipX = WORLD_W * 0.5;
-    this.shipY = 300;
-    this.cameraX = wrapX(this.shipX - LOGICAL_W * 0.32);
-  }
-
-  private spawnHumanoids(): void {
-    this.humanoids = [];
-    for (let i = 0; i < 10; i++) {
-      const hx = wrapX((i + 0.5) * (WORLD_W / 10) + (Math.random() - 0.5) * 120);
-      this.humanoids.push({
-        id: this.nextEntityId++,
-        x: hx,
-        y: this.terrainYAt(hx) - 8,
-        vx: (i % 2 === 0 ? 1 : -1) * (14 + Math.random() * 8),
-        vy: 0,
-        state: 'walking',
-        abductorId: null,
-        fallStartY: 0,
-      });
-    }
-  }
-
-  private spawnWave(wave: number): void {
-    this.enemies = [];
-    this.enemyShots = [];
-    this.lasers = [];
-    this.waveElapsed = 0;
-    this.baiterTimer = Math.max(16, 30 - wave * 2);
-    this.stargateX = wrapX(this.shipX + WORLD_W * 0.48);
-    this.stargateY = 230 + (wave % 3) * 55;
-
-    const landerCount = 7 + Math.min(10, wave * 2);
-    const bomberCount = 2 + Math.min(5, Math.floor(wave * 0.9));
-    const podCount = 1 + Math.min(4, Math.floor((wave + 1) * 0.6));
-
-    for (let i = 0; i < landerCount; i++) {
-      const ex = wrapX(this.shipX + 420 + (i / landerCount) * (WORLD_W - 840));
-      this.enemies.push({
-        id: this.nextEntityId++,
-        kind: this.planetDestroyed ? 'mutant' : 'lander',
-        x: ex,
-        y: PLAY_TOP + 34 + Math.random() * 140,
-        vx: (i % 2 === 0 ? 1 : -1) * (75 + wave * 8),
-        vy: (Math.random() - 0.5) * 40,
-        fireCd: 1.4 + Math.random() * 2.2,
-        targetHumanoidId: null,
-        phase: Math.random() * Math.PI * 2,
-        hp: 1,
-      });
-    }
-
-    for (let i = 0; i < bomberCount; i++) {
-      const ex = wrapX(this.shipX + 520 + i * 440);
-      const isFire = this.variant !== 'defender' && i % 2 === 1;
-      this.enemies.push({
-        id: this.nextEntityId++,
-        kind: isFire ? 'firebomber' : 'bomber',
-        x: ex,
-        y: PLAY_TOP + 70 + Math.random() * 260,
-        vx: (i % 2 === 0 ? 1 : -1) * (88 + wave * 6),
-        vy: 50,
-        fireCd: 1.0 + Math.random() * 1.4,
-        targetHumanoidId: null,
-        phase: Math.random() * Math.PI * 2,
-        hp: 1,
-      });
-    }
-
-    for (let i = 0; i < podCount; i++) {
-      const ex = wrapX(this.shipX + 750 + i * 620);
-      this.enemies.push({
-        id: this.nextEntityId++,
-        kind: 'pod',
-        x: ex,
-        y: PLAY_TOP + 80 + Math.random() * 220,
-        vx: (i % 2 === 0 ? 1 : -1) * 58,
-        vy: (Math.random() - 0.5) * 35,
-        fireCd: 3.0,
-        targetHumanoidId: null,
-        phase: Math.random() * Math.PI * 2,
-        hp: 1,
-      });
-    }
-  }
-
-  public startNewGame(): void {
-    this.score = 0;
-    this.nextExtraLife = 10000;
-    this.level = 1;
-    this.lives = 3;
-    this.smartBombs = 3;
-    this.planetDestroyed = false;
-    this.invisoEnergy = 100;
-    this.invisoActive = false;
-    this.carriedHumanoidId = null;
-    this.particles = [];
-    this.popups = [];
-
-    this.shipX = WORLD_W * 0.5;
-    this.shipY = 300;
-    this.shipVx = 0;
-    this.shipVy = 0;
-    this.facing = 1;
-    this.invulnTimer = 2.0;
-    this.cameraX = wrapX(this.shipX - LOGICAL_W * 0.3);
-
-    this.spawnHumanoids();
-    this.spawnWave(1);
-    this.phase = 'READY';
-    this.phaseTimer = 1.25;
-    arcadeAudio.playArcadeStart();
-  }
-
-  public togglePause(): void {
-    if (this.phase === 'PLAYING') this.phase = 'PAUSED';
-    else if (this.phase === 'PAUSED') this.phase = 'PLAYING';
-  }
-
-  public resetToTitle(): void {
-    this.setupAttract();
-  }
-
-  public restartStage(): void {
-    // In Defender II / Stargate, R activates the rechargeable Inviso Cloak!
-    if (this.variant !== 'defender' && this.phase === 'PLAYING') {
-      if (this.invisoActive) {
-        this.invisoActive = false;
-      } else if (this.invisoEnergy >= 20) {
-        this.invisoActive = true;
-        arcadeAudio.playSuperTransform();
-        this.addPopup(this.shipX, this.shipY - 26, 'INVISO CLOAK!', '#A855F7');
-      }
-    }
+  private getTitleBanner(): string {
+    if (this.variant === 'defender') return 'PRESS PLAY · DEFENDER 1981 FRONTIER';
+    if (this.variant === 'defender2') return 'PRESS PLAY · DEFENDER II NEBULA';
+    return 'PRESS PLAY · STARGATE HYPERSPACE';
   }
 
   public setInput(input: ArcadeInputState): void {
     this.input = input;
   }
 
-  private addScore(pts: number, worldX?: number, worldY?: number, color = '#FDE047'): void {
-    this.score += pts;
-    if (this.score > this.highScore) {
-      this.highScore = this.score;
-      saveHighScore(this.storageKey, this.highScore);
-    }
-    if (this.score >= this.nextExtraLife) {
-      this.nextExtraLife += 10000;
-      this.lives = Math.min(6, this.lives + 1);
-      this.smartBombs = Math.min(6, this.smartBombs + 1);
-      arcadeAudio.playExtraLife();
-      this.addPopup(this.shipX, this.shipY - 30, '1UP + SMART BOMB', '#34D399');
-    }
-    if (worldX !== undefined && worldY !== undefined) {
-      this.addPopup(worldX, worldY, `${pts}`, color);
-    }
+  public startNewGame(): void {
+    arcadeAudio.unlock();
+    arcadeAudio.playArcadeStart();
+    this.score = 0;
+    this.level = 1;
+    this.lives = 3;
+    this.smartBombs = 3;
+    this.nextExtraLifeScore = 10000;
+    this.planetDestroyed = false;
+    this.invisoActive = false;
+    this.invisoEnergy = 100;
+    this.hyperspaceCooldown = 0;
+    this.warpTunnelTimer = 0;
+    this.particles = [];
+    this.popups = [];
+    this.setupWave(1, true);
+    this.phase = 'READY';
+    this.phaseTimer = 1.4;
+    this.bannerText =
+      this.variant === 'defender'
+        ? 'ATTACK WAVE 1 · PROTECT THE HUMANOIDS'
+        : this.variant === 'defender2'
+          ? 'NEBULA WAVE 1 · INVISO & WARP GATE READY'
+          : 'STARGATE WAVE 1 · DEFEND THE SECTOR';
   }
 
-  private addPopup(worldX: number, worldY: number, text: string, color: string): void {
-    this.popups.push({
-      x: worldX,
-      y: worldY,
-      text,
-      color,
-      life: 0.9,
-      maxLife: 0.9,
-    });
-  }
-
-  private worldToScreenX(wx: number): number {
-    const center = wrapX(this.cameraX + LOGICAL_W * 0.5);
-    return LOGICAL_W * 0.5 + deltaX(center, wx);
-  }
-
-  private triggerSmartBomb(): void {
-    if (this.smartBombs <= 0) return;
-    this.smartBombs -= 1;
-    this.screenFlash = 0.42;
-    arcadeAudio.playSmartBomb();
-
-    for (let i = this.enemies.length - 1; i >= 0; i--) {
-      const e = this.enemies[i];
-      const sx = this.worldToScreenX(e.x);
-      if (sx >= -30 && sx <= LOGICAL_W + 30) {
-        this.destroyEnemy(i, true);
+  public restartStage(): void {
+    if (this.phase !== 'PLAYING' && this.phase !== 'READY') return;
+    if (this.variant === 'defender') {
+      // Classic 1981 Defender Hyperspace Warp!
+      if (this.hyperspaceCooldown > 0) return;
+      this.hyperspaceCooldown = 1.6;
+      this.hyperspaceFlash = 0.45;
+      arcadeAudio.playHyperspace();
+      spawnBurst(this.particles, this.px, this.py, '#F59E0B', 20, 240, 3.2);
+      this.px = wrapX(this.px + 600 + Math.random() * 1600);
+      this.py = PLAY_TOP + 60 + Math.random() * (PLAY_BOTTOM - PLAY_TOP - 150);
+      this.pvx = 0;
+      this.pvy = 0;
+      this.invulnTimer = Math.max(this.invulnTimer, 0.85);
+      spawnBurst(this.particles, this.px, this.py, '#FEF08A', 20, 220, 3.2);
+      this.popups.push({
+        x: this.px,
+        y: this.py - 26,
+        text: 'HYPERSPACE!',
+        color: '#FACC15',
+        life: 1.0,
+        maxLife: 1.0,
+      });
+    } else {
+      // Defender II & Stargate: Toggle Inviso Cloak Shield!
+      if (this.invisoEnergy > 8) {
+        this.invisoActive = !this.invisoActive;
+        if (this.invisoActive) {
+          arcadeAudio.playInvisoCloak();
+        }
       }
     }
-    this.enemyShots = this.enemyShots.filter((s) => {
-      const sx = this.worldToScreenX(s.x);
-      return sx < -20 || sx > LOGICAL_W + 20;
-    });
   }
 
-  private destroyEnemy(index: number, fromSmartBomb = false): void {
-    const e = this.enemies[index];
-    this.enemies.splice(index, 1);
+  public togglePause(): void {
+    if (this.phase === 'PLAYING') {
+      this.phase = 'PAUSED';
+      this.bannerText = 'PAUSED';
+    } else if (this.phase === 'PAUSED') {
+      this.phase = 'PLAYING';
+      this.bannerText = '';
+    }
+  }
 
-    // Release any abducted humanoid
-    for (const h of this.humanoids) {
-      if (h.abductorId === e.id && h.state === 'abducted') {
-        h.abductorId = null;
-        h.state = 'falling';
-        h.vy = 20;
-        h.fallStartY = h.y;
+  public resetToTitle(): void {
+    this.phase = 'TITLE';
+    this.planetDestroyed = false;
+    this.setupWave(1, true);
+    this.bannerText = this.getTitleBanner();
+  }
+
+  public getHudSnapshot(): ClassicGameHud {
+    const aliveHumanoids = this.humanoids.filter((h) => h.state !== 'dead').length;
+    const stageLabel =
+      this.planetDestroyed
+        ? `MUTANT SPACE · WAVE ${this.level}`
+        : this.variant === 'defender'
+          ? `FRONTIER WAVE ${this.level}`
+          : this.variant === 'defender2'
+            ? `NEBULA WAVE ${this.level}`
+            : `STARGATE WAVE ${this.level}`;
+    return {
+      phase: this.phase,
+      score: this.score,
+      highScore: this.highScore,
+      level: this.level,
+      lives: this.lives,
+      stageName: stageLabel,
+      primaryMetricLabel: 'HUMANOIDS',
+      primaryMetricValue: `${aliveHumanoids}/10`,
+      secondaryMetricLabel:
+        this.variant === 'defender' ? 'BOMBS / HYPER' : 'BOMBS / INVISO',
+      secondaryMetricValue:
+        this.variant === 'defender'
+          ? `${this.smartBombs} · ${this.hyperspaceCooldown <= 0 ? 'RDY' : 'CHG'}`
+          : `${this.smartBombs} · ${Math.round(this.invisoEnergy)}%`,
+      bannerText: this.bannerText,
+      canRestartStage: true,
+    };
+  }
+
+  private buildBackdropAndTerrain(): void {
+    // Variant-distinct terrain geometry
+    const segments = 144;
+    this.terrain = [];
+    for (let i = 0; i <= segments; i++) {
+      const t = (i / segments) * Math.PI * 2;
+      let elev: number;
+      if (this.variant === 'defender') {
+        // Classic 1981 jagged Williams volcanic ridges
+        elev =
+          50 +
+          Math.sin(t * 4) * 26 +
+          Math.cos(t * 9) * 18 +
+          Math.sin(t * 17) * 12;
+      } else if (this.variant === 'defender2') {
+        // Sharp crystalline amethyst spires
+        elev =
+          54 +
+          Math.abs(Math.sin(t * 6)) * 42 +
+          Math.cos(t * 14) * 14;
+      } else {
+        // Sleek geometric cyber-mesa plateaus for Stargate
+        const stepWave = Math.round(Math.sin(t * 5) * 2.2) * 14;
+        elev = 48 + stepWave + Math.cos(t * 11) * 14;
+      }
+      this.terrain.push(PLAY_BOTTOM - Math.max(20, elev));
+    }
+
+    // Starfield with variant-tuned colors
+    const starPalette =
+      this.variant === 'defender'
+        ? ['#FFFFFF', '#FDE68A', '#FB923C', '#FCA5A5']
+        : this.variant === 'defender2'
+          ? ['#FFFFFF', '#E9D5FF', '#F472B6', '#C084FC']
+          : ['#FFFFFF', '#A5F3FC', '#38BDF8', '#34D399'];
+
+    this.stars = [];
+    for (let i = 0; i < 110; i++) {
+      this.stars.push({
+        x: Math.random() * WORLD_W,
+        y: PLAY_TOP + Math.random() * (PLAY_BOTTOM - PLAY_TOP - 80),
+        size: 1 + Math.random() * 1.9,
+        twinkle: Math.random() * Math.PI * 2,
+        color: starPalette[i % starPalette.length],
+        parallax: 0.25 + (i % 3) * 0.2,
+      });
+    }
+
+    // Nebula clouds for Defender II & Stargate
+    this.nebulae = [];
+    const nebCols =
+      this.variant === 'defender2'
+        ? ['rgba(168,85,247,0.16)', 'rgba(236,72,153,0.14)', 'rgba(99,102,241,0.14)']
+        : this.variant === 'stargate'
+          ? ['rgba(6,182,212,0.15)', 'rgba(16,185,129,0.12)', 'rgba(56,189,248,0.14)']
+          : ['rgba(234,88,12,0.08)', 'rgba(220,38,38,0.06)'];
+    for (let i = 0; i < 14; i++) {
+      this.nebulae.push({
+        x: (i / 14) * WORLD_W + 80,
+        y: PLAY_TOP + 80 + ((i * 97) % 300),
+        r: 95 + (i % 4) * 35,
+        color: nebCols[i % nebCols.length],
+      });
+    }
+  }
+
+  private getTerrainY(worldX: number): number {
+    if (this.planetDestroyed) return PLAY_BOTTOM + 60;
+    const x = wrapX(worldX);
+    const segs = this.terrain.length - 1;
+    const pos = (x / WORLD_W) * segs;
+    const idx = Math.floor(pos);
+    const frac = pos - idx;
+    const y0 = this.terrain[idx % segs];
+    const y1 = this.terrain[(idx + 1) % segs];
+    return y0 + (y1 - y0) * frac;
+  }
+
+  private setupWave(lvl: number, resetHumanoids: boolean): void {
+    this.level = lvl;
+    this.waveTimer = 0;
+    this.baiterSpawned = 0;
+    this.lasers = [];
+    this.enemyShots = [];
+    this.carryingHumanoidId = null;
+    this.invisoActive = false;
+    this.invisoEnergy = Math.min(100, this.invisoEnergy + 45);
+    this.stargateCooldown = 0;
+
+    this.px = WORLD_W * 0.5;
+    this.py = 310;
+    this.pvx = 0;
+    this.pvy = 0;
+    this.facing = 1;
+    this.invulnTimer = 1.7;
+    this.stargateX = wrapX(this.px + 260);
+    this.stargateY = 265;
+
+    if (resetHumanoids) {
+      this.humanoids = [];
+      for (let i = 0; i < 10; i++) {
+        const hx = ((i + 0.5) / 10) * WORLD_W;
+        this.humanoids.push({
+          id: this.nextEntityId++,
+          x: hx,
+          y: this.getTerrainY(hx) - 10,
+          state: 'walking',
+          vy: 0,
+          fallStartY: 0,
+          walkDir: i % 2 === 0 ? 1 : -1,
+          abductorId: null,
+        });
+      }
+    } else {
+      for (const h of this.humanoids) {
+        if (h.state !== 'dead') {
+          h.state = 'walking';
+          h.y = this.getTerrainY(h.x) - 10;
+          h.vy = 0;
+          h.abductorId = null;
+        }
       }
     }
 
-    const colorMap: Record<EnemyKind, string> = {
-      lander: '#4ADE80',
-      mutant: '#F43F5E',
-      bomber: '#A855F7',
-      firebomber: '#FB923C',
-      pod: '#38BDF8',
-      swarmer: '#FACC15',
-      baiter: '#22D3EE',
-    };
-    const ptsMap: Record<EnemyKind, number> = {
-      lander: 150,
-      mutant: 150,
-      bomber: 250,
-      firebomber: 300,
-      pod: 1000,
-      swarmer: 150,
-      baiter: 200,
-    };
+    this.enemies = [];
+    const landers = 6 + Math.min(8, lvl * 2);
+    const pods = Math.min(5, 1 + Math.floor(lvl / 2));
 
-    spawnBurst(this.particles, e.x, e.y, colorMap[e.kind], fromSmartBomb ? 10 : 16, 210, 3.2);
-    this.addScore(ptsMap[e.kind], e.x, e.y, colorMap[e.kind]);
+    for (let i = 0; i < landers; i++) {
+      const ex = wrapX(this.px + 340 + (i / landers) * (WORLD_W - 680));
+      this.enemies.push({
+        id: this.nextEntityId++,
+        kind: this.planetDestroyed ? 'mutant' : 'lander',
+        x: ex,
+        y: PLAY_TOP + 34 + Math.random() * 140,
+        vx: (Math.random() < 0.5 ? -1 : 1) * (88 + lvl * 8),
+        vy: 0,
+        fireTimer: 1.4 + Math.random() * 2.2,
+        targetHumanoidId: null,
+        phase: Math.random() * Math.PI * 2,
+        hp: 1,
+      });
+    }
 
-    // Pods release 3 Swarmers (unless smart-bombed)
-    if (e.kind === 'pod' && !fromSmartBomb) {
-      for (let s = 0; s < 3; s++) {
+    for (let i = 0; i < pods; i++) {
+      const ex = wrapX(this.px + 620 + i * 480);
+      this.enemies.push({
+        id: this.nextEntityId++,
+        kind: 'pod',
+        x: ex,
+        y: PLAY_TOP + 90 + Math.random() * 180,
+        vx: (i % 2 === 0 ? 1 : -1) * 58,
+        vy: (i % 2 === 0 ? 1 : -1) * 32,
+        fireTimer: 99,
+        targetHumanoidId: null,
+        phase: i,
+        hp: 1,
+      });
+    }
+
+    if (this.variant === 'defender') {
+      // Classic 1981 Bombers
+      const bombers = Math.min(5, 2 + Math.floor(lvl / 2));
+      for (let i = 0; i < bombers; i++) {
         this.enemies.push({
           id: this.nextEntityId++,
-          kind: 'swarmer',
-          x: wrapX(e.x + (s - 1) * 18),
-          y: e.y + (s - 1) * 12,
-          vx: (Math.random() - 0.5) * 260,
-          vy: (Math.random() - 0.5) * 160,
-          fireCd: 1.5 + Math.random(),
+          kind: 'bomber',
+          x: wrapX(this.px + 500 + i * 540),
+          y: PLAY_TOP + 120 + (i % 3) * 80,
+          vx: (i % 2 === 0 ? 1 : -1) * 96,
+          vy: 0,
+          fireTimer: 1.6 + Math.random() * 1.4,
           targetHumanoidId: null,
-          phase: Math.random() * Math.PI * 2,
+          phase: i * 1.2,
+          hp: 1,
+        });
+      }
+    } else if (this.variant === 'defender2') {
+      // Defender II: Firebombers + Space Mines
+      const firebombers = Math.min(5, 2 + Math.floor(lvl / 2));
+      for (let i = 0; i < firebombers; i++) {
+        this.enemies.push({
+          id: this.nextEntityId++,
+          kind: 'firebomber',
+          x: wrapX(this.px + 480 + i * 520),
+          y: PLAY_TOP + 110 + (i % 3) * 85,
+          vx: (i % 2 === 0 ? 1 : -1) * 114,
+          vy: 0,
+          fireTimer: 1.3 + Math.random() * 1.2,
+          targetHumanoidId: null,
+          phase: i * 1.5,
+          hp: 1,
+        });
+      }
+      const mines = Math.min(4, 1 + Math.floor(lvl * 0.7));
+      for (let i = 0; i < mines; i++) {
+        this.enemies.push({
+          id: this.nextEntityId++,
+          kind: 'spacemine',
+          x: wrapX(this.px + 750 + i * 640),
+          y: PLAY_TOP + 150 + i * 55,
+          vx: (i % 2 === 0 ? 1 : -1) * 65,
+          vy: 30,
+          fireTimer: 2.2,
+          targetHumanoidId: null,
+          phase: i * 2.1,
+          hp: 1,
+        });
+      }
+    } else {
+      // Stargate: Firebombers + Yllabian Space Hums (split into Dynamos!) + Munchies
+      const firebombers = Math.min(4, 1 + Math.floor(lvl / 2));
+      for (let i = 0; i < firebombers; i++) {
+        this.enemies.push({
+          id: this.nextEntityId++,
+          kind: 'firebomber',
+          x: wrapX(this.px + 460 + i * 580),
+          y: PLAY_TOP + 125 + (i % 3) * 70,
+          vx: (i % 2 === 0 ? 1 : -1) * 120,
+          vy: 0,
+          fireTimer: 1.3 + Math.random(),
+          targetHumanoidId: null,
+          phase: i,
+          hp: 1,
+        });
+      }
+      const yllabians = Math.min(4, 2 + Math.floor(lvl / 2));
+      for (let i = 0; i < yllabians; i++) {
+        this.enemies.push({
+          id: this.nextEntityId++,
+          kind: 'yllabian',
+          x: wrapX(this.px + 650 + i * 600),
+          y: PLAY_TOP + 95 + i * 65,
+          vx: (i % 2 === 0 ? 1 : -1) * 86,
+          vy: 36,
+          fireTimer: 1.8,
+          targetHumanoidId: null,
+          phase: i * 1.3,
+          hp: 1,
+        });
+      }
+      const munchies = Math.min(3, 1 + Math.floor(lvl / 2));
+      for (let i = 0; i < munchies; i++) {
+        this.enemies.push({
+          id: this.nextEntityId++,
+          kind: 'munchie',
+          x: wrapX(this.px + 900 + i * 740),
+          y: PLAY_BOTTOM - 95,
+          vx: (i % 2 === 0 ? 1 : -1) * 105,
+          vy: 0,
+          fireTimer: 2.5,
+          targetHumanoidId: null,
+          phase: i * 0.9,
           hp: 1,
         });
       }
     }
   }
 
-  private damagePlayer(): void {
-    if (this.invulnTimer > 0 || this.invisoActive) return;
-    arcadeAudio.playExplosion(true);
-    spawnBurst(this.particles, this.shipX, this.shipY, '#FDE047', 28, 280, 4);
-    spawnBurst(this.particles, this.shipX, this.shipY, '#FB7185', 18, 190, 3);
-
-    // Drop carried humanoid if any
-    if (this.carriedHumanoidId !== null) {
-      const h = this.humanoids.find((hm) => hm.id === this.carriedHumanoidId);
-      if (h && h.state === 'carried') {
-        h.state = 'falling';
-        h.vy = 20;
-        h.fallStartY = h.y;
-      }
-      this.carriedHumanoidId = null;
+  private addScore(points: number, x?: number, y?: number, color = '#FACC15', label?: string): void {
+    this.score += points;
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
+      saveHighScore(`arcade_hs_${this.variant}`, this.highScore);
     }
-
-    this.lives -= 1;
-    if (this.lives <= 0) {
-      this.phase = 'GAME_OVER';
-      arcadeAudio.playDeath();
-      return;
+    if (this.score >= this.nextExtraLifeScore) {
+      this.lives = Math.min(5, this.lives + 1);
+      this.smartBombs = Math.min(5, this.smartBombs + 1);
+      this.nextExtraLifeScore += 10000;
+      arcadeAudio.playExtraLife();
+      this.popups.push({
+        x: this.px,
+        y: this.py - 32,
+        text: '1UP + SMART BOMB!',
+        color: '#4ADE80',
+        life: 1.6,
+        maxLife: 1.6,
+      });
     }
-
-    this.shipVx = 0;
-    this.shipVy = 0;
-    this.shipY = 260;
-    this.invulnTimer = 2.6;
-    this.enemyShots = [];
+    if (x !== undefined && y !== undefined) {
+      this.popups.push({
+        x,
+        y,
+        text: label ?? `+${points}`,
+        color,
+        life: 0.95,
+        maxLife: 0.95,
+      });
+    }
   }
 
   public step(dt: number): void {
-    this.clock += dt;
-    if (this.screenFlash > 0) this.screenFlash = Math.max(0, this.screenFlash - dt);
-    if (this.planetExplodeFlash > 0) this.planetExplodeFlash = Math.max(0, this.planetExplodeFlash - dt);
+    this.time += dt;
+    if (this.smartBombFlash > 0) this.smartBombFlash = Math.max(0, this.smartBombFlash - dt * 2.6);
+    if (this.hyperspaceFlash > 0) this.hyperspaceFlash = Math.max(0, this.hyperspaceFlash - dt * 2.5);
+    if (this.hyperspaceCooldown > 0) this.hyperspaceCooldown = Math.max(0, this.hyperspaceCooldown - dt);
+    if (this.stargateCooldown > 0) this.stargateCooldown = Math.max(0, this.stargateCooldown - dt);
+    if (this.screenShake > 0) this.screenShake = Math.max(0, this.screenShake - dt * 20);
 
-    stepParticlesAndPopups(this.particles, this.popups, dt);
+    if (this.phase === 'PAUSED') return;
 
     if (this.phase === 'TITLE') {
-      this.shipX = wrapX(this.shipX + 160 * dt);
-      this.shipY = 260 + Math.sin(this.clock * 1.4) * 70;
-      this.facing = 1;
-      this.cameraX = wrapX(this.shipX - LOGICAL_W * 0.28);
-      for (const e of this.enemies) {
-        e.phase += dt * 2;
-        e.x = wrapX(e.x + e.vx * dt * 0.4);
-        e.y = Math.max(PLAY_TOP + 24, Math.min(GROUND_BASE - 70, e.y + Math.sin(e.phase) * 28 * dt));
+      this.cameraX = wrapX(this.cameraX + 125 * dt);
+      if (this.input.fireJustPressed) {
+        this.startNewGame();
       }
       return;
     }
 
-    if (this.phase === 'PAUSED' || this.phase === 'GAME_OVER') return;
+    // Stargate 3D Hyperspace Warp Tunnel Interlude!
+    if (this.warpTunnelTimer > 0) {
+      this.warpTunnelTimer -= dt;
+      stepParticlesAndPopups(this.particles, this.popups, dt);
+      if (this.warpTunnelTimer <= 0) {
+        this.warpBonusText = '';
+        this.setupWave(this.level + 2, false);
+        this.phase = 'READY';
+        this.phaseTimer = 1.25;
+        this.bannerText = `STARGATE WARPED TO WAVE ${this.level}!`;
+      }
+      return;
+    }
 
     if (this.phase === 'READY') {
       this.phaseTimer -= dt;
       if (this.phaseTimer <= 0) {
         this.phase = 'PLAYING';
+        this.bannerText = '';
       }
       return;
     }
 
     if (this.phase === 'STAGE_CLEAR') {
+      stepParticlesAndPopups(this.particles, this.popups, dt);
       this.phaseTimer -= dt;
       if (this.phaseTimer <= 0) {
-        this.level += 1;
-        this.spawnWave(this.level);
+        this.setupWave(this.level + 1, false);
         this.phase = 'READY';
-        this.phaseTimer = 1.1;
+        this.phaseTimer = 1.3;
+        this.bannerText = `ATTACK WAVE ${this.level}`;
+      }
+      return;
+    }
+
+    if (this.phase === 'GAME_OVER') {
+      stepParticlesAndPopups(this.particles, this.popups, dt);
+      if (this.input.fireJustPressed) {
+        this.startNewGame();
       }
       return;
     }
 
     // PLAYING
-    this.waveElapsed += dt;
+    this.waveTimer += dt;
     if (this.invulnTimer > 0) this.invulnTimer = Math.max(0, this.invulnTimer - dt);
-    if (this.fireCd > 0) this.fireCd = Math.max(0, this.fireCd - dt);
-    if (this.warpCd > 0) this.warpCd = Math.max(0, this.warpCd - dt);
+    if (this.fireCooldown > 0) this.fireCooldown = Math.max(0, this.fireCooldown - dt);
 
-    // Inviso cloak energy management
-    if (this.variant !== 'defender') {
-      if (this.invisoActive) {
-        this.invisoEnergy = Math.max(0, this.invisoEnergy - 28 * dt);
-        if (this.invisoEnergy <= 0) {
-          this.invisoActive = false;
-        }
-      } else {
-        this.invisoEnergy = Math.min(100, this.invisoEnergy + 9 * dt);
-      }
-    }
-
-    // Ship controls & inertia
-    const accelX = 1280;
-    const maxVx = 580;
-    if (this.input.left && !this.input.right) {
-      this.facing = -1;
-      this.shipVx = Math.max(-maxVx, this.shipVx - accelX * dt);
-    } else if (this.input.right && !this.input.left) {
-      this.facing = 1;
-      this.shipVx = Math.min(maxVx, this.shipVx + accelX * dt);
-    } else {
-      this.shipVx *= Math.pow(0.08, dt);
-      if (Math.abs(this.shipVx) < 4) this.shipVx = 0;
-    }
-
-    const vertSpeed = 320;
-    if (this.input.up && !this.input.down) {
-      this.shipVy = -vertSpeed;
-    } else if (this.input.down && !this.input.up) {
-      this.shipVy = vertSpeed;
-    } else {
-      this.shipVy *= Math.pow(0.005, dt);
-    }
-
-    this.shipX = wrapX(this.shipX + this.shipVx * dt);
-    this.shipY = Math.max(PLAY_TOP + 22, Math.min(PLAY_BOTTOM - 22, this.shipY + this.shipVy * dt));
-
-    // Smooth lead-ahead camera
-    const desiredCamX = wrapX(this.shipX - (this.facing === 1 ? LOGICAL_W * 0.28 : LOGICAL_W * 0.72));
-    const camDiff = deltaX(this.cameraX, desiredCamX);
-    this.cameraX = wrapX(this.cameraX + camDiff * Math.min(1, dt * 6.5));
-
-    // Fire Williams streaking laser
-    if ((this.input.fire || this.input.fireJustPressed) && this.fireCd <= 0) {
-      this.fireCd = 0.13;
-      this.lasers.push({
-        x: wrapX(this.shipX + this.facing * 24),
-        y: this.shipY,
-        dir: this.facing,
-        len: 110,
-        life: 0.34,
-        hue: (this.clock * 320) % 360,
-      });
-      arcadeAudio.playLaser(this.variant === 'stargate' ? 1120 : 880);
-    }
-
-    // Smart Bomb on secondary press
-    if (this.input.secondaryJustPressed) {
-      this.triggerSmartBomb();
-    }
-
-    // Stargate Warp Portal check (Defender II & Stargate)
-    if (this.variant !== 'defender' && this.warpCd <= 0) {
-      const gx = deltaX(this.shipX, this.stargateX);
-      const gy = this.shipY - this.stargateY;
-      if (Math.hypot(gx, gy) < 30) {
-        this.warpCd = 3.0;
-        arcadeAudio.playPotionBlast();
-        // Warp directly to an abducted humanoid if any, else jump across the world!
-        const endangered = this.humanoids.find((h) => h.state === 'abducted');
-        if (endangered) {
-          this.shipX = wrapX(endangered.x - 140);
-          this.shipY = endangered.y;
-          this.facing = 1;
-          this.addPopup(this.shipX, this.shipY - 24, 'STARGATE RESCUE WARP!', '#38BDF8');
-        } else {
-          const aliveCount = this.humanoids.filter((h) => h.state !== 'dead').length;
-          if (this.variant === 'stargate' && aliveCount >= 4 && this.level < 8 && this.enemies.length <= 5) {
-            this.addScore(2000, this.shipX, this.shipY - 26, '#38BDF8');
-            this.addPopup(this.shipX, this.shipY - 46, 'STARGATE WAVE WARP!', '#38BDF8');
-            this.enemies = [];
-          } else {
-            this.shipX = wrapX(this.shipX + WORLD_W * 0.5);
-            this.addPopup(this.shipX, this.shipY - 24, 'STARGATE WARP!', '#38BDF8');
-          }
-        }
-        this.cameraX = wrapX(this.shipX - LOGICAL_W * 0.32);
-        this.invulnTimer = Math.max(this.invulnTimer, 1.0);
-        spawnBurst(this.particles, this.shipX, this.shipY, '#38BDF8', 24, 240, 3.5);
-      }
-    }
-
-    // Update lasers & check hits
-    for (let i = this.lasers.length - 1; i >= 0; i--) {
-      const l = this.lasers[i];
-      l.x = wrapX(l.x + l.dir * 1360 * dt);
-      l.len = Math.min(240, l.len + 460 * dt);
-      l.life -= dt;
-      if (l.life <= 0) {
-        this.lasers.splice(i, 1);
-        continue;
-      }
-
-      let hit = false;
-      for (let j = this.enemies.length - 1; j >= 0; j--) {
-        const e = this.enemies[j];
-        if (Math.abs(e.y - l.y) < 18) {
-          const dx = deltaX(l.x, e.x);
-          const behind = l.dir === 1 ? dx <= 16 && dx >= -l.len : dx >= -16 && dx <= l.len;
-          if (behind) {
-            arcadeAudio.playExplosion(e.kind === 'pod');
-            this.destroyEnemy(j, false);
-            hit = true;
-            break;
-          }
-        }
-      }
-      if (hit) {
-        this.lasers.splice(i, 1);
-      }
-    }
-
-    // Baiter spawn if wave drags on
-    this.baiterTimer -= dt;
-    if (this.baiterTimer <= 0 && this.enemies.length > 0 && this.enemies.length < 18) {
-      this.baiterTimer = 14;
+    // Spawn Baiters if wave drags on
+    if (this.waveTimer > 24 + this.baiterSpawned * 12 && this.baiterSpawned < 4) {
+      this.baiterSpawned++;
       this.enemies.push({
         id: this.nextEntityId++,
         kind: 'baiter',
-        x: wrapX(this.shipX + (Math.random() > 0.5 ? 520 : -520)),
-        y: PLAY_TOP + 60 + Math.random() * 200,
+        x: wrapX(this.px + (Math.random() < 0.5 ? 520 : -520)),
+        y: PLAY_TOP + 50 + Math.random() * 140,
         vx: 0,
         vy: 0,
-        fireCd: 1.0,
+        fireTimer: 1.0,
         targetHumanoidId: null,
         phase: 0,
         hp: 1,
       });
     }
 
-    // Update enemies
+    this.stepPlayer(dt);
+    this.stepLasers(dt);
+    this.stepHumanoids(dt);
+    this.stepEnemies(dt);
+    if (this.phase !== 'PLAYING') return;
+    this.stepEnemyShots(dt);
+    if (this.phase !== 'PLAYING') return;
+    stepParticlesAndPopups(this.particles, this.popups, dt);
+
+    // Wave clear check (when all non-baiter enemies are destroyed)
+    const remaining = this.enemies.filter((e) => e.kind !== 'baiter').length;
+    if (remaining === 0) {
+      this.phase = 'STAGE_CLEAR';
+      this.phaseTimer = 2.0;
+      const aliveHumans = this.humanoids.filter((h) => h.state !== 'dead').length;
+      const bonus = aliveHumans * 100 * this.level;
+      this.addScore(bonus, this.px, this.py - 32, '#4ADE80', `SURVIVORS +${bonus}`);
+      this.bannerText = `WAVE ${this.level} CLEARED! HUMANOID BONUS +${bonus}`;
+      arcadeAudio.playStageClear();
+    }
+  }
+
+  private stepPlayer(dt: number): void {
+    const moveVec = getPrecisionMoveVector(this.input);
+    const thrustAccel = 1280 * moveVec.scale;
+    const maxVx = 560 * moveVec.scale;
+    const maxVy = 325 * moveVec.scale;
+
+    if (moveVec.vx > 0.12) {
+      this.facing = 1;
+      this.pvx = Math.min(maxVx, this.pvx + thrustAccel * Math.abs(moveVec.vx) * dt);
+    } else if (moveVec.vx < -0.12) {
+      this.facing = -1;
+      this.pvx = Math.max(-maxVx, this.pvx - thrustAccel * Math.abs(moveVec.vx) * dt);
+    } else {
+      this.pvx *= Math.pow(0.14, dt);
+      if (Math.abs(this.pvx) < 4) this.pvx = 0;
+    }
+
+    if (Math.abs(moveVec.vy) > 0.1) {
+      this.pvy = moveVec.vy * maxVy;
+    } else {
+      this.pvy *= Math.pow(0.05, dt);
+    }
+
+    this.px = wrapX(this.px + this.pvx * dt);
+    this.py = Math.max(PLAY_TOP + 18, Math.min(PLAY_BOTTOM - 16, this.py + this.pvy * dt));
+
+    // Smooth lead camera ahead of facing direction
+    const desiredOffset = this.facing === 1 ? W * 0.28 : W * 0.72;
+    const targetCam = wrapX(this.px - desiredOffset);
+    const camDiff = wrappedDeltaX(this.cameraX, targetCam);
+    this.cameraX = wrapX(this.cameraX + camDiff * Math.min(1, dt * 6.5));
+
+    // Inviso energy management (Defender II & Stargate)
+    if (this.variant !== 'defender') {
+      if (this.invisoActive) {
+        this.invisoEnergy = Math.max(0, this.invisoEnergy - dt * 24);
+        if (this.invisoEnergy <= 0) this.invisoActive = false;
+      } else {
+        this.invisoEnergy = Math.min(100, this.invisoEnergy + dt * 11);
+      }
+
+      // Check Stargate / Warp Gate entry!
+      if (
+        this.stargateCooldown <= 0 &&
+        Math.abs(wrappedDeltaX(this.px, this.stargateX)) < 30 &&
+        Math.abs(this.py - this.stargateY) < 34
+      ) {
+        this.triggerGateWarp();
+      }
+    }
+
+    // Fire streaking horizontal Williams laser
+    if ((this.input.fire || this.input.fireJustPressed) && this.fireCooldown <= 0) {
+      this.fireCooldown = this.variant === 'stargate' ? 0.085 : 0.095;
+      arcadeAudio.playLaser();
+      const laserColor =
+        this.variant === 'defender'
+          ? '#FACC15'
+          : this.variant === 'defender2'
+            ? '#F472B6'
+            : '#38BDF8';
+      this.lasers.push({
+        x: wrapX(this.px + this.facing * 24),
+        y: this.py,
+        dir: this.facing,
+        life: 0.24,
+        length: 230,
+        color: laserColor,
+      });
+    }
+
+    // Smart Bomb (Shift / X)
+    if (this.input.secondaryJustPressed && this.smartBombs > 0) {
+      this.triggerSmartBomb();
+    }
+  }
+
+  private triggerGateWarp(): void {
+    this.stargateCooldown = 3.2;
+    arcadeAudio.playStargateWarp();
+
+    // Priority 1: Warp directly to an abducted humanoid!
+    const endangered = this.humanoids.find((h) => h.state === 'abducted');
+    if (endangered) {
+      this.px = wrapX(endangered.x - this.facing * 120);
+      this.py = Math.max(PLAY_TOP + 30, endangered.y - 20);
+      this.invulnTimer = Math.max(this.invulnTimer, 1.0);
+      spawnBurst(this.particles, this.px, this.py, '#38BDF8', 24, 240, 3.6);
+      this.popups.push({
+        x: this.px,
+        y: this.py - 28,
+        text: 'RESCUE WARP!',
+        color: '#38BDF8',
+        life: 1.3,
+        maxLife: 1.3,
+      });
+      return;
+    }
+
+    // Priority 2: Stargate Hyperspace Wave Skip (when 4+ humanoids alive!)
+    const aliveHumanoids = this.humanoids.filter((h) => h.state !== 'dead').length;
+    if (this.variant === 'stargate' && aliveHumanoids >= 4 && this.enemies.length <= 7) {
+      this.addScore(2000, this.px, this.py - 28, '#38BDF8', 'STARGATE WARP +2000!');
+      this.warpTunnelTimer = 1.85;
+      this.warpBonusText = 'STARGATE HYPERSPACE WARP! +2,000';
+      return;
+    }
+
+    // Otherwise warp to the opposite side of the planet with bonus shield burst
+    this.px = wrapX(this.px + WORLD_W * 0.5);
+    this.invulnTimer = Math.max(this.invulnTimer, 1.0);
+    spawnBurst(
+      this.particles,
+      this.px,
+      this.py,
+      this.variant === 'defender2' ? '#C084FC' : '#38BDF8',
+      22,
+      240,
+      3.5
+    );
+    this.popups.push({
+      x: this.px,
+      y: this.py - 26,
+      text: 'SECTOR WARP!',
+      color: this.variant === 'defender2' ? '#E879F9' : '#38BDF8',
+      life: 1.1,
+      maxLife: 1.1,
+    });
+  }
+
+  private triggerSmartBomb(): void {
+    this.smartBombs -= 1;
+    this.smartBombFlash = 1.0;
+    this.screenShake = 10;
+    arcadeAudio.playSmartBomb();
+
+    let kills = 0;
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
-      e.phase += dt * 3.5;
+      if (!e) continue;
+      const sx = this.worldToScreenX(e.x);
+      if (sx >= -30 && sx <= W + 30) {
+        this.destroyEnemy(i, false);
+        kills++;
+      }
+    }
+    this.enemyShots = this.enemyShots.filter((s) => {
+      const sx = this.worldToScreenX(s.x);
+      return sx < -20 || sx > W + 20;
+    });
+    if (kills > 0) {
+      this.popups.push({
+        x: this.px,
+        y: this.py - 30,
+        text: `SMART BOMB ×${kills}!`,
+        color: '#FACC15',
+        life: 1.1,
+        maxLife: 1.1,
+      });
+    }
+  }
 
-      const dxToShip = deltaX(e.x, this.shipX);
-      const dyToShip = this.shipY - e.y;
+  private stepLasers(dt: number): void {
+    for (let i = this.lasers.length - 1; i >= 0; i--) {
+      const b = this.lasers[i];
+      b.x = wrapX(b.x + b.dir * 1260 * dt);
+      b.life -= dt;
+      if (b.life <= 0) {
+        this.lasers.splice(i, 1);
+        continue;
+      }
+
+      let hit = false;
+      for (let ei = this.enemies.length - 1; ei >= 0; ei--) {
+        const e = this.enemies[ei];
+        if (!e) continue;
+        const dx = wrappedDeltaX(b.x, e.x) * b.dir;
+        if (dx >= -b.length * 0.45 && dx <= 46 && Math.abs(e.y - b.y) < 22) {
+          this.destroyEnemy(ei, true);
+          hit = true;
+          break;
+        }
+      }
+      if (hit) {
+        this.lasers.splice(i, 1);
+      }
+    }
+  }
+
+  private destroyEnemy(idx: number, spawnSplit: boolean): void {
+    const e = this.enemies[idx];
+    if (!e) return;
+    this.enemies.splice(idx, 1);
+    arcadeAudio.playInvaderExplosion('alien');
+
+    if (e.targetHumanoidId !== null) {
+      const hum = this.humanoids.find((h) => h.id === e.targetHumanoidId);
+      if (hum && hum.state === 'abducted') {
+        hum.state = 'falling';
+        hum.vy = 0;
+        hum.fallStartY = hum.y;
+        hum.abductorId = null;
+      }
+    }
+
+    const ptsMap: Record<EnemyKind, number> = {
+      lander: 150,
+      mutant: 150,
+      bomber: 250,
+      pod: 1000,
+      swarmer: 150,
+      baiter: 200,
+      firebomber: 250,
+      spacemine: 300,
+      yllabian: 500,
+      dynamo: 200,
+      munchie: 250,
+    };
+    const colorMap: Record<EnemyKind, string> = {
+      lander: '#22C55E',
+      mutant: '#EF4444',
+      bomber: '#38BDF8',
+      pod: '#C084FC',
+      swarmer: '#FB7185',
+      baiter: '#FACC15',
+      firebomber: '#F97316',
+      spacemine: '#E879F9',
+      yllabian: '#2DD4BF',
+      dynamo: '#38BDF8',
+      munchie: '#A3E635',
+    };
+
+    const pts = ptsMap[e.kind] ?? 150;
+    const col = colorMap[e.kind] ?? '#FACC15';
+    this.addScore(pts, e.x, e.y - 12, col);
+    spawnBurst(this.particles, e.x, e.y, col, 16, 210, 3.3);
+
+    if (spawnSplit && e.kind === 'pod') {
+      for (let s = 0; s < 4; s++) {
+        this.enemies.push({
+          id: this.nextEntityId++,
+          kind: 'swarmer',
+          x: wrapX(e.x + (s - 1.5) * 18),
+          y: e.y + (s % 2 === 0 ? -12 : 12),
+          vx: (Math.random() - 0.5) * 260,
+          vy: (Math.random() - 0.5) * 180,
+          fireTimer: 1.5 + Math.random(),
+          targetHumanoidId: null,
+          phase: s * 1.4,
+          hp: 1,
+        });
+      }
+    } else if (spawnSplit && e.kind === 'yllabian') {
+      // Stargate Yllabian Space Hum splits into 2 fast glowing Dynamos!
+      for (let d = 0; d < 2; d++) {
+        this.enemies.push({
+          id: this.nextEntityId++,
+          kind: 'dynamo',
+          x: wrapX(e.x + (d === 0 ? -18 : 18)),
+          y: e.y,
+          vx: (d === 0 ? -1 : 1) * 210,
+          vy: (d === 0 ? -1 : 1) * 90,
+          fireTimer: 1.4,
+          targetHumanoidId: null,
+          phase: d * Math.PI,
+          hp: 1,
+        });
+      }
+    }
+  }
+
+  private stepHumanoids(dt: number): void {
+    for (const h of this.humanoids) {
+      if (h.state === 'dead') continue;
+
+      if (h.state === 'walking') {
+        h.x = wrapX(h.x + h.walkDir * 16 * dt);
+        h.y = this.getTerrainY(h.x) - 10;
+        if (Math.random() < dt * 0.2) h.walkDir = (h.walkDir * -1) as -1 | 1;
+      } else if (h.state === 'falling') {
+        h.vy = Math.min(260, h.vy + 300 * dt);
+        h.y += h.vy * dt;
+
+        // Mid-air player catch!
+        if (
+          this.carryingHumanoidId === null &&
+          Math.abs(wrappedDeltaX(this.px, h.x)) < 28 &&
+          Math.abs(this.py - h.y) < 28
+        ) {
+          h.state = 'carried';
+          this.carryingHumanoidId = h.id;
+          arcadeAudio.playCoin();
+          this.addScore(500, h.x, h.y - 18, '#4ADE80', 'CAUGHT +500!');
+          continue;
+        }
+
+        const groundY = this.getTerrainY(h.x) - 10;
+        if (h.y >= groundY) {
+          h.y = groundY;
+          if (groundY - h.fallStartY > 185) {
+            h.state = 'dead';
+            arcadeAudio.playDeath();
+            spawnBurst(this.particles, h.x, h.y, '#EF4444', 14, 150, 2.8);
+            this.checkPlanetExplosion();
+          } else {
+            h.state = 'walking';
+            this.addScore(250, h.x, h.y - 16, '#38BDF8', 'SAFE +250');
+          }
+        }
+      } else if (h.state === 'carried') {
+        h.x = this.px;
+        h.y = this.py + 18;
+        const groundY = this.getTerrainY(h.x) - 10;
+        if (h.y >= groundY - 4 && !this.planetDestroyed) {
+          h.y = groundY;
+          h.state = 'walking';
+          this.carryingHumanoidId = null;
+          arcadeAudio.playPowerUp();
+          this.addScore(500, h.x, h.y - 24, '#4ADE80', 'LANDED +500!');
+        }
+      }
+    }
+  }
+
+  private checkPlanetExplosion(): void {
+    if (this.planetDestroyed) return;
+    const alive = this.humanoids.filter((h) => h.state !== 'dead').length;
+    if (alive === 0) {
+      this.planetDestroyed = true;
+      this.smartBombFlash = 1.0;
+      this.screenShake = 14;
+      arcadeAudio.playDdtExplosion();
+      this.bannerText = 'ALL HUMANOIDS LOST · PLANET EXPLODED!';
+      for (const e of this.enemies) {
+        if (e.kind === 'lander') {
+          e.kind = 'mutant';
+          e.targetHumanoidId = null;
+        }
+      }
+    }
+  }
+
+  private stepEnemies(dt: number): void {
+    for (let i = this.enemies.length - 1; i >= 0; i--) {
+      const e = this.enemies[i];
+      if (!e) continue;
+      e.phase += dt * 4.2;
+      e.fireTimer -= dt;
 
       if (e.kind === 'lander') {
-        // Look for an unassigned walking humanoid to abduct
-        let targetH = e.targetHumanoidId
-          ? this.humanoids.find((h) => h.id === e.targetHumanoidId && (h.state === 'walking' || h.state === 'abducted'))
-          : undefined;
-
-        if (!targetH && !this.planetDestroyed && Math.random() < dt * 0.45) {
-          const free = this.humanoids.filter((h) => h.state === 'walking' && h.abductorId === null);
-          if (free.length > 0) {
-            const pick = free[Math.floor(Math.random() * free.length)];
-            e.targetHumanoidId = pick.id;
-            targetH = pick;
-          }
+        if (e.targetHumanoidId === null && Math.random() < dt * 0.4) {
+          const target = this.humanoids.find(
+            (h) =>
+              h.state === 'walking' &&
+              Math.abs(wrappedDeltaX(e.x, h.x)) < 360 &&
+              !this.enemies.some((o) => o.targetHumanoidId === h.id)
+          );
+          if (target) e.targetHumanoidId = target.id;
         }
 
-        if (targetH) {
-          if (targetH.state === 'abducted' && targetH.abductorId === e.id) {
-            // Ascend to top of sky to mutate!
-            e.vx *= 0.9;
-            e.vy = -52 - this.level * 4;
-            targetH.x = e.x;
-            targetH.y = e.y + 18;
-            if (e.y <= PLAY_TOP + 26) {
-              // Humanoid lost -> Mutant born!
-              targetH.state = 'dead';
-              targetH.abductorId = null;
-              e.kind = 'mutant';
-              e.targetHumanoidId = null;
-              arcadeAudio.playPlusWildcard();
-              spawnBurst(this.particles, e.x, e.y, '#F43F5E', 18, 220, 3);
-              this.checkPlanetStatus();
-            }
-          } else if (targetH.state === 'walking' && targetH.abductorId === null) {
-            const dxh = deltaX(e.x, targetH.x);
-            const dyh = targetH.y - 16 - e.y;
-            e.vx = Math.sign(dxh) * Math.min(130, Math.abs(dxh) * 2.2);
-            e.vy = Math.sign(dyh) * Math.min(95, Math.abs(dyh) * 2.2);
-            if (Math.abs(dxh) < 12 && Math.abs(dyh) < 12) {
-              targetH.state = 'abducted';
-              targetH.abductorId = e.id;
-              arcadeAudio.playUfoPing(true);
-            }
-          } else {
+        const targetHum =
+          e.targetHumanoidId !== null
+            ? this.humanoids.find((h) => h.id === e.targetHumanoidId)
+            : null;
+
+        if (targetHum && targetHum.state === 'walking') {
+          const dx = wrappedDeltaX(e.x, targetHum.x);
+          e.vx = Math.max(-135, Math.min(135, dx * 2));
+          e.vy = targetHum.y - 16 - e.y;
+          e.vy = Math.max(-95, Math.min(105, e.vy * 1.4));
+          if (Math.abs(dx) < 12 && Math.abs(e.y - (targetHum.y - 16)) < 14) {
+            targetHum.state = 'abducted';
+            targetHum.abductorId = e.id;
+            arcadeAudio.playSirenSweep();
+          }
+        } else if (targetHum && targetHum.state === 'abducted') {
+          e.vx = 0;
+          e.vy = -74;
+          targetHum.x = e.x;
+          targetHum.y = e.y + 18;
+          if (e.y <= PLAY_TOP + 20) {
+            targetHum.state = 'dead';
+            e.kind = 'mutant';
             e.targetHumanoidId = null;
+            spawnBurst(this.particles, e.x, e.y, '#EF4444', 18, 190, 3.2);
+            this.checkPlanetExplosion();
           }
         } else {
-          // Cruise over terrain
-          const desiredY = this.terrainYAt(e.x) - 120 + Math.sin(e.phase) * 55;
-          e.vy = (desiredY - e.y) * 1.6;
+          e.targetHumanoidId = null;
+          e.vy = Math.sin(e.phase) * 42;
         }
-      } else if (e.kind === 'mutant') {
-        // Relentless jittery hunter chasing player
-        const spd = 210 + this.level * 12;
-        e.vx = Math.sign(dxToShip) * spd;
-        e.vy = Math.sign(dyToShip) * 155 + Math.sin(e.phase * 5) * 95;
+      } else if (e.kind === 'mutant' || e.kind === 'baiter' || e.kind === 'dynamo') {
+        const dx = wrappedDeltaX(e.x, this.px);
+        const dy = this.py - e.y;
+        const speed = e.kind === 'baiter' ? 355 : e.kind === 'dynamo' ? 275 : 225;
+        e.vx += (Math.sign(dx) * speed - e.vx) * Math.min(1, dt * 3.4);
+        e.vy = dy * 2.2 + Math.sin(e.phase * 2.8) * 90;
       } else if (e.kind === 'bomber' || e.kind === 'firebomber') {
-        e.vy = Math.sin(e.phase * 0.8) * 110;
-        e.fireCd -= dt;
-        if (e.fireCd <= 0 && Math.abs(dxToShip) < 420) {
-          e.fireCd = e.kind === 'firebomber' ? 1.1 : 1.7;
+        e.vy = Math.sin(e.phase * 1.2) * 72;
+        if (e.fireTimer <= 0) {
+          e.fireTimer = e.kind === 'firebomber' ? 1.55 : 1.95;
+          const isFire = e.kind === 'firebomber';
           this.enemyShots.push({
             x: e.x,
             y: e.y,
-            vx: e.kind === 'firebomber' ? Math.sign(dxToShip) * 90 : 0,
-            vy: e.kind === 'firebomber' ? Math.sign(dyToShip) * 55 : 0,
-            isMine: true,
+            vx: isFire ? Math.sign(wrappedDeltaX(e.x, this.px)) * 55 : 0,
+            vy: isFire ? Math.sign(this.py - e.y) * 40 : 0,
             life: 4.5,
+            isMine: true,
+            color: isFire ? '#F97316' : '#38BDF8',
           });
         }
       } else if (e.kind === 'swarmer') {
-        e.vx += Math.sign(dxToShip) * 320 * dt;
-        e.vx = Math.max(-290, Math.min(290, e.vx));
-        e.vy = Math.sin(e.phase * 4) * 165 + Math.sign(dyToShip) * 65;
-      } else if (e.kind === 'baiter') {
-        e.vx += Math.sign(dxToShip) * 440 * dt;
-        e.vx = Math.max(-440, Math.min(440, e.vx));
-        e.vy += Math.sign(dyToShip) * 320 * dt;
-        e.vy = Math.max(-260, Math.min(260, e.vy));
+        const dx = wrappedDeltaX(e.x, this.px);
+        e.vx += Math.sign(dx) * 320 * dt;
+        e.vx = Math.max(-270, Math.min(270, e.vx));
+        e.vy = Math.sin(e.phase * 3.2) * 140 + (this.py - e.y) * 0.9;
+      } else if (e.kind === 'spacemine') {
+        const dx = wrappedDeltaX(e.x, this.px);
+        e.vx += Math.sign(dx) * 120 * dt;
+        e.vx = Math.max(-130, Math.min(130, e.vx));
+        e.vy = Math.cos(e.phase) * 58;
+      } else if (e.kind === 'yllabian') {
+        e.vy = Math.sin(e.phase * 1.6) * 84;
+      } else if (e.kind === 'munchie') {
+        // Stargate Munchies stalk walking humanoids along the terrain
+        const prey = this.humanoids.find((h) => h.state === 'walking');
+        if (prey) {
+          const dx = wrappedDeltaX(e.x, prey.x);
+          e.vx = Math.sign(dx) * 125;
+          e.y += (prey.y - 12 - e.y) * Math.min(1, dt * 3);
+        } else {
+          e.vy = Math.sin(e.phase * 2) * 65;
+        }
       }
 
       e.x = wrapX(e.x + e.vx * dt);
-      e.y = Math.max(PLAY_TOP + 18, Math.min(PLAY_BOTTOM - 28, e.y + e.vy * dt));
+      e.y = Math.max(PLAY_TOP + 16, Math.min(PLAY_BOTTOM - 22, e.y + e.vy * dt));
 
-      // Enemy plasma firing
-      if (e.kind !== 'pod' && e.kind !== 'bomber' && e.kind !== 'firebomber') {
-        e.fireCd -= dt;
-        if (e.fireCd <= 0 && Math.abs(dxToShip) < 430) {
-          e.fireCd = e.kind === 'mutant' || e.kind === 'baiter' ? 1.35 : 2.6;
-          const dist = Math.hypot(dxToShip, dyToShip) || 1;
-          const spd = e.kind === 'baiter' ? 320 : 225;
+      // Enemy firing
+      if (
+        e.kind !== 'pod' &&
+        e.kind !== 'bomber' &&
+        e.kind !== 'firebomber' &&
+        e.kind !== 'spacemine' &&
+        e.fireTimer <= 0
+      ) {
+        e.fireTimer = 1.7 + Math.random() * 1.6;
+        const dx = wrappedDeltaX(e.x, this.px);
+        if (Math.abs(dx) < W * 0.55) {
+          const dy = this.py - e.y;
+          const dist = Math.max(1, Math.hypot(dx, dy));
+          const spd = e.kind === 'baiter' ? 320 : 235;
           this.enemyShots.push({
             x: e.x,
             y: e.y,
-            vx: (dxToShip / dist) * spd,
-            vy: (dyToShip / dist) * spd,
+            vx: (dx / dist) * spd,
+            vy: (dy / dist) * spd,
+            life: 2.3,
             isMine: false,
-            life: 2.6,
+            color: e.kind === 'mutant' ? '#EF4444' : '#FEF08A',
           });
         }
       }
 
-      // Ship-Enemy collision
-      if (Math.abs(deltaX(e.x, this.shipX)) < 22 && Math.abs(e.y - this.shipY) < 18) {
+      // Collision with player ship
+      if (Math.abs(wrappedDeltaX(e.x, this.px)) < 24 && Math.abs(e.y - this.py) < 20) {
         if (this.invisoActive) {
-          // Cloak smashes through enemies safely!
-          arcadeAudio.playExplosion(false);
+          // Inviso Cloak RAM KILL!
           this.destroyEnemy(i, false);
-        } else {
+          this.addScore(250, this.px, this.py - 26, '#E879F9', 'CLOAK RAM +250!');
+          this.screenShake = 5;
+          continue;
+        } else if (this.invulnTimer <= 0) {
           this.damagePlayer();
           return;
         }
       }
     }
+  }
 
-    // Update humanoids
-    for (const h of this.humanoids) {
-      if (h.state === 'dead') continue;
-      if (h.state === 'walking') {
-        h.x = wrapX(h.x + h.vx * dt);
-        h.y = this.terrainYAt(h.x) - 8;
-      } else if (h.state === 'falling') {
-        h.vy = Math.min(240, h.vy + 165 * dt);
-        h.y += h.vy * dt;
-
-        // Check mid-air catch by player!
-        if (
-          this.carriedHumanoidId === null &&
-          Math.abs(deltaX(h.x, this.shipX)) < 26 &&
-          Math.abs(h.y - this.shipY) < 24
-        ) {
-          h.state = 'carried';
-          this.carriedHumanoidId = h.id;
-          this.addScore(500, h.x, h.y - 14, '#38BDF8');
-          arcadeAudio.playEatFruit();
-          continue;
-        }
-
-        const groundY = this.terrainYAt(h.x) - 8;
-        if (h.y >= groundY) {
-          const dropDist = groundY - h.fallStartY;
-          if (dropDist > 165) {
-            h.state = 'dead';
-            spawnBurst(this.particles, h.x, groundY, '#FB7185', 14, 150, 2.5);
-            arcadeAudio.playExplosion(false);
-            this.checkPlanetStatus();
-          } else {
-            h.y = groundY;
-            h.vy = 0;
-            h.state = 'walking';
-            this.addScore(250, h.x, h.y - 16, '#4ADE80');
-          }
-        }
-      } else if (h.state === 'carried') {
-        h.x = this.shipX;
-        h.y = this.shipY + 18;
-        const groundY = this.terrainYAt(h.x) - 8;
-        if (h.y >= groundY - 6 && !this.planetDestroyed) {
-          h.y = groundY;
-          h.state = 'walking';
-          this.carriedHumanoidId = null;
-          this.addScore(500, h.x, h.y - 20, '#4ADE80');
-          arcadeAudio.playKeyUnlock();
-        }
-      }
-    }
-
-    // Update enemy shots
+  private stepEnemyShots(dt: number): void {
     for (let i = this.enemyShots.length - 1; i >= 0; i--) {
       const s = this.enemyShots[i];
+      if (!s) continue;
       s.x = wrapX(s.x + s.vx * dt);
       s.y += s.vy * dt;
       s.life -= dt;
@@ -851,648 +1189,798 @@ export class DefenderGame implements ArcadeGameInstance {
         this.enemyShots.splice(i, 1);
         continue;
       }
-      if (Math.abs(deltaX(s.x, this.shipX)) < 18 && Math.abs(s.y - this.shipY) < 13) {
+      if (
+        !this.invisoActive &&
+        this.invulnTimer <= 0 &&
+        Math.abs(wrappedDeltaX(s.x, this.px)) < 16 &&
+        Math.abs(s.y - this.py) < 14
+      ) {
         this.enemyShots.splice(i, 1);
         this.damagePlayer();
         return;
       }
     }
-
-    // Wave clear!
-    if (this.enemies.length === 0) {
-      const survivors = this.humanoids.filter((h) => h.state !== 'dead').length;
-      const bonus = survivors * (100 * Math.min(5, this.level));
-      if (bonus > 0) {
-        this.addScore(bonus, this.shipX, this.shipY - 30, '#4ADE80');
-      }
-      arcadeAudio.playStageClear();
-      this.phase = 'STAGE_CLEAR';
-      this.phaseTimer = 1.9;
-    }
   }
 
-  private checkPlanetStatus(): void {
-    if (this.planetDestroyed) return;
-    const alive = this.humanoids.some((h) => h.state !== 'dead');
-    if (!alive) {
-      this.planetDestroyed = true;
-      this.planetExplodeFlash = 1.1;
-      arcadeAudio.playSmartBomb();
-      for (const e of this.enemies) {
-        if (e.kind === 'lander') {
-          e.kind = 'mutant';
-          e.targetHumanoidId = null;
-        }
+  private damagePlayer(): void {
+    arcadeAudio.playDeath();
+    spawnBurst(this.particles, this.px, this.py, '#F97316', 28, 280, 3.8);
+    this.screenShake = 10;
+    this.enemyShots = [];
+
+    if (this.carryingHumanoidId !== null) {
+      const h = this.humanoids.find((hu) => hu.id === this.carryingHumanoidId);
+      if (h) {
+        h.state = 'falling';
+        h.vy = 0;
+        h.fallStartY = h.y;
       }
-      this.addPopup(this.shipX, 200, 'PLANET DESTROYED · MUTANT SPACE!', '#FB7185');
+      this.carryingHumanoidId = null;
     }
+
+    this.lives -= 1;
+    if (this.lives <= 0) {
+      this.phase = 'GAME_OVER';
+      this.bannerText = 'GAME OVER · PRESS PLAY TO DEFEND AGAIN';
+      return;
+    }
+
+    this.pvx = 0;
+    this.pvy = 0;
+    this.py = 310;
+    this.invulnTimer = 2.4;
+    this.invisoActive = false;
+    this.phase = 'READY';
+    this.phaseTimer = 1.25;
+    this.bannerText = 'SHIP DESTROYED · READY PILOT';
+  }
+
+  private worldToScreenX(worldX: number): number {
+    let sx = worldX - this.cameraX;
+    if (sx < -WORLD_W / 2) sx += WORLD_W;
+    if (sx > WORLD_W / 2) sx -= WORLD_W;
+    return sx;
   }
 
   public render(ctx: CanvasRenderingContext2D, dpr: number, visualMode: 'hd' | 'crt'): void {
     ctx.save();
     ctx.scale(dpr, dpr);
 
-    // Space backdrop
-    ctx.fillStyle = this.planetDestroyed ? '#0D0414' : '#03060E';
-    ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
+    const shakeX = this.screenShake > 0 ? (Math.random() - 0.5) * this.screenShake : 0;
+    const shakeY = this.screenShake > 0 ? (Math.random() - 0.5) * this.screenShake : 0;
 
-    // Subtle parallax stars
-    for (const st of this.stars) {
-      const sx = this.worldToScreenX(st.x);
-      if (sx < -4 || sx > LOGICAL_W + 4) continue;
-      ctx.fillStyle = st.c;
-      ctx.globalAlpha = 0.55 + 0.35 * Math.sin(this.clock * 2.5 + st.x);
+    // 1) Variant-distinct Deep Space Backdrop
+    const bgGrad = ctx.createLinearGradient(0, PLAY_TOP, 0, H);
+    if (this.variant === 'defender') {
+      bgGrad.addColorStop(0, '#04050B');
+      bgGrad.addColorStop(0.75, '#120809');
+      bgGrad.addColorStop(1, '#220C06');
+    } else if (this.variant === 'defender2') {
+      bgGrad.addColorStop(0, '#090418');
+      bgGrad.addColorStop(0.65, '#1B0B33');
+      bgGrad.addColorStop(1, '#2E104E');
+    } else {
+      bgGrad.addColorStop(0, '#020B14');
+      bgGrad.addColorStop(0.68, '#041C2C');
+      bgGrad.addColorStop(1, '#062C3C');
+    }
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // If inside Stargate 3D Hyperspace Warp Tunnel, draw exhilarating warp vortex!
+    if (this.warpTunnelTimer > 0) {
+      this.renderWarpTunnel(ctx);
+      if (visualMode === 'crt') renderCrtOverlay(ctx, W, H);
+      ctx.restore();
+      return;
+    }
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // Nebula clouds (Defender II / Stargate vivid ambiance)
+    for (const n of this.nebulae) {
+      const sx = this.worldToScreenX(wrapX(n.x + this.cameraX * 0.65));
+      if (sx < -n.r || sx > W + n.r) continue;
+      const g = ctx.createRadialGradient(sx, n.y, 4, sx, n.y, n.r);
+      g.addColorStop(0, n.color);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.arc(sx, st.y, st.r, 0, Math.PI * 2);
+      ctx.arc(sx, n.y, n.r, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    // Stargate holographic cyber horizon grid
+    if (this.variant === 'stargate' && !this.planetDestroyed) {
+      ctx.strokeStyle = 'rgba(56,189,248,0.12)';
+      ctx.lineWidth = 1;
+      for (let gy = PLAY_BOTTOM - 120; gy < PLAY_BOTTOM; gy += 24) {
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.lineTo(W, gy);
+        ctx.stroke();
+      }
+    }
+
+    // Parallax stars
+    for (const s of this.stars) {
+      const sx = wrapX(s.x - this.cameraX * s.parallax);
+      if (sx > W) continue;
+      ctx.globalAlpha = 0.45 + 0.55 * Math.sin(this.time * 3 + s.twinkle);
+      ctx.fillStyle = s.color;
+      ctx.fillRect(sx, s.y, s.size, s.size);
     }
     ctx.globalAlpha = 1;
 
-    // Jagged glowing mountain terrain
+    // Terrain mountains (completely distinct silhouette & glow per game!)
     if (!this.planetDestroyed) {
-      ctx.save();
-      ctx.beginPath();
-      const stepPx = 12;
-      ctx.moveTo(0, LOGICAL_H);
-      for (let sx = 0; sx <= LOGICAL_W + stepPx; sx += stepPx) {
-        const wx = wrapX(this.cameraX + sx);
-        const ty = this.terrainYAt(wx);
-        ctx.lineTo(sx, ty);
-      }
-      ctx.lineTo(LOGICAL_W, LOGICAL_H);
-      ctx.closePath();
-
-      const grad = ctx.createLinearGradient(0, GROUND_BASE - 55, 0, LOGICAL_H);
-      if (this.variant === 'defender') {
-        grad.addColorStop(0, 'rgba(180, 83, 9, 0.32)');
-        grad.addColorStop(1, 'rgba(30, 14, 5, 0.92)');
-      } else if (this.variant === 'defender2') {
-        grad.addColorStop(0, 'rgba(126, 34, 206, 0.35)');
-        grad.addColorStop(1, 'rgba(19, 8, 36, 0.94)');
-      } else {
-        grad.addColorStop(0, 'rgba(14, 116, 144, 0.36)');
-        grad.addColorStop(1, 'rgba(5, 18, 34, 0.94)');
-      }
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      ctx.beginPath();
-      for (let sx = 0; sx <= LOGICAL_W + stepPx; sx += stepPx) {
-        const wx = wrapX(this.cameraX + sx);
-        const ty = this.terrainYAt(wx);
-        if (sx === 0) ctx.moveTo(sx, ty);
-        else ctx.lineTo(sx, ty);
-      }
-      ctx.strokeStyle = this.getAccentColor();
-      ctx.lineWidth = 2.2;
-      ctx.shadowColor = this.getAccentColor();
-      ctx.shadowBlur = 8;
-      ctx.stroke();
-      ctx.restore();
+      this.renderTerrain(ctx);
     }
 
-    // Stargate Warp Portal (Defender II & Stargate)
+    // Stargate / Warp Gate Portal (Defender II & Stargate)
     if (this.variant !== 'defender') {
-      const gx = this.worldToScreenX(this.stargateX);
-      if (gx > -60 && gx < LOGICAL_W + 60) {
-        ctx.save();
-        ctx.translate(gx, this.stargateY);
-        const pulse = 1 + Math.sin(this.clock * 6) * 0.12;
-        ctx.strokeStyle = this.variant === 'stargate' ? '#38BDF8' : '#C084FC';
-        ctx.lineWidth = 3;
-        ctx.shadowColor = ctx.strokeStyle;
-        ctx.shadowBlur = 14;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 22 * pulse, 34 * pulse, 0, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.strokeStyle = '#FDE047';
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 12, 22, this.clock * 2, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
+      this.renderGatePortal(ctx);
     }
 
-    // Humanoids with animated waving arms when abducted or falling
+    // Humanoids
     for (const h of this.humanoids) {
       if (h.state === 'dead') continue;
       const sx = this.worldToScreenX(h.x);
-      if (sx < -20 || sx > LOGICAL_W + 20) continue;
-      ctx.save();
-      ctx.translate(sx, h.y);
-      // Helmet/Head
-      ctx.fillStyle = '#FDE68A';
-      ctx.beginPath();
-      ctx.arc(0, -10.5, 3, 0, Math.PI * 2);
-      ctx.fill();
-      // Suit torso
-      ctx.fillStyle = '#EC4899';
-      ctx.fillRect(-3.5, -7.5, 7, 6.5);
-      // Waving arms when in distress
-      ctx.strokeStyle = '#FDE68A';
-      ctx.lineWidth = 1.8;
-      const wave = h.state === 'abducted' || h.state === 'falling' ? Math.sin(this.clock * 22 + h.id) * 4 : 0;
-      ctx.beginPath();
-      ctx.moveTo(-3.5, -6);
-      ctx.lineTo(-6.5, h.state === 'walking' ? -2 : -10 + wave);
-      ctx.moveTo(3.5, -6);
-      ctx.lineTo(6.5, h.state === 'walking' ? -2 : -10 - wave);
-      ctx.stroke();
-      // Legs
-      const stride = h.state === 'walking' ? Math.sin(this.clock * 8 + h.id) * 2.4 : 0;
-      ctx.fillStyle = '#38BDF8';
-      ctx.fillRect(-3, -1, 2.5, 5.5 + stride * 0.45);
-      ctx.fillRect(0.5, -1, 2.5, 5.5 - stride * 0.45);
-      ctx.restore();
+      if (sx < -24 || sx > W + 24) continue;
+      this.drawHumanoid(ctx, sx, h.y, h.state === 'abducted');
     }
 
-    // Enemies (with abduction tractor beam on Landers carrying humanoids!)
+    // Enemies
     for (const e of this.enemies) {
       const sx = this.worldToScreenX(e.x);
-      if (sx < -36 || sx > LOGICAL_W + 36) continue;
-      if (e.kind === 'lander' && e.targetHumanoidId !== null) {
-        const targetH = this.humanoids.find((h) => h.id === e.targetHumanoidId && h.state === 'abducted');
-        if (targetH) {
-          ctx.save();
-          const tg = ctx.createLinearGradient(0, e.y + 8, 0, targetH.y + 4);
-          tg.addColorStop(0, 'rgba(74, 222, 128, 0.55)');
-          tg.addColorStop(1, 'rgba(56, 189, 248, 0.1)');
-          ctx.fillStyle = tg;
-          ctx.beginPath();
-          ctx.moveTo(sx - 6, e.y + 8);
-          ctx.lineTo(sx + 6, e.y + 8);
-          ctx.lineTo(sx + 14, targetH.y + 6);
-          ctx.lineTo(sx - 14, targetH.y + 6);
-          ctx.closePath();
-          ctx.fill();
-          ctx.restore();
-        }
-      }
+      if (sx < -36 || sx > W + 36) continue;
       this.drawEnemy(ctx, e, sx, e.y);
     }
 
     // Enemy shots & mines
     for (const s of this.enemyShots) {
       const sx = this.worldToScreenX(s.x);
-      if (sx < -12 || sx > LOGICAL_W + 12) continue;
+      if (sx < -20 || sx > W + 20) continue;
       ctx.save();
       ctx.translate(sx, s.y);
+      ctx.fillStyle = s.color;
+      ctx.shadowColor = s.color;
+      ctx.shadowBlur = 10;
       if (s.isMine) {
-        ctx.rotate(this.clock * 6);
-        ctx.shadowColor = '#FB923C';
-        ctx.shadowBlur = 10;
-        ctx.strokeStyle = '#FB923C';
-        ctx.lineWidth = 2.4;
+        ctx.rotate(this.time * 5);
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 2.2;
         ctx.beginPath();
-        ctx.moveTo(-7, 0);
-        ctx.lineTo(7, 0);
-        ctx.moveTo(0, -7);
-        ctx.lineTo(0, 7);
+        ctx.moveTo(-6, 0);
+        ctx.lineTo(6, 0);
+        ctx.moveTo(0, -6);
+        ctx.lineTo(0, 6);
         ctx.stroke();
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(-2.2, -2.2, 4.4, 4.4);
+        ctx.fillRect(-2, -2, 4, 4);
       } else {
-        ctx.fillStyle = '#F43F5E';
-        ctx.shadowColor = '#F43F5E';
-        ctx.shadowBlur = 10;
         ctx.beginPath();
-        ctx.arc(0, 0, 4.4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath();
-        ctx.arc(0, 0, 2, 0, Math.PI * 2);
+        ctx.arc(0, 0, 3.6, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
     }
 
-    // Iconic Williams Segmented Rainbow Streaking Lasers
-    for (const l of this.lasers) {
-      const sx = this.worldToScreenX(l.x);
-      const tailX = sx - l.dir * l.len;
+    // Player laser streaks
+    for (const b of this.lasers) {
+      const sx = this.worldToScreenX(b.x);
+      if (sx < -b.length || sx > W + b.length) continue;
       ctx.save();
-      ctx.shadowColor = `hsl(${l.hue}, 100%, 60%)`;
-      ctx.shadowBlur = 12;
-      const grad = ctx.createLinearGradient(tailX, l.y, sx, l.y);
+      const grad = ctx.createLinearGradient(sx - b.dir * b.length, b.y, sx, b.y);
       grad.addColorStop(0, 'rgba(255,255,255,0)');
-      grad.addColorStop(0.25, `hsl(${(l.hue + 90) % 360}, 100%, 60%)`);
-      grad.addColorStop(0.55, `hsl(${(l.hue + 40) % 360}, 100%, 65%)`);
-      grad.addColorStop(0.85, `hsl(${l.hue}, 100%, 70%)`);
+      grad.addColorStop(0.55, b.color);
       grad.addColorStop(1, '#FFFFFF');
       ctx.strokeStyle = grad;
-      ctx.lineWidth = 4.2;
+      ctx.lineWidth = this.variant === 'stargate' ? 4 : 3.2;
+      ctx.shadowColor = b.color;
+      ctx.shadowBlur = 12;
       ctx.beginPath();
-      ctx.moveTo(tailX, l.y);
-      ctx.lineTo(sx, l.y);
-      ctx.stroke();
-      // White-hot inner filament with iconic Williams dash breaks
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 1.6;
-      ctx.setLineDash([18, 6, 10, 4]);
-      ctx.beginPath();
-      ctx.moveTo(tailX + l.dir * (l.len * 0.25), l.y);
-      ctx.lineTo(sx, l.y);
+      ctx.moveTo(sx - b.dir * b.length, b.y);
+      ctx.lineTo(sx, b.y);
       ctx.stroke();
       ctx.restore();
     }
 
-    // Player Ship
-    if (this.phase !== 'GAME_OVER') {
-      const blink = this.invulnTimer > 0 && Math.floor(this.clock * 18) % 2 === 0;
-      if (!blink) {
-        const sx = this.worldToScreenX(this.shipX);
-        this.drawShip(ctx, sx, this.shipY, this.facing);
-      }
-    }
+    // Player Fighter
+    this.drawPlayerShip(ctx);
 
-    // Particles & Popups (transformed into screen coordinates)
-    const screenParticles = this.particles.map((p) => ({
-      ...p,
-      x: this.worldToScreenX(p.x),
-    }));
-    const screenPopups = this.popups.map((p) => ({
-      ...p,
-      x: this.worldToScreenX(p.x),
-    }));
-    renderParticlesAndPopups(ctx, screenParticles, screenPopups);
-
-    // Smart bomb / planet flash
-    if (this.screenFlash > 0) {
-      ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(0.85, this.screenFlash * 1.9)})`;
-      ctx.fillRect(0, SCANNER_H, LOGICAL_W, LOGICAL_H - SCANNER_H);
-    } else if (this.planetExplodeFlash > 0) {
-      ctx.fillStyle = `rgba(244, 63, 94, ${Math.min(0.65, this.planetExplodeFlash * 0.65)})`;
-      ctx.fillRect(0, SCANNER_H, LOGICAL_W, LOGICAL_H - SCANNER_H);
-    }
-
-    // Top-Bar Williams Scanner Radar
-    this.drawScannerHud(ctx);
-
-    // Ready / Stage Clear banner
-    if (this.phase === 'READY' || this.phase === 'STAGE_CLEAR') {
+    // Particles & Score Popups in screen space
+    for (const p of this.particles) {
+      const sx = this.worldToScreenX(p.x);
+      if (sx < -20 || sx > W + 20) continue;
+      const alpha = Math.max(0, p.life / p.maxLife);
       ctx.save();
-      ctx.fillStyle = 'rgba(4, 7, 16, 0.78)';
-      ctx.fillRect(LOGICAL_W * 0.5 - 190, LOGICAL_H * 0.5 - 38, 380, 76);
-      ctx.strokeStyle = this.getAccentColor();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(sx, p.y, p.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    for (const pop of this.popups) {
+      const sx = this.worldToScreenX(pop.x);
+      if (sx < -60 || sx > W + 60) continue;
+      const alpha = Math.min(1, (pop.life / pop.maxLife) * 1.8);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = '800 14px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = 'rgba(2,6,23,0.9)';
+      ctx.lineWidth = 3;
+      ctx.strokeText(pop.text, sx, pop.y);
+      ctx.fillStyle = pop.color;
+      ctx.fillText(pop.text, sx, pop.y);
+      ctx.restore();
+    }
+
+    ctx.restore();
+
+    // Smart Bomb / Hyperspace full-screen flash
+    if (this.smartBombFlash > 0) {
+      ctx.save();
+      ctx.globalAlpha = this.smartBombFlash * 0.65;
+      ctx.fillStyle =
+        this.variant === 'stargate'
+          ? `hsl(${Math.floor(this.time * 720) % 360}, 95%, 70%)`
+          : '#FFFFFF';
+      ctx.fillRect(0, PLAY_TOP, W, H - PLAY_TOP);
+      ctx.restore();
+    }
+    if (this.hyperspaceFlash > 0) {
+      ctx.save();
+      ctx.globalAlpha = this.hyperspaceFlash * 0.45;
+      ctx.fillStyle = '#F59E0B';
+      ctx.fillRect(0, PLAY_TOP, W, H - PLAY_TOP);
+      ctx.restore();
+    }
+
+    // Iconic Top Williams Scanner Bar
+    this.renderScanner(ctx);
+
+    // Title Card or Status Banner
+    if (this.phase === 'TITLE') {
+      this.renderTitleOverlay(ctx);
+    } else if (this.bannerText) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(2, 6, 23, 0.8)';
+      ctx.fillRect(W * 0.5 - 220, H * 0.5 - 24, 440, 48);
+      ctx.strokeStyle =
+        this.variant === 'defender'
+          ? '#F59E0B'
+          : this.variant === 'defender2'
+            ? '#C084FC'
+            : '#38BDF8';
       ctx.lineWidth = 2;
-      ctx.strokeRect(LOGICAL_W * 0.5 - 190, LOGICAL_H * 0.5 - 38, 380, 76);
-      ctx.font = '800 22px "Outfit", sans-serif';
-      ctx.fillStyle = '#FFFFFF';
+      ctx.strokeRect(W * 0.5 - 220, H * 0.5 - 24, 440, 48);
+      ctx.font = '800 15px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(
-        this.phase === 'READY'
-          ? `ATTACK WAVE ${this.level}`
-          : `WAVE ${this.level} DEFENDED!`,
-        LOGICAL_W * 0.5,
-        LOGICAL_H * 0.5
-      );
+      ctx.fillStyle = '#FEF08A';
+      ctx.fillText(this.bannerText, W * 0.5, H * 0.5);
       ctx.restore();
     }
 
     if (visualMode === 'crt') {
-      renderCrtOverlay(ctx, LOGICAL_W, LOGICAL_H);
+      renderCrtOverlay(ctx, W, H);
     }
     ctx.restore();
   }
 
-  private drawShip(ctx: CanvasRenderingContext2D, x: number, y: number, dir: 1 | -1): void {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(dir, 1);
+  private renderTerrain(ctx: CanvasRenderingContext2D): void {
+    const strokeCol =
+      this.variant === 'defender'
+        ? '#F97316'
+        : this.variant === 'defender2'
+          ? '#C084FC'
+          : '#22D3EE';
+    const fillTop =
+      this.variant === 'defender'
+        ? 'rgba(194,65,12,0.34)'
+        : this.variant === 'defender2'
+          ? 'rgba(126,34,206,0.36)'
+          : 'rgba(8,145,178,0.32)';
 
-    if (this.invisoActive) {
-      ctx.globalAlpha = 0.55 + Math.sin(this.clock * 22) * 0.25;
-      ctx.strokeStyle = '#C084FC';
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = '#A855F7';
-      ctx.shadowBlur = 16;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let sx = 0; sx <= W; sx += 12) {
+      const wx = wrapX(this.cameraX + sx);
+      ctx.lineTo(sx, this.getTerrainY(wx));
+    }
+    ctx.lineTo(W, H);
+    ctx.closePath();
+
+    const grad = ctx.createLinearGradient(0, PLAY_BOTTOM - 90, 0, H);
+    grad.addColorStop(0, fillTop);
+    grad.addColorStop(1, 'rgba(2,6,23,0.95)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.beginPath();
+    for (let sx = 0; sx <= W; sx += 12) {
+      const wx = wrapX(this.cameraX + sx);
+      const ty = this.getTerrainY(wx);
+      if (sx === 0) ctx.moveTo(sx, ty);
+      else ctx.lineTo(sx, ty);
+    }
+    ctx.strokeStyle = strokeCol;
+    ctx.lineWidth = 2.6;
+    ctx.shadowColor = strokeCol;
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private renderGatePortal(ctx: CanvasRenderingContext2D): void {
+    const sx = this.worldToScreenX(this.stargateX);
+    if (sx < -60 || sx > W + 60) return;
+
+    ctx.save();
+    ctx.translate(sx, this.stargateY);
+    const primary = this.variant === 'defender2' ? '#E879F9' : '#38BDF8';
+    const secondary = this.variant === 'defender2' ? '#A855F7' : '#34D399';
+    ctx.shadowColor = primary;
+    ctx.shadowBlur = 18;
+
+    for (let r = 0; r < 3; r++) {
+      ctx.strokeStyle = r % 2 === 0 ? primary : secondary;
+      ctx.lineWidth = 2.6 - r * 0.5;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 30, 15, 0, 0, Math.PI * 2);
+      ctx.ellipse(
+        0,
+        0,
+        14 + r * 7,
+        24 + r * 8,
+        Math.sin(this.time * 2.4 + r) * 0.25,
+        0,
+        Math.PI * 2
+      );
       ctx.stroke();
     }
-
-    // Multi-layered arcade plasma thruster plume
-    const speedRatio = Math.min(1, Math.abs(this.shipVx) / 480);
-    const thrust = 8 + speedRatio * 24 + Math.sin(this.clock * 45) * 4;
-    const plume = ctx.createLinearGradient(-16, 0, -16 - thrust, 0);
-    plume.addColorStop(0, '#FFFFFF');
-    plume.addColorStop(0.3, '#FDE047');
-    plume.addColorStop(0.7, '#F97316');
-    plume.addColorStop(1, 'rgba(239, 68, 68, 0)');
-    ctx.fillStyle = plume;
-    ctx.beginPath();
-    ctx.moveTo(-16, -4.5);
-    ctx.lineTo(-16 - thrust, 0);
-    ctx.lineTo(-16, 4.5);
-    ctx.closePath();
-    ctx.fill();
-
-    // Authentic Williams Defender stepped silver-cyan starfighter
-    const hullGrad = ctx.createLinearGradient(0, -10, 0, 8);
-    hullGrad.addColorStop(0, '#FFFFFF');
-    hullGrad.addColorStop(0.45, '#CBD5E1');
-    hullGrad.addColorStop(1, '#475569');
-    ctx.fillStyle = hullGrad;
-    ctx.beginPath();
-    ctx.moveTo(25, 2.5);
-    ctx.lineTo(8, -4);
-    ctx.lineTo(-4, -9.5);
-    ctx.lineTo(-15, -9.5);
-    ctx.lineTo(-19, -3);
-    ctx.lineTo(-16, 6.5);
-    ctx.lineTo(17, 6.5);
-    ctx.closePath();
-    ctx.fill();
-
-    // Wing ventral stripe
-    ctx.fillStyle = '#38BDF8';
-    ctx.fillRect(-13, 2, 24, 2.5);
-
-    // Glowing cockpit canopy
-    const canopy = ctx.createLinearGradient(-5, -8, 10, 0);
-    canopy.addColorStop(0, '#FFFFFF');
-    canopy.addColorStop(0.45, this.getAccentColor());
-    canopy.addColorStop(1, '#0F172A');
-    ctx.fillStyle = canopy;
-    ctx.beginPath();
-    ctx.moveTo(11, -0.5);
-    ctx.lineTo(0, -7);
-    ctx.lineTo(-8, -2);
-    ctx.closePath();
-    ctx.fill();
-
-    // Glowing red laser barrel nose
-    ctx.fillStyle = '#F43F5E';
-    ctx.shadowColor = '#F43F5E';
-    ctx.shadowBlur = 8;
-    ctx.fillRect(16, 0, 10, 2.8);
+    drawStarGlint(ctx, 0, 0, 12, '#FFFFFF', 0.85);
+    ctx.font = '700 9px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(this.variant === 'defender2' ? 'WARP GATE' : 'STARGATE', 0, -38);
     ctx.restore();
   }
 
-  private drawEnemy(ctx: CanvasRenderingContext2D, e: Enemy, sx: number, sy: number): void {
+  private renderWarpTunnel(ctx: CanvasRenderingContext2D): void {
+    ctx.save();
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(0, 0, W, H);
+    const cx = W * 0.5;
+    const cy = H * 0.5;
+    for (let i = 0; i < 14; i++) {
+      const prog = ((this.time * 2.2 + i / 14) % 1);
+      const r = 12 + prog * prog * 420;
+      ctx.strokeStyle = `hsl(${(180 + i * 16 + this.time * 180) % 360}, 95%, 62%)`;
+      ctx.lineWidth = 2 + prog * 4;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, r * 1.18, r * 0.85, prog * 0.6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.font = '900 24px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.shadowColor = '#38BDF8';
+    ctx.shadowBlur = 18;
+    ctx.fillText(this.warpBonusText || 'HYPERSPACE WARP!', cx, cy);
+    ctx.restore();
+  }
+
+  private drawPlayerShip(ctx: CanvasRenderingContext2D): void {
+    if (this.invulnTimer > 0 && Math.floor(this.time * 18) % 2 === 0 && !this.invisoActive) return;
+
+    const sx = this.worldToScreenX(this.px);
+    ctx.save();
+    ctx.translate(sx, this.py);
+
+    if (this.invisoActive) {
+      // Shimmering Inviso Cloak aura
+      const cloakCol = this.variant === 'defender2' ? '#E879F9' : '#38BDF8';
+      ctx.strokeStyle = cloakCol;
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = cloakCol;
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 28, 15, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 0.55 + Math.sin(this.time * 24) * 0.25;
+    }
+
+    ctx.scale(this.facing, 1);
+
+    // Thruster flame
+    const flameLen = 10 + Math.min(22, Math.abs(this.pvx) * 0.04) + Math.random() * 6;
+    ctx.fillStyle =
+      this.variant === 'defender'
+        ? '#F97316'
+        : this.variant === 'defender2'
+          ? '#E879F9'
+          : '#38BDF8';
+    ctx.beginPath();
+    ctx.moveTo(-16, -4);
+    ctx.lineTo(-16 - flameLen, 0);
+    ctx.lineTo(-16, 4);
+    ctx.closePath();
+    ctx.fill();
+
+    if (this.variant === 'defender') {
+      // Classic 1981 Williams Defender angular interceptor
+      ctx.fillStyle = '#E2E8F0';
+      ctx.beginPath();
+      ctx.moveTo(22, 1);
+      ctx.lineTo(4, -5);
+      ctx.lineTo(-10, -10);
+      ctx.lineTo(-16, -6);
+      ctx.lineTo(-16, 6);
+      ctx.lineTo(6, 7);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#EF4444';
+      ctx.fillRect(-10, -2, 16, 4);
+      ctx.fillStyle = '#38BDF8';
+      ctx.fillRect(2, -5, 7, 3.5);
+    } else if (this.variant === 'defender2') {
+      // Sleek Defender II violet-chrome Delta Wing
+      ctx.fillStyle = '#F3E8FF';
+      ctx.beginPath();
+      ctx.moveTo(24, 0);
+      ctx.lineTo(-14, -12);
+      ctx.lineTo(-8, 0);
+      ctx.lineTo(-14, 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#C084FC';
+      ctx.beginPath();
+      ctx.moveTo(14, 0);
+      ctx.lineTo(-8, -6);
+      ctx.lineTo(-8, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#FACC15';
+      ctx.fillRect(4, -2, 8, 4);
+    } else {
+      // Stargate Twin-Prong Cyan/Gold Starfighter
+      ctx.fillStyle = '#BAE6FD';
+      ctx.beginPath();
+      ctx.moveTo(24, -4);
+      ctx.lineTo(12, -8);
+      ctx.lineTo(-16, -10);
+      ctx.lineTo(-10, 0);
+      ctx.lineTo(-16, 10);
+      ctx.lineTo(12, 8);
+      ctx.lineTo(24, 4);
+      ctx.lineTo(10, 2);
+      ctx.lineTo(10, -2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#FACC15';
+      ctx.fillRect(-4, -3, 12, 6);
+      ctx.fillStyle = '#06B6D4';
+      ctx.fillRect(-12, -2, 8, 4);
+    }
+
+    ctx.restore();
+  }
+
+  private drawHumanoid(ctx: CanvasRenderingContext2D, sx: number, sy: number, abducted: boolean): void {
+    ctx.save();
+    ctx.translate(sx, sy);
+    if (abducted) {
+      ctx.strokeStyle = '#EF4444';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, 12 + Math.sin(this.time * 14) * 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#F472B6';
+    ctx.fillRect(-3, -6, 6, 8);
+    ctx.fillStyle = '#FDE68A';
+    ctx.beginPath();
+    ctx.arc(0, -9, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#38BDF8';
+    ctx.fillRect(-3.5, 2, 2.5, 6);
+    ctx.fillRect(1, 2, 2.5, 6);
+    ctx.restore();
+  }
+
+  private drawEnemy(ctx: CanvasRenderingContext2D, e: DefenderEnemy, sx: number, sy: number): void {
     ctx.save();
     ctx.translate(sx, sy);
 
     if (e.kind === 'lander') {
-      // Classic green Williams Lander with pulsing golden core & articulated legs
-      const pulse = 0.85 + Math.sin(this.clock * 10 + e.phase) * 0.15;
-      const lg = ctx.createRadialGradient(-2, -4, 1, 0, 0, 14);
-      lg.addColorStop(0, '#BBF7D0');
-      lg.addColorStop(0.45, '#22C55E');
-      lg.addColorStop(1, '#14532D');
-      ctx.fillStyle = lg;
+      ctx.fillStyle = '#22C55E';
       ctx.beginPath();
-      ctx.moveTo(0, -14);
-      ctx.lineTo(13, -3);
-      ctx.lineTo(10, 5);
-      ctx.lineTo(-10, 5);
-      ctx.lineTo(-13, -3);
+      ctx.moveTo(0, -11);
+      ctx.lineTo(12, 2);
+      ctx.lineTo(7, 10);
+      ctx.lineTo(-7, 10);
+      ctx.lineTo(-12, 2);
       ctx.closePath();
       ctx.fill();
-      // Tripod landing legs
-      ctx.strokeStyle = '#4ADE80';
-      ctx.lineWidth = 2.4;
-      ctx.beginPath();
-      ctx.moveTo(-8, 4);
-      ctx.lineTo(-12, 12);
-      ctx.moveTo(0, 5);
-      ctx.lineTo(0, 13);
-      ctx.moveTo(8, 4);
-      ctx.lineTo(12, 12);
-      ctx.stroke();
-      // Glowing sensor visor
       ctx.fillStyle = '#FEF08A';
-      ctx.shadowColor = '#FACC15';
-      ctx.shadowBlur = 8 * pulse;
-      ctx.fillRect(-6, -5.5, 12, 4.5);
+      ctx.fillRect(-5, -3, 10, 5);
     } else if (e.kind === 'mutant') {
-      // Crackling unstable Mutant with flashing visor
-      const flash = Math.floor(this.clock * 16) % 2 === 0;
-      ctx.fillStyle = flash ? '#F43F5E' : '#EC4899';
-      ctx.shadowColor = '#F43F5E';
-      ctx.shadowBlur = 12;
+      ctx.fillStyle = Math.floor(this.time * 16) % 2 === 0 ? '#EF4444' : '#F472B6';
       ctx.beginPath();
-      ctx.moveTo(0, -15);
-      ctx.lineTo(15, -1);
-      ctx.lineTo(9, 13);
-      ctx.lineTo(0, 5);
-      ctx.lineTo(-9, 13);
-      ctx.lineTo(-15, -1);
-      ctx.closePath();
+      ctx.arc(0, 0, 11, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = flash ? '#38BDF8' : '#FEF08A';
-      ctx.fillRect(-6, -4, 12, 4.5);
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
+      ctx.fillStyle = '#4ADE80';
+      ctx.fillRect(-6, -4, 4, 4);
+      ctx.fillRect(2, -4, 4, 4);
     } else if (e.kind === 'bomber' || e.kind === 'firebomber') {
-      ctx.rotate(this.clock * 2.8);
-      const col = e.kind === 'firebomber' ? '#FB923C' : '#C084FC';
-      ctx.shadowColor = col;
-      ctx.shadowBlur = 10;
-      ctx.strokeStyle = col;
-      ctx.lineWidth = 3;
-      ctx.strokeRect(-11, -11, 22, 22);
-      ctx.fillStyle = e.kind === 'firebomber' ? '#FDE047' : '#38BDF8';
-      ctx.fillRect(-5.5, -5.5, 11, 11);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(-2, -2, 4, 4);
+      ctx.fillStyle = e.kind === 'firebomber' ? '#F97316' : '#38BDF8';
+      ctx.fillRect(-10, -10, 20, 20);
+      ctx.fillStyle = '#FEF08A';
+      ctx.fillRect(-5, -5, 10, 10);
     } else if (e.kind === 'pod') {
-      ctx.rotate(this.clock * 3.4);
-      ctx.shadowColor = '#38BDF8';
-      ctx.shadowBlur = 12;
-      ctx.strokeStyle = '#38BDF8';
-      ctx.lineWidth = 2.6;
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+      ctx.rotate(this.time * 3.5);
+      ctx.strokeStyle = '#C084FC';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      for (let k = 0; k < 8; k++) {
-        const a = (k / 8) * Math.PI * 2;
-        const r = k % 2 === 0 ? 15 : 6.5;
-        if (k === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
-        else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+      for (let k = 0; k < 4; k++) {
+        const a = (k * Math.PI) / 2;
+        ctx.moveTo(Math.cos(a) * 12, Math.sin(a) * 12);
+        ctx.lineTo(Math.cos(a + Math.PI / 4) * 4, Math.sin(a + Math.PI / 4) * 4);
       }
       ctx.closePath();
-      ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = '#EC4899';
+      ctx.fillStyle = '#F472B6';
       ctx.beginPath();
       ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
       ctx.fill();
     } else if (e.kind === 'swarmer') {
-      ctx.fillStyle = '#FACC15';
-      ctx.shadowColor = '#F59E0B';
-      ctx.shadowBlur = 8;
+      ctx.fillStyle = '#FB7185';
       ctx.beginPath();
-      ctx.moveTo(0, -10);
-      ctx.lineTo(11, 0);
-      ctx.lineTo(0, 10);
-      ctx.lineTo(-11, 0);
+      ctx.moveTo(0, -7);
+      ctx.lineTo(8, 0);
+      ctx.lineTo(0, 7);
+      ctx.lineTo(-8, 0);
       ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#FEF08A';
+      ctx.fillRect(-2, -2, 4, 4);
+    } else if (e.kind === 'baiter') {
+      ctx.fillStyle = '#FACC15';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 15, 5, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#EF4444';
+      ctx.fillRect(-6, -2, 12, 4);
+    } else if (e.kind === 'spacemine') {
+      ctx.rotate(this.time * 4);
+      ctx.fillStyle = '#E879F9';
       ctx.beginPath();
-      ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
       ctx.fill();
-    } else if (e.kind === 'baiter') {
-      // Iridescent high-speed Williams Baiter saucer
-      const hue = (this.clock * 220) % 360;
-      ctx.fillStyle = `hsl(${hue}, 95%, 60%)`;
-      ctx.shadowColor = '#22D3EE';
-      ctx.shadowBlur = 14;
+      ctx.strokeStyle = '#FEF08A';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(-18, 0);
-      ctx.lineTo(-5, -7);
-      ctx.lineTo(5, -7);
-      ctx.lineTo(18, 0);
-      ctx.lineTo(5, 7);
-      ctx.lineTo(-5, 7);
+      ctx.moveTo(-12, 0);
+      ctx.lineTo(12, 0);
+      ctx.moveTo(0, -12);
+      ctx.lineTo(0, 12);
+      ctx.stroke();
+    } else if (e.kind === 'yllabian') {
+      // Stargate glowing spinning Yllabian Space Hum ring
+      ctx.rotate(this.time * 4.5);
+      ctx.strokeStyle = '#2DD4BF';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, 12, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.arc(0, 0, 5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (e.kind === 'dynamo') {
+      ctx.fillStyle = '#38BDF8';
+      ctx.beginPath();
+      ctx.moveTo(10, 0);
+      ctx.lineTo(-8, -8);
+      ctx.lineTo(-4, 0);
+      ctx.lineTo(-8, 8);
       ctx.closePath();
       ctx.fill();
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(-7, -2, 14, 4);
+    } else {
+      // Munchie chomper
+      ctx.fillStyle = '#A3E635';
+      const mouth = 0.25 + Math.abs(Math.sin(this.time * 12)) * 0.45;
+      ctx.beginPath();
+      ctx.arc(0, 0, 10, mouth, Math.PI * 2 - mouth);
+      ctx.lineTo(0, 0);
+      ctx.closePath();
+      ctx.fill();
     }
-
     ctx.restore();
   }
 
-  private drawScannerHud(ctx: CanvasRenderingContext2D): void {
-    // Top bar dark frame
-    ctx.fillStyle = '#070B16';
-    ctx.fillRect(0, 0, LOGICAL_W, SCANNER_H);
-    ctx.strokeStyle = this.getAccentColor();
+  private renderScanner(ctx: CanvasRenderingContext2D): void {
+    const borderCol =
+      this.variant === 'defender'
+        ? '#F97316'
+        : this.variant === 'defender2'
+          ? '#C084FC'
+          : '#38BDF8';
+
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(0, 0, W, SCANNER_H);
+    ctx.strokeStyle = borderCol;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(0, SCANNER_H);
-    ctx.lineTo(LOGICAL_W, SCANNER_H);
+    ctx.lineTo(W, SCANNER_H);
     ctx.stroke();
 
-    // Central Williams Scanner Box
-    const scanW = 460;
-    const scanH = 70;
-    const scanX = (LOGICAL_W - scanW) * 0.5;
-    const scanY = 9;
+    // Left HUD: Score & Lives / Smart Bombs
+    ctx.font = '800 13px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#FACC15';
+    ctx.fillText(String(this.score).padStart(7, '0'), 14, 24);
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#94A3B8';
+    ctx.fillText(`SHIPS ${this.lives}  BOMBS ${this.smartBombs}`, 14, 46);
+    ctx.fillStyle = borderCol;
+    ctx.fillText(
+      this.variant === 'defender'
+        ? 'R: HYPERSPACE'
+        : `R: INVISO ${Math.round(this.invisoEnergy)}%`,
+      14,
+      63
+    );
 
-    ctx.fillStyle = '#02040A';
-    ctx.fillRect(scanX, scanY, scanW, scanH);
-    ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(scanX, scanY, scanW, scanH);
+    // Center Williams Full-Planet Radar Scanner
+    const mapX = 188;
+    const mapW = 344;
+    const mapY = 8;
+    const mapH = SCANNER_H - 16;
 
-    const mapX = (wx: number) => {
-      const rel = deltaX(this.shipX, wx);
-      return scanX + scanW * 0.5 + (rel / WORLD_W) * scanW;
-    };
-    const mapY = (wy: number) =>
-      scanY + 4 + ((wy - PLAY_TOP) / (PLAY_BOTTOM - PLAY_TOP)) * (scanH - 8);
+    ctx.fillStyle = '#070E20';
+    ctx.fillRect(mapX, mapY, mapW, mapH);
+    ctx.strokeStyle = borderCol;
+    ctx.lineWidth = 1.6;
+    ctx.strokeRect(mapX, mapY, mapW, mapH);
 
-    // Scanner terrain silhouette
+    // Mini terrain silhouette on scanner
     if (!this.planetDestroyed) {
+      ctx.strokeStyle = borderCol;
+      ctx.globalAlpha = 0.45;
       ctx.beginPath();
-      for (let i = 0; i <= 72; i++) {
-        const rx = (i / 72 - 0.5) * WORLD_W;
-        const wx = wrapX(this.shipX + rx);
-        const sx = scanX + (i / 72) * scanW;
-        const sy = mapY(this.terrainYAt(wx));
-        if (i === 0) ctx.moveTo(sx, sy);
-        else ctx.lineTo(sx, sy);
+      for (let i = 0; i <= 48; i++) {
+        const wx = (i / 48) * WORLD_W;
+        const rx = mapX + (i / 48) * mapW;
+        const ry = mapY + ((this.getTerrainY(wx) - PLAY_TOP) / (PLAY_BOTTOM - PLAY_TOP)) * mapH;
+        if (i === 0) ctx.moveTo(rx, ry);
+        else ctx.lineTo(rx, ry);
       }
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
-      ctx.lineWidth = 1.2;
       ctx.stroke();
+      ctx.globalAlpha = 1;
     }
 
-    // Current viewport bracket inside scanner
-    const vpW = (LOGICAL_W / WORLD_W) * scanW;
-    ctx.strokeStyle = 'rgba(255,255,255,0.65)';
-    ctx.lineWidth = 1.2;
-    ctx.strokeRect(scanX + scanW * 0.5 - vpW * 0.5, scanY + 2, vpW, scanH - 4);
+    // Active viewport box on scanner
+    const vpLeft = mapX + (this.cameraX / WORLD_W) * mapW;
+    const vpW = (W / WORLD_W) * mapW;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = 1.4;
+    ctx.strokeRect(vpLeft, mapY + 1, Math.min(vpW, mapX + mapW - vpLeft), mapH - 2);
 
-    // Stargate blip
+    // Stargate dot on scanner
     if (this.variant !== 'defender') {
-      ctx.fillStyle = '#38BDF8';
-      ctx.fillRect(mapX(this.stargateX) - 2, mapY(this.stargateY) - 4, 4, 8);
+      const gx = mapX + (this.stargateX / WORLD_W) * mapW;
+      const gy = mapY + ((this.stargateY - PLAY_TOP) / (PLAY_BOTTOM - PLAY_TOP)) * mapH;
+      ctx.fillStyle = this.variant === 'defender2' ? '#E879F9' : '#38BDF8';
+      ctx.fillRect(gx - 2.5, gy - 2.5, 5, 5);
     }
 
-    // Humanoid blips
-    ctx.fillStyle = '#EC4899';
+    // Humanoid blips (flashing beacon when abducted!)
     for (const h of this.humanoids) {
       if (h.state === 'dead') continue;
-      ctx.fillRect(mapX(h.x) - 1, mapY(h.y) - 2, 2.5, 4);
+      const hx = mapX + (h.x / WORLD_W) * mapW;
+      const hy = mapY + ((h.y - PLAY_TOP) / (PLAY_BOTTOM - PLAY_TOP)) * mapH;
+      ctx.fillStyle = h.state === 'abducted' ? '#EF4444' : '#F472B6';
+      ctx.fillRect(hx - 1.5, hy - 2, 3, 4);
+      if (h.state === 'abducted' && Math.floor(this.time * 10) % 2 === 0) {
+        ctx.strokeStyle = '#EF4444';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(hx, mapY);
+        ctx.lineTo(hx, mapY + mapH);
+        ctx.stroke();
+      }
     }
 
     // Enemy blips
     for (const e of this.enemies) {
-      ctx.fillStyle =
-        e.kind === 'mutant'
-          ? '#F43F5E'
-          : e.kind === 'lander'
-          ? '#4ADE80'
-          : e.kind === 'pod'
-          ? '#38BDF8'
-          : '#FACC15';
-      ctx.fillRect(mapX(e.x) - 1.5, mapY(e.y) - 1.5, 3.2, 3.2);
+      const ex = mapX + (e.x / WORLD_W) * mapW;
+      const ey = mapY + ((e.y - PLAY_TOP) / (PLAY_BOTTOM - PLAY_TOP)) * mapH;
+      ctx.fillStyle = e.kind === 'lander' ? '#22C55E' : e.kind === 'mutant' ? '#EF4444' : '#FACC15';
+      ctx.fillRect(ex - 1.5, ey - 1.5, 3, 3);
     }
 
     // Player blip
+    const pRx = mapX + (this.px / WORLD_W) * mapW;
+    const pRy = mapY + ((this.py - PLAY_TOP) / (PLAY_BOTTOM - PLAY_TOP)) * mapH;
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(mapX(this.shipX) - 2.5, mapY(this.shipY) - 2, 5, 4);
+    ctx.fillRect(pRx - 2.5, pRy - 1.5, 5, 3);
 
-    // Left HUD: Smart Bombs & Score
-    ctx.font = '700 12px "JetBrains Mono", monospace';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#94A3B8';
-    ctx.fillText('SMART BOMBS', 18, 26);
-    for (let i = 0; i < this.smartBombs; i++) {
-      ctx.fillStyle = '#FACC15';
-      ctx.beginPath();
-      ctx.arc(24 + i * 16, 44, 5, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillText(`SCORE ${this.score.toLocaleString()}`, 18, 70);
-
-    // Right HUD: Wave & Inviso Cloak bar (for Defender II / Stargate)
+    // Right HUD: Variant title & Wave
     ctx.textAlign = 'right';
-    ctx.fillStyle = this.getAccentColor();
-    ctx.fillText(`WAVE ${this.level}`, LOGICAL_W - 18, 26);
-    const aliveH = this.humanoids.filter((h) => h.state !== 'dead').length;
-    ctx.fillStyle = '#EC4899';
-    ctx.fillText(`HUMANOIDS ${aliveH}/10`, LOGICAL_W - 18, 48);
-
-    if (this.variant !== 'defender') {
-      const barW = 110;
-      const bx = LOGICAL_W - 18 - barW;
-      ctx.fillStyle = 'rgba(255,255,255,0.12)';
-      ctx.fillRect(bx, 60, barW, 8);
-      ctx.fillStyle = this.invisoActive ? '#F0ABFC' : '#A855F7';
-      ctx.fillRect(bx, 60, (this.invisoEnergy / 100) * barW, 8);
-    } else {
-      ctx.fillStyle = '#94A3B8';
-      ctx.fillText(this.planetDestroyed ? 'MUTANT SPACE' : 'PLANET INTACT', LOGICAL_W - 18, 70);
-    }
+    ctx.font = '800 13px "JetBrains Mono", monospace';
+    ctx.fillStyle = borderCol;
+    ctx.fillText(
+      this.variant === 'defender'
+        ? 'DEFENDER'
+        : this.variant === 'defender2'
+          ? 'DEFENDER II'
+          : 'STARGATE',
+      W - 14,
+      24
+    );
+    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#4ADE80';
+    ctx.fillText(`HI ${String(this.highScore).padStart(7, '0')}`, W - 14, 46);
+    ctx.fillStyle = '#E2E8F0';
+    ctx.fillText(`WAVE ${this.level}`, W - 14, 63);
   }
 
-  public getHudSnapshot(): ClassicGameHud {
-    const aliveH = this.humanoids.filter((h) => h.state !== 'dead').length;
-    return {
-      phase: this.phase,
-      score: this.score,
-      highScore: this.highScore,
-      level: this.level,
-      lives: this.lives,
-      stageName: `${this.getTitleName()} · Wave ${this.level}`,
-      primaryMetricLabel: 'Smart Bombs',
-      primaryMetricValue: `${this.smartBombs}`,
-      secondaryMetricLabel: this.variant === 'defender' ? 'Humanoids' : 'Inviso Cloak',
-      secondaryMetricValue:
-        this.variant === 'defender'
-          ? `${aliveH}/10`
-          : `${Math.round(this.invisoEnergy)}%`,
-      bannerText: this.planetDestroyed ? 'Mutant Space!' : '',
-      canRestartStage: this.variant !== 'defender',
-    };
+  private renderTitleOverlay(ctx: CanvasRenderingContext2D): void {
+    const accent =
+      this.variant === 'defender'
+        ? '#F97316'
+        : this.variant === 'defender2'
+          ? '#C084FC'
+          : '#38BDF8';
+    const title =
+      this.variant === 'defender'
+        ? 'DEFENDER'
+        : this.variant === 'defender2'
+          ? 'DEFENDER II'
+          : 'STARGATE';
+    const sub =
+      this.variant === 'defender'
+        ? '1981 WILLIAMS · CRIMSON FRONTIER & HYPERSPACE'
+        : this.variant === 'defender2'
+          ? '1981 WILLIAMS · VIOLET NEBULA · INVISO & WARP GATE'
+          : '1981 WILLIAMS · HYPERSPACE PORTAL · YLLABIANS & MUNCHIES';
+    const line2 =
+      this.variant === 'defender'
+        ? 'RESCUE FALLING HUMANOIDS · SHIFT: SMART BOMB · R: HYPERSPACE'
+        : this.variant === 'defender2'
+          ? 'RAM FOES WITH INVISO CLOAK (R) · WARP TO ABDUCTED HUMANOIDS'
+          : 'WARP WITH 4+ HUMANOIDS TO SKIP WAVES · INVISO (R) · BOMBS (SHIFT)';
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.78)';
+    ctx.fillRect(W * 0.5 - 245, H * 0.5 - 98, 490, 200);
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(W * 0.5 - 245, H * 0.5 - 98, 490, 200);
+
+    ctx.textAlign = 'center';
+    ctx.font = '900 44px "JetBrains Mono", monospace';
+    ctx.fillStyle = accent;
+    ctx.fillText(title, W * 0.5, H * 0.5 - 40);
+
+    ctx.font = '700 12px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#F8FAFC';
+    ctx.fillText(sub, W * 0.5, H * 0.5 - 4);
+
+    ctx.font = '600 11px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#94A3B8';
+    ctx.fillText(line2, W * 0.5, H * 0.5 + 26);
+
+    ctx.font = '800 15px "JetBrains Mono", monospace';
+    ctx.fillStyle = Math.floor(this.time * 3) % 2 === 0 ? '#FACC15' : '#4ADE80';
+    ctx.fillText('PRESS PLAY OR SPACE TO LAUNCH', W * 0.5, H * 0.5 + 70);
+    ctx.restore();
   }
 }

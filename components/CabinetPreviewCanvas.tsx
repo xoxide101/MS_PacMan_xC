@@ -34,7 +34,7 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     let rafId = 0;
     let isVisible = true;
     let lastTime = performance.now();
@@ -173,7 +173,7 @@ export default function CabinetPreviewCanvas({ game }: CabinetPreviewCanvasProps
   return (
     <canvas
       ref={canvasRef}
-      className="w-full h-full object-cover object-center block"
+      className="w-full h-full object-contain object-center block"
       aria-hidden="true"
     />
   );

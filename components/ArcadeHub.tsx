@@ -1,8 +1,20 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { motion } from 'motion/react';
-import { Download, Play, Search, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import {
+  ArrowDownAZ,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Download,
+  LayoutGrid,
+  Play,
+  Search,
+  Shuffle,
+  X,
+} from 'lucide-react';
 import { CABINET_LIST, CabinetCategory, GameId } from '@/lib/game/arcadeTypes';
 import { arcadeAudio } from '@/lib/game/audio';
 import { CLASSIC_BONUS_ORDER } from '@/lib/game/classicEngine';
@@ -494,12 +506,12 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: '1942',
     year: 1984,
     category: 'shooters',
-    meta: '1984 · Capcom · P-38 Lightning · Barrel Roll & Wingmen',
+    meta: '1984 · Capcom · USS Hornet Carrier · 3D Loop-the-Loop & Wingmen',
     description:
-      'Soar over Pacific carriers in Capcom’s vertical-scrolling classic—execute invulnerable Barrel Roll Loops, earn POW quad-guns and wingmen, and down giant Ayako bombers.',
+      'Launch off the USS Hornet in Capcom’s Pacific classic—wipe out Red Formations for 6 iconic POW drops, fly Twin Wingmen, dodge with 3D Loop-the-Loops, and down the giant Ayako Super-Bomber en route TO TOKYO!',
     footerLabel: 'Pacific Ace',
-    footerSummary: 'Barrel Roll Loop · POW Upgrades · Wingmen',
-    titleColorClass: 'text-slate-200',
+    footerSummary: 'Carrier Launch & Landing · 6 POW Drops · Ayako Boss',
+    titleColorClass: 'text-slate-100',
     scoreColorClass: 'text-slate-200',
     borderHoverClass: 'hover:border-slate-300/50',
     buttonClass: 'bg-slate-200 hover:bg-white text-slate-950 focus-visible:ring-slate-300',
@@ -509,26 +521,26 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: '1943: The Battle of Midway',
     year: 1987,
     category: 'shooters',
-    meta: '1987 · Capcom · Shotgun & 3-Way · Lightning Mega-Crash',
+    meta: '1987 · Capcom · Shoot-to-Cycle POW · Lightning Crash · Yamato',
     description:
-      'Unleash bullet-clearing Shotguns, 3-Way spreads, and screen-shaking Lightning Mega-Crashes against towering naval battleships and aircraft carriers at Midway!',
-    footerLabel: 'Midway Arsenal',
-    footerSummary: 'Shotgun & 3-Way · Mega-Crash · Battleship Boss',
-    titleColorClass: 'text-sky-400',
-    scoreColorClass: 'text-sky-200',
-    borderHoverClass: 'hover:border-sky-400/50',
-    buttonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
+      'Assault the Midway armada with Shoot-to-Cycle POW weapons (bullet-erasing Shotgun, 3-Way, Shell, Laser), an Energy/Fuel gauge, Lightning Mega-Crashes, and multi-turret battleships including Cruiser Tone, Carrier Kaga & Battleship Yamato!',
+    footerLabel: 'Midway Armada',
+    footerSummary: 'Shoot-to-Cycle POW · Multi-Turret Warships · Lightning Crash',
+    titleColorClass: 'text-emerald-400',
+    scoreColorClass: 'text-emerald-200',
+    borderHoverClass: 'hover:border-emerald-400/50',
+    buttonClass: 'bg-emerald-400 hover:bg-emerald-300 text-slate-950 focus-visible:ring-emerald-200',
   },
   {
     id: 'berzerk',
     title: 'Berzerk',
     year: 1980,
     category: 'action',
-    meta: '1980 · Stern · Electrified Mazes · Smart Robots & Evil Otto',
+    meta: '1980 · Stern · High-Voltage Neon Maze · 6 Robot Tiers & Evil Otto',
     description:
-      'Blast through procedurally generated electrified robot corridors—trick laser-firing automatons into walking into walls and escape before invincible Evil Otto arrives!',
-    footerLabel: 'Maze Combat',
-    footerSummary: '8-Way Laser · Electrified Walls · Evil Otto',
+      'Independent Stern maze engine with crackling high-voltage corridors, 6 escalating Cyclops robot tiers, robot-on-robot crossfire, Hold-to-Aim precision fire, Stern voice callouts, and invincible wall-phasing Evil Otto!',
+    footerLabel: 'High-Voltage Maze',
+    footerSummary: 'Electric Walls · 6 Robot Tiers · Evil Otto · Hold-Aim',
     titleColorClass: 'text-green-400',
     scoreColorClass: 'text-green-200',
     borderHoverClass: 'hover:border-green-400/50',
@@ -569,11 +581,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Joust',
     year: 1982,
     category: 'action',
-    meta: '1982 · Williams · Ostrich Wing-Flap · Lance Height Duels',
+    meta: '1982 · Williams · Volcanic Colosseum · Bounders, Hunters & Shadow Lords',
     description:
-      'Flap your armored Ostrich above rival Buzzard Knights to unseat them in mid-air lance duels, scoop up falling Eggs before they hatch, and stay clear of the Lava Troll!',
-    footerLabel: 'Aerial Duels',
-    footerSummary: 'Flap Physics · Mid-Air Eggs · Lava Bridge',
+      'Independent Williams aerial jousting engine with articulated Ostrich flap & skid-brake physics, metallic Lance Clash bounces, mid-air Egg catches, crumbling magma bridges, Lava Troll grabs, and mouth-kill Pterodactyls!',
+    footerLabel: 'Volcanic Colosseum',
+    footerSummary: '3 Buzzard Tiers · Egg Waves · Lava Troll · Pterodactyl',
     titleColorClass: 'text-amber-400',
     scoreColorClass: 'text-amber-200',
     borderHoverClass: 'hover:border-amber-400/50',
@@ -674,11 +686,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Crystal Castles',
     year: 1983,
     category: 'action',
-    meta: '1983 · Atari · Isometric 3D Castles · Bentley Bear & Gems',
+    meta: '1983 · Atari · 8 Isometric 3D Castles · Stairs, Elevators & Bentley Bear',
     description:
-      'Guide Bentley Bear across elevated isometric 3D stairways and towers—scoop shimmering gems, leap over Gem Eaters, ride crystal lifts, and outfox Berthilda the Witch.',
-    footerLabel: 'Isometric 3D',
-    footerSummary: 'Bentley Bear · Magic Hat · Multi-Tier Castles',
+      'True depth-interleaved 3D isometric engine across 8 handcrafted castles—guide animated Bentley Bear up sculpted staircases and moving crystal elevators, Dash past Gem Eaters, don the starry Magic Hat to defeat Berthilda, and unlock Secret Warps!',
+    footerLabel: '8 Isometric Castles',
+    footerSummary: 'Stairs & Elevators · Animated Bentley · Magic Hat Dash · Berthilda',
     titleColorClass: 'text-purple-400',
     scoreColorClass: 'text-purple-200',
     borderHoverClass: 'hover:border-purple-400/50',
@@ -736,11 +748,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Donkey Kong',
     year: 1981,
     category: 'platformers',
-    meta: '1981 · Nintendo · Slanted Girders · Barrels, Hammer & Rivets',
+    meta: '1981 · Nintendo · All 4 Stages · 25m / 50m Pies / 75m Elevators / 100m Rivets',
     description:
-      'Climb steel ladders and leap over rolling barrels on 25m Girders, grab the golden Hammer to smash hazards, or pull all 8 rivets on 100m to rescue Pauline!',
-    footerLabel: 'Classic Stages',
-    footerSummary: '25m Girders · 100m Rivets · Golden Hammer',
+      'Complete 4-stage 1981 arcade evolution: leap Blue Fire-Barrels & climbing Fireballs on 25m, ride Conveyor Belts on 50m Pie Factory, dodge Jack Springs on 75m Elevators, and pull all 8 rivets on 100m!',
+    footerLabel: 'All 4 Classic Stages',
+    footerSummary: '25m Girders · 50m Pies · 75m Elevators · 100m Rivets',
     titleColorClass: 'text-orange-400',
     scoreColorClass: 'text-orange-200',
     borderHoverClass: 'hover:border-orange-400/50',
@@ -751,11 +763,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Donkey Kong Jr.',
     year: 1982,
     category: 'platformers',
-    meta: '1982 · Nintendo · Dual-Vine Climbing · Fruit Drops & Keys',
+    meta: '1982 · Nintendo · 3 Stages · Jungle Vines · Springboard & Electric Hideout',
     description:
-      'Grab two jungle vines to climb fast, slide down single vines, drop tropical fruits onto Snapjaws below, and unlock all 3 golden keys to free Papa Kong!',
-    footerLabel: 'Jungle Climb',
-    footerSummary: '2-Vine Turbo Climb · Fruit Crush · Cage Keys',
+      'Swing across 3 authentic stages—Waterfall Jungle Vines, Springboard & Moving Islands with Nitpicker Birds, and Mario’s Electric Hideout with 6 Golden Keys & crackling Sparks!',
+    footerLabel: '3 Jungle Stages',
+    footerSummary: '2-Vine Turbo Climb · Springboard · Electric Hideout',
     titleColorClass: 'text-green-400',
     scoreColorClass: 'text-green-200',
     borderHoverClass: 'hover:border-green-400/50',
@@ -766,11 +778,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Donkey Kong 3',
     year: 1983,
     category: 'platformers',
-    meta: '1983 · Nintendo · Greenhouse Bug Spray · Super Spray',
+    meta: '1983 · Nintendo · 3 Conservatory Themes · Super Spray & 5 Flowers',
     description:
-      'Play as Stanley the Bugman—blast upward bug spray to drive Donkey Kong into the beehive while defending your 5 flowers from Buzzbees and grabbing Super Spray.',
-    footerLabel: 'Greenhouse',
-    footerSummary: 'Bug Spray Shooter · Super Can · 5 Flowers',
+      'Defend Stanley’s sunlit glasshouse across 3 botanical halls—hop over Creepy caterpillars & DK’s falling Coconuts, blast Buzzbees & Beespies, grab Super Spray, and push DK into the beehive!',
+    footerLabel: 'Botanical Greenhouse',
+    footerSummary: '3 Glasshouse Halls · Stanley Hop · Super Spray',
     titleColorClass: 'text-lime-400',
     scoreColorClass: 'text-lime-200',
     borderHoverClass: 'hover:border-lime-400/50',
@@ -918,11 +930,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Mappy',
     year: 1983,
     category: 'action',
-    meta: '1983 · Namco · 6-Story Mansion · Trampolines & Power Doors',
+    meta: '1983 · Namco · 4 Victorian Mansions · Attic Bells · Balloon Bonus Round',
     description:
-      'Bounce as police mouse Mappy through four color-cycling trampoline shafts, recover paired stolen treasures for 2×–6× bonuses, and sweep Goro & Meowkies with Microwave Doors.',
-    footerLabel: 'Mansion Tactics',
-    footerSummary: '4-Bounce Trampolines · Paired Loot · Sonic Doors',
+      'Bounce as Officer Mappy across 4 themed Victorian mansions! Pair flashing stolen loot up to 6×, drop Brass Attic Bells on pursuing cats, evade the golden Gosenzo Coin, and pop the Giant Goro Balloon in Bonus Stages!',
+    footerLabel: 'Mansion Edition',
+    footerSummary: '4 Room Themes · Attic Bells · Balloon Bonus · Gosenzo',
     titleColorClass: 'text-sky-400',
     scoreColorClass: 'text-sky-200',
     borderHoverClass: 'hover:border-sky-400/50',
@@ -980,11 +992,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Defender',
     year: 1981,
     category: 'shooters',
-    meta: '1981 · Williams · Wrap-Around Scanner · Smart Bombs',
+    meta: '1981 · Williams · Crimson Mountain Frontier · Scanner & Hyperspace (R)',
     description:
-      'Patrol a seamless wrap-around alien world with the iconic top Scanner Radar—intercept abducting Landers, catch falling Humanoids mid-air, and detonate Smart Bombs.',
-    footerLabel: 'Defender Kit',
-    footerSummary: 'Full-World Radar · Mid-Air Rescues · Smart Bombs',
+      'Patrol the glowing crimson-amber frontier with Williams’ iconic overhead Scanner—intercept abducting Landers, catch falling Humanoids mid-air (+500), trigger Smart Bombs, and warp via Hyperspace (R)!',
+    footerLabel: '1981 Frontier',
+    footerSummary: 'Scanner Radar · Mid-Air Rescues · Hyperspace (R)',
     titleColorClass: 'text-amber-400',
     scoreColorClass: 'text-amber-200',
     borderHoverClass: 'hover:border-amber-400/50',
@@ -995,11 +1007,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Defender II',
     year: 1981,
     category: 'shooters',
-    meta: '1981 · Williams · Inviso Cloak · Warp Gate & Firebombers',
+    meta: '1981 · Williams · Violet Nebula · Inviso Ram · Warp Gate & Space Mines',
     description:
-      'Williams’ turbocharged sequel adds a rechargeable Inviso Cloak that lets you ram enemies unscathed, a central Warp Gate for instant rescues, and tracking Firebombers.',
-    footerLabel: 'Sequel Tech',
-    footerSummary: 'Inviso Cloak (R) · Rescue Warp Gate · Firebombers',
+      'Pilot the violet Delta-Wing across crystalline amethyst peaks! Engage Inviso Cloak (R) to ram enemies for +250 shockwaves, dive into the Rescue Warp Gate, and outgun Firebombers & chasing Space Mines.',
+    footerLabel: 'Violet Nebula',
+    footerSummary: 'Inviso Ram (R) · Rescue Warp Gate · Space Mines',
     titleColorClass: 'text-purple-400',
     scoreColorClass: 'text-purple-200',
     borderHoverClass: 'hover:border-purple-400/50',
@@ -1010,11 +1022,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Stargate',
     year: 1981,
     category: 'shooters',
-    meta: '1981 · Williams · Stargate Hyperspace · Inviso Cloak & Pods',
+    meta: '1981 · Williams · 3D Stargate Warp Tunnel · Yllabian Hums & Munchies',
     description:
-      'Dive into the shimmering cyan Stargate portal to warp straight to kidnapped Humanoids—or trigger a 2,000-point Wave Warp while battling Swarmers and Baiters.',
-    footerLabel: 'Stargate Systems',
-    footerSummary: 'Hyperspace Warp · Inviso Cloak · Smart Bombs',
+      'Fly the cyan Twin-Prong Starfighter across holographic grids! Enter the swirling Stargate Vortex with 4+ Humanoids for a 3D Hyperspace Warp skip (+2,000) while battling splitting Yllabian Hums, Dynamos & Munchies.',
+    footerLabel: 'Stargate Vortex',
+    footerSummary: '3D Warp Tunnel · Yllabian Splits · Prismatic Bomb',
     titleColorClass: 'text-sky-400',
     scoreColorClass: 'text-sky-200',
     borderHoverClass: 'hover:border-sky-400/50',
@@ -1194,11 +1206,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Centipede',
     year: 1981,
     category: 'shooters',
-    meta: '1981 · Atari · Splitting Chains · Spiders & Scorpions',
+    meta: '1981 · Atari · Neon Mushroom Garden · Precision Aim & Tilt',
     description:
-      'Blast winding centipede chains through a destructible mushroom garden while fending off bouncing spiders, mushroom-dropping fleas, and poisoning scorpions.',
-    footerLabel: 'Arcade Features',
-    footerSummary: 'Mouse + Keys · Splitting Chains · 4 Color Waves',
+      'Evolved nocturnal mushroom-garden shooter with tunable Precision Speed & Tilt steering, laser targeting sightline, bioluminescent poison spores, 900-pt close-range Spider duels, Fleas, and Scorpions.',
+    footerLabel: 'Neon Garden',
+    footerSummary: 'Precision + Tilt · Laser Sight · 900pt Close Spider · 4 Palettes',
     titleColorClass: 'text-lime-400',
     scoreColorClass: 'text-lime-200',
     borderHoverClass: 'hover:border-lime-400/50',
@@ -1209,11 +1221,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Millipede',
     year: 1982,
     category: 'shooters',
-    meta: '1982 · Atari · DDT Bombs · Inchworm Slow-Mo',
+    meta: '1982 · Atari · Sunset Swarm Overdrive · 3× DDT Chains & Dragonflies',
     description:
-      'Detonate volatile DDT canisters for massive 3× blast clouds, freeze time by shooting inchworms, and survive beetles, mosquitoes, and earwigs.',
-    footerLabel: 'Sequel Upgrades',
-    footerSummary: 'Chain DDT Blasts · Slow-Mo · Swarm Scroll',
+      'Distinct Sunset Botanical Overdrive sequel featuring screen-shaking 3× DDT chain explosions, Inchworm Icy Slow-Mo, zig-zagging Dragonflies, Beetles, Mosquitoes, Earwigs, and Precision/Tilt steering.',
+    footerLabel: 'Swarm Overdrive',
+    footerSummary: '3× DDT Chains · Icy Slow-Mo · Dragonflies · Precision + Tilt',
     titleColorClass: 'text-orange-400',
     scoreColorClass: 'text-orange-200',
     borderHoverClass: 'hover:border-orange-400/50',
@@ -1398,31 +1410,128 @@ const CABINET_CARDS: CabinetCardConfig[] = [
   },
 ];
 
-const QUICK_NAV_IDS: GameId[] = ['puzzlebobble3', 'breakout2016evo', 'starwars', 'galaga', 'smw1', 'arkanoid'];
-
-const FILTER_TABS: Array<{ id: FilterCategory; label: string }> = [
-  { id: 'all', label: 'All 87' },
-  { id: 'platformers', label: 'Platformers (12)' },
-  { id: 'shooters', label: 'Shooters (27)' },
-  { id: 'action', label: 'Action (19)' },
-  { id: 'puzzle', label: 'Puzzle (8)' },
-  { id: 'racing', label: 'Racing (12)' },
-  { id: 'rpg', label: 'RPG & Sim (3)' },
-  { id: 'pacman', label: 'Pac-Man (6)' },
+const FILTER_TABS: Array<{ id: FilterCategory; label: string; shortLabel: string }> = [
+  { id: 'all', label: 'All 87', shortLabel: 'All' },
+  { id: 'shooters', label: 'Shooters', shortLabel: 'Shooters' },
+  { id: 'action', label: 'Action', shortLabel: 'Action' },
+  { id: 'platformers', label: 'Platformers', shortLabel: 'Platform' },
+  { id: 'puzzle', label: 'Puzzle', shortLabel: 'Puzzle' },
+  { id: 'racing', label: 'Racing', shortLabel: 'Racing' },
+  { id: 'rpg', label: 'RPG & Sim', shortLabel: 'RPG' },
+  { id: 'pacman', label: 'Pac-Man', shortLabel: 'Pac-Man' },
 ];
+
+const CATEGORY_LABELS: Record<CabinetCategory, string> = {
+  shooters: 'Shooters',
+  action: 'Action',
+  platformers: 'Platformers',
+  puzzle: 'Puzzle',
+  racing: 'Racing',
+  rpg: 'RPG & Sim',
+  pacman: 'Pac-Man',
+};
+
+const ALPHABET_KEYS: string[] = ['#', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')];
+
+function getLetterKey(title: string): string {
+  const ch = title.trim().charAt(0).toUpperCase();
+  if (ch >= 'A' && ch <= 'Z') return ch;
+  return '#';
+}
+
+function getAccentHex(titleColorClass: string): string {
+  if (titleColorClass.includes('pink')) return '#F472B6';
+  if (titleColorClass.includes('yellow')) return '#FACC15';
+  if (titleColorClass.includes('emerald')) return '#34D399';
+  if (titleColorClass.includes('green')) return '#4ADE80';
+  if (titleColorClass.includes('sky')) return '#38BDF8';
+  if (titleColorClass.includes('cyan')) return '#22D3EE';
+  if (titleColorClass.includes('orange')) return '#FB923C';
+  if (titleColorClass.includes('red')) return '#F87171';
+  if (titleColorClass.includes('amber')) return '#FBBF24';
+  if (titleColorClass.includes('blue')) return '#60A5FA';
+  if (titleColorClass.includes('purple')) return '#C084FC';
+  if (titleColorClass.includes('lime')) return '#A3E635';
+  if (titleColorClass.includes('indigo')) return '#818CF8';
+  if (titleColorClass.includes('teal')) return '#2DD4BF';
+  return '#E2E8F0';
+}
+
+const DEFAULT_FIRST_AZ_ID: GameId = [...CABINET_CARDS].sort((a, b) =>
+  a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' })
+)[0].id;
 
 export default function ArcadeHub() {
   const [screen, setScreen] = useState<ActiveScreen>('select');
   const [filter, setFilter] = useState<FilterCategory>('all');
+  const [sortMode, setSortMode] = useState<'az' | 'featured'>('az');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<GameId>(DEFAULT_FIRST_AZ_ID);
+  const [navDir, setNavDir] = useState<1 | -1>(1);
   const [isStandaloneFile, setIsStandaloneFile] = useState(false);
   const [highScores, setHighScores] = useState<ScoreMap>(createZeroScores);
+
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const wheelStripRef = useRef<HTMLDivElement | null>(null);
+  const wheelItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const lastWheelNavRef = useRef<number>(0);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+
+  const visibleCards = useMemo(() => {
+    const filtered = CABINET_CARDS.filter((c) => {
+      if (filter !== 'all' && c.category !== filter) return false;
+      if (!normalizedSearch) return true;
+      return (
+        c.title.toLowerCase().includes(normalizedSearch) ||
+        c.meta.toLowerCase().includes(normalizedSearch) ||
+        c.description.toLowerCase().includes(normalizedSearch) ||
+        String(c.year).includes(normalizedSearch)
+      );
+    });
+    if (sortMode === 'az') {
+      return [...filtered].sort((a, b) =>
+        a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' })
+      );
+    }
+    return filtered;
+  }, [filter, normalizedSearch, sortMode]);
+
+  const activeIndex = useMemo(() => {
+    if (visibleCards.length === 0) return -1;
+    const idx = visibleCards.findIndex((c) => c.id === selectedId);
+    return idx >= 0 ? idx : 0;
+  }, [visibleCards, selectedId]);
+
+  const activeCard = activeIndex >= 0 ? visibleCards[activeIndex] : null;
+  const activeAccent = activeCard ? getAccentHex(activeCard.titleColorClass) : '#FACC15';
+  const activeLetter = activeCard ? getLetterKey(activeCard.title) : '';
+
+  const letterBuckets = useMemo(() => {
+    const buckets: Record<string, number[]> = {};
+    for (let i = 0; i < visibleCards.length; i++) {
+      const key = getLetterKey(visibleCards[i].title);
+      if (!buckets[key]) buckets[key] = [];
+      buckets[key].push(i);
+    }
+    return buckets;
+  }, [visibleCards]);
+
+  const positionPercent =
+    visibleCards.length > 1 && activeIndex >= 0
+      ? (activeIndex / (visibleCards.length - 1)) * 100
+      : 0;
 
   const handleSelectGame = useCallback((next: ActiveScreen) => {
     arcadeAudio.stopAmbient();
     arcadeMusic.stop();
     if (next !== 'select') {
       arcadeAudio.unlock();
+      setSelectedId(next);
+      setCatalogOpen(false);
       if (typeof window !== 'undefined' && window.location.hash !== `#${next}`) {
         window.location.hash = next;
       }
@@ -1439,12 +1548,70 @@ export default function ArcadeHub() {
     setScreen(next);
   }, []);
 
+  const stepSelection = useCallback(
+    (delta: number) => {
+      if (visibleCards.length <= 1) return;
+      const curIdx = activeIndex >= 0 ? activeIndex : 0;
+      const nextIdx = (curIdx + delta + visibleCards.length) % visibleCards.length;
+      setNavDir(delta >= 0 ? 1 : -1);
+      setSelectedId(visibleCards[nextIdx].id);
+    },
+    [visibleCards, activeIndex]
+  );
+
+  const selectCardById = useCallback(
+    (id: GameId) => {
+      const targetIdx = visibleCards.findIndex((c) => c.id === id);
+      if (targetIdx < 0) return;
+      if (activeCard && activeCard.id === id) {
+        handleSelectGame(id);
+        return;
+      }
+      setNavDir(targetIdx >= activeIndex ? 1 : -1);
+      setSelectedId(id);
+    },
+    [visibleCards, activeCard, activeIndex, handleSelectGame]
+  );
+
+  const jumpToIndex = useCallback(
+    (targetIdx: number) => {
+      if (visibleCards.length === 0) return;
+      const clamped = Math.max(0, Math.min(visibleCards.length - 1, targetIdx));
+      setNavDir(clamped >= activeIndex ? 1 : -1);
+      setSelectedId(visibleCards[clamped].id);
+    },
+    [visibleCards, activeIndex]
+  );
+
+  const jumpToLetter = useCallback(
+    (letter: string) => {
+      const indices = letterBuckets[letter];
+      if (!indices || indices.length === 0) return;
+      // If already on a game starting with this letter, cycle to the next game under the same letter
+      const posInBucket = indices.indexOf(activeIndex);
+      const nextIdx = posInBucket >= 0 ? indices[(posInBucket + 1) % indices.length] : indices[0];
+      jumpToIndex(nextIdx);
+    },
+    [letterBuckets, activeIndex, jumpToIndex]
+  );
+
+  const handleRandomPick = useCallback(() => {
+    if (visibleCards.length <= 1) return;
+    let pick = Math.floor(Math.random() * visibleCards.length);
+    if (pick === activeIndex) {
+      pick = (pick + 1) % visibleCards.length;
+    }
+    setNavDir(pick >= activeIndex ? 1 : -1);
+    setSelectedId(visibleCards[pick].id);
+  }, [visibleCards, activeIndex]);
+
   useEffect(() => {
     const rafId = window.requestAnimationFrame(() => {
       setIsStandaloneFile(window.location.protocol === 'file:');
       setHighScores(loadAllHighScores());
       const initialScreen = parseHashToScreen(window.location.hash);
       if (initialScreen !== 'select') {
+        setSelectedId(initialScreen);
         setScreen(initialScreen);
       }
     });
@@ -1455,6 +1622,8 @@ export default function ArcadeHub() {
       const target = parseHashToScreen(window.location.hash);
       if (target === 'select') {
         setHighScores(loadAllHighScores());
+      } else {
+        setSelectedId(target);
       }
       setScreen(target);
     };
@@ -1477,6 +1646,128 @@ export default function ArcadeHub() {
       window.cancelAnimationFrame(rafId);
     };
   }, [screen]);
+
+  // Smoothly center the active tile in the RetroBat bottom wheel carousel
+  useEffect(() => {
+    if (screen !== 'select' || !activeCard) return;
+    const btn = wheelItemRefs.current[activeCard.id];
+    if (btn && typeof btn.scrollIntoView === 'function') {
+      btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [screen, activeCard]);
+
+  // RetroBat keyboard navigation: Left/Right browse, PageUp/Down jump 5, Enter/Space launch, / search
+  useEffect(() => {
+    if (screen !== 'select') return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable);
+
+      if (e.key === 'Escape') {
+        if (catalogOpen) {
+          setCatalogOpen(false);
+          return;
+        }
+        if (searchQuery) {
+          setSearchQuery('');
+          return;
+        }
+        if (searchOpen) {
+          setSearchOpen(false);
+          return;
+        }
+      }
+
+      if (isTyping) {
+        if (e.key === 'Enter' && activeCard) {
+          e.preventDefault();
+          handleSelectGame(activeCard.id);
+        }
+        return;
+      }
+
+      if (catalogOpen) return;
+
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        stepSelection(1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        stepSelection(-1);
+      } else if (e.key === 'PageDown') {
+        e.preventDefault();
+        stepSelection(5);
+      } else if (e.key === 'PageUp') {
+        e.preventDefault();
+        stepSelection(-5);
+      } else if (e.key === 'Home' && visibleCards.length > 0) {
+        e.preventDefault();
+        setNavDir(-1);
+        setSelectedId(visibleCards[0].id);
+      } else if (e.key === 'End' && visibleCards.length > 0) {
+        e.preventDefault();
+        setNavDir(1);
+        setSelectedId(visibleCards[visibleCards.length - 1].id);
+      } else if ((e.key === 'Enter' || e.key === ' ') && activeCard) {
+        e.preventDefault();
+        handleSelectGame(activeCard.id);
+      } else if (e.key === '/') {
+        e.preventDefault();
+        setSearchOpen(true);
+        window.requestAnimationFrame(() => searchInputRef.current?.focus());
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [
+    screen,
+    catalogOpen,
+    searchOpen,
+    searchQuery,
+    activeCard,
+    visibleCards,
+    stepSelection,
+    handleSelectGame,
+  ]);
+
+  const handleStageWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (catalogOpen) return;
+      const dominant = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      if (Math.abs(dominant) < 12) return;
+      const now = performance.now();
+      if (now - lastWheelNavRef.current < 110) return;
+      lastWheelNavRef.current = now;
+      stepSelection(dominant > 0 ? 1 : -1);
+    },
+    [catalogOpen, stepSelection]
+  );
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    if (!t) return;
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const start = touchStartRef.current;
+      touchStartRef.current = null;
+      const t = e.changedTouches[0];
+      if (!start || !t) return;
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (Math.abs(dx) > 42 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        stepSelection(dx < 0 ? 1 : -1);
+      }
+    },
+    [stepSelection]
+  );
 
   if (screen !== 'select' && isClassicArcadeGameId(screen)) {
     return (
@@ -1536,22 +1827,10 @@ export default function ArcadeHub() {
     );
   }
 
-  const normalizedSearch = searchQuery.trim().toLowerCase();
-  const visibleCards = CABINET_CARDS.filter((c) => {
-    if (filter !== 'all' && c.category !== filter) return false;
-    if (!normalizedSearch) return true;
-    return (
-      c.title.toLowerCase().includes(normalizedSearch) ||
-      c.meta.toLowerCase().includes(normalizedSearch) ||
-      c.description.toLowerCase().includes(normalizedSearch) ||
-      String(c.year).includes(normalizedSearch)
-    );
-  });
-
-  const renderFooterRoster = (card: CabinetCardConfig) => {
+  const renderRosterStrip = (card: CabinetCardConfig) => {
     if (card.id === 'classic') {
       return (
-        <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.08]">
           <span className="text-xs text-slate-400">{card.footerLabel}</span>
           <div className="flex items-center gap-1.5">
             {CLASSIC_BONUS_ORDER.slice(0, 6).map((bt) => (
@@ -1563,7 +1842,7 @@ export default function ArcadeHub() {
     }
     if (card.id === 'plus') {
       return (
-        <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.08]">
           <span className="text-xs text-slate-400">{card.footerLabel}</span>
           <div className="flex items-center gap-1.5">
             {PLUS_BONUS_ORDER.slice(0, 6).map((bt) => (
@@ -1575,7 +1854,7 @@ export default function ArcadeHub() {
     }
     if (card.id === 'ms') {
       return (
-        <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.08]">
           <span className="text-xs text-slate-400">{card.footerLabel}</span>
           <div className="flex items-center gap-1.5">
             {LEVEL_FRUIT_ORDER.map((ft) => (
@@ -1587,7 +1866,7 @@ export default function ArcadeHub() {
     }
     if (card.id === 'super') {
       return (
-        <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.08]">
           <span className="text-xs text-slate-400">{card.footerLabel}</span>
           <div className="flex items-center gap-1.5">
             {SUPER_PRIZE_ORDER.slice(0, 6).map((pt) => (
@@ -1599,7 +1878,7 @@ export default function ArcadeHub() {
     }
     if (card.id === 'jr') {
       return (
-        <div className="flex items-center justify-between pt-3 border-t border-white/[0.07]">
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.08]">
           <span className="text-xs text-slate-400">{card.footerLabel}</span>
           <div className="flex items-center gap-1.5">
             {JR_LEVEL_PRIZE_ORDER.map((pt) => (
@@ -1610,7 +1889,7 @@ export default function ArcadeHub() {
       );
     }
     return (
-      <div className="flex items-center justify-between gap-2 pt-3 border-t border-white/[0.07]">
+      <div className="flex items-center justify-between gap-3 pt-3 border-t border-white/[0.08]">
         <span className="text-xs text-slate-400 shrink-0">{card.footerLabel}</span>
         <span className="text-xs text-slate-300 font-medium truncate">
           {card.footerSummary}
@@ -1620,192 +1899,263 @@ export default function ArcadeHub() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#060811] text-slate-100 flex flex-col overflow-x-clip">
+    <div
+      className="relative h-[100dvh] w-full bg-[#060811] text-slate-100 flex flex-col overflow-hidden select-none"
+      onWheel={handleStageWheel}
+    >
+      {/* Subtle Ambient Cross-Fading Backdrop Wash matched to Active Game */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 transition-all duration-500 ease-out"
+        style={{
+          background: `radial-gradient(ellipse 68% 52% at 32% 38%, ${activeAccent}22 0%, ${activeAccent}09 42%, rgba(6,8,17,0) 76%)`,
+        }}
+      />
+
       {/* Clean 3-Zone Top Bar */}
-      <header className="w-full border-b border-white/[0.07] bg-[#080B16]/90 backdrop-blur-md safe-top-pad">
-        <div className="mx-auto max-w-[1360px] px-3.5 sm:px-8 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-8">
+      <header className="relative z-20 w-full shrink-0 border-b border-white/[0.07] bg-[#080B16]/90 backdrop-blur-md safe-top-pad">
+        <div className="mx-auto max-w-[1440px] px-3.5 sm:px-7 h-13 sm:h-14 flex items-center justify-between gap-4 sm:gap-8">
+          {/* Zone 1: Single-line Brand Title */}
           <span
-            className="text-base sm:text-lg font-bold tracking-tight text-white whitespace-nowrap truncate"
+            className="text-sm sm:text-base font-bold tracking-tight text-white whitespace-nowrap shrink-0"
             style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
           >
             Retro Arcade Collection
           </span>
 
-          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-400">
-            {QUICK_NAV_IDS.map((id) => {
-              const cab = CABINET_CARDS.find((c) => c.id === id)!;
+          {/* Zone 2: Clean Collection Category Links */}
+          <nav
+            role="tablist"
+            aria-label="Game collections"
+            className="hidden md:flex items-center gap-1 lg:gap-1.5 overflow-x-auto no-scrollbar"
+          >
+            {FILTER_TABS.map((tab) => {
+              const isSelected = filter === tab.id;
               return (
                 <button
-                  key={id}
+                  key={tab.id}
                   type="button"
-                  onClick={() => handleSelectGame(id)}
-                  className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  role="tab"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    setFilter(tab.id);
+                    setNavDir(1);
+                  }}
+                  className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    isSelected
+                      ? 'bg-white text-slate-950 font-semibold'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
                 >
-                  {cab.title}
+                  {tab.label}
                 </button>
               );
             })}
           </nav>
 
+          {/* Zone 3: Single Primary Action */}
           <div className="flex items-center shrink-0">
             {!isStandaloneFile ? (
               <a
                 href="/arcade-index.html"
                 download="index.html"
-                className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-lg border border-white/12 bg-white/[0.05] hover:bg-white/[0.1] text-xs font-medium text-slate-100 transition-colors whitespace-nowrap shrink-0"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/12 bg-white/[0.05] hover:bg-white/[0.1] text-xs font-medium text-slate-100 transition-colors whitespace-nowrap shrink-0"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Download index.html</span>
+                <span className="hidden sm:inline">Download Offline</span>
                 <span className="sm:hidden">Offline</span>
               </a>
             ) : (
-              <span className="text-xs text-slate-400 whitespace-nowrap shrink-0">
-                87 Cabinets · 60fps
+              <span className="text-xs font-mono tabular-nums text-slate-400 whitespace-nowrap shrink-0">
+                87 Cabinets
               </span>
             )}
           </div>
         </div>
       </header>
 
-      {/* Main Selection Floor */}
-      <main className="flex-1 w-full mx-auto max-w-[1360px] px-3.5 sm:px-8 py-5 sm:py-10 safe-bottom-pad">
-        <div className="flex flex-col gap-5 mb-7 sm:mb-9">
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
-            <div className="max-w-3xl space-y-2">
-              <h1
-                className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white text-balance"
-                style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
-              >
-                Choose Your Cabinet
-              </h1>
-              <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-                Eighty-seven Golden Age &amp; modern evolved arcade classics remastered at high resolution and locked 60fps with synthesized background music—featuring the 2.5D Puzzle Bobble Series (1, 2 &amp; Evo), Breakout 2016 Evo, Space Invaders 1/II/DX, Gauntlet I &amp; II + Dark Legacy, the complete Sprint lineage, Tempest 1/2K/3K, Star Wars Trilogy, Galaga, Super Mario World 1 &amp; 2, Ys Book I &amp; II, Sonic 1–3, and the full Pac-Man collection.
-              </p>
-            </div>
-
-            {/* Compact Instant Search */}
-            <div className="relative w-full lg:w-72 shrink-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search 87 games, years, studios..."
-                aria-label="Search 87 arcade games"
-                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#0B0F1D] border border-white/10 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-white/25 transition-colors"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
-                  aria-label="Clear search"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Interactive Category Filter Control */}
-          <div
-            role="tablist"
-            aria-label="Filter arcade cabinets"
-            className="flex items-center gap-1 p-1 rounded-xl bg-[#0B0F1D] border border-white/[0.08] max-w-full overflow-x-auto sm:inline-flex sm:flex-wrap sm:self-start"
-          >
-            {FILTER_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={filter === tab.id}
-                onClick={() => setFilter(tab.id)}
-                className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  filter === tab.id
-                    ? 'bg-white text-slate-950'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Live 60fps Preview Cabinet Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 xl:gap-6 items-stretch">
-          {visibleCards.map((card, idx) => (
-            <motion.article
-              key={card.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.22, delay: Math.min(idx, 6) * 0.03, ease: [0.16, 1, 0.3, 1] }}
-              className={`group flex flex-col rounded-2xl bg-[#0B0F1D] border border-white/[0.08] ${card.borderHoverClass} transition-colors overflow-clip`}
+      {/* Mobile Collection Bar (visible only below md) */}
+      <div
+        role="tablist"
+        aria-label="Filter collections"
+        className="relative z-10 md:hidden shrink-0 flex items-center gap-1 px-3 py-1.5 border-b border-white/[0.06] bg-[#070A14]/85 overflow-x-auto no-scrollbar"
+      >
+        {FILTER_TABS.map((tab) => {
+          const isSelected = filter === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              onClick={() => {
+                setFilter(tab.id);
+                setNavDir(1);
+              }}
+              className={`px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                isSelected
+                  ? 'bg-white text-slate-950 font-semibold'
+                  : 'text-slate-400 hover:text-white'
+              }`}
             >
-              {/* Live 60fps HiDPI Preview */}
-              <div
-                onClick={() => handleSelectGame(card.id)}
-                role="button"
-                tabIndex={-1}
-                className="relative w-full h-48 sm:h-52 overflow-clip bg-[#04060D] border-b border-white/[0.07] cursor-pointer"
-              >
-                <CabinetPreviewCanvas game={card.id} />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0B0F1D] via-transparent to-black/20" />
-              </div>
+              {tab.shortLabel}
+            </button>
+          );
+        })}
+      </div>
 
-              {/* Card Body */}
-              <div className="flex-1 p-5 sm:p-6 flex flex-col justify-between gap-5">
-                <div className="space-y-3.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <GameEmblem gameId={card.id} size={38} />
+      {/* Center RetroBat Hero Showcase Stage */}
+      <main
+        className="relative z-10 flex-1 min-h-0 w-full mx-auto max-w-[1440px] px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-center"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {activeCard ? (
+          <div className="relative w-full h-full flex items-center justify-center">
+            {/* Left Arrow Control */}
+            <button
+              type="button"
+              onClick={() => stepSelection(-1)}
+              disabled={visibleCards.length <= 1}
+              aria-label="Previous game"
+              className="hidden sm:flex items-center justify-center w-11 h-11 lg:w-12 lg:h-12 rounded-xl border border-white/10 bg-[#0B0F1D]/85 hover:bg-white/10 hover:border-white/25 text-slate-200 hover:text-white transition-all shrink-0 mr-3 lg:mr-5 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            {/* Cross-Fading Showcase Content */}
+            <div className="flex-1 min-w-0 h-full max-w-[1220px] flex items-center justify-center overflow-hidden">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.section
+                  key={activeCard.id}
+                  initial={{ opacity: 0, x: navDir * 32, scale: 0.988 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  exit={{ opacity: 0, x: -navDir * 32, scale: 0.988 }}
+                  transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="w-full h-full flex flex-col lg:grid lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)] gap-3 sm:gap-5 lg:gap-8 items-center justify-center"
+                >
+                  {/* Focal Anchor: Full Top-to-Bottom Uncropped 60fps Cabinet Display */}
+                  <div
+                    onClick={() => handleSelectGame(activeCard.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleSelectGame(activeCard.id);
+                      }
+                    }}
+                    aria-label={`Launch ${activeCard.title}`}
+                    className="group relative flex-1 lg:flex-none w-full min-h-[200px] max-h-[46dvh] sm:max-h-[50dvh] lg:h-full lg:max-h-[68dvh] p-1.5 sm:p-2.5 rounded-2xl overflow-hidden bg-[#04060D] border border-white/[0.1] hover:border-white/20 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-colors duration-200"
+                    style={{
+                      boxShadow: `0 22px 54px -24px ${activeAccent}45, 0 0 0 1px rgba(255,255,255,0.04)`,
+                    }}
+                  >
+                    <CabinetPreviewCanvas game={activeCard.id} />
+                  </div>
+
+                  {/* Cabinet Dossier & Primary Action */}
+                  <div className="w-full shrink-0 flex flex-col justify-center gap-2.5 sm:gap-4 min-w-0">
+                    {/* Unboxed Index & Category Metadata */}
+                    <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
+                      <div className="flex items-center gap-2 min-w-0 truncate">
+                        <span className="font-mono tabular-nums text-slate-200 font-semibold">
+                          {String(activeIndex + 1).padStart(2, '0')} / {String(visibleCards.length).padStart(2, '0')}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span>{CATEGORY_LABELS[activeCard.category]}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="font-mono tabular-nums">{activeCard.year}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-slate-500">High Score</span>
+                        <span
+                          className={`font-mono tabular-nums font-semibold ${activeCard.scoreColorClass}`}
+                        >
+                          {highScores[activeCard.id].toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Emblem + Display Title */}
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      <div className="shrink-0 rounded-xl bg-[#0B0F1D] border border-white/[0.08] p-1.5">
+                        <GameEmblem gameId={activeCard.id} size={42} />
+                      </div>
                       <div className="min-w-0">
-                        <h2
-                          className={`text-xl sm:text-2xl font-bold tracking-tight truncate ${card.titleColorClass}`}
+                        <h1
+                          className={`text-2xl sm:text-3xl lg:text-[2.35rem] font-extrabold tracking-tight leading-[1.1] text-balance ${activeCard.titleColorClass}`}
                           style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
                         >
-                          {card.title}
-                        </h2>
-                        <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                          {card.meta}
+                          {activeCard.title}
+                        </h1>
+                        <p className="text-xs text-slate-400 mt-1 truncate">
+                          {activeCard.meta}
                         </p>
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <div className="text-[11px] text-slate-500">High Score</div>
-                      <div
-                        className={`font-mono tabular-nums text-sm sm:text-base font-semibold ${card.scoreColorClass}`}
+                    {/* Description */}
+                    <p className="text-xs sm:text-sm lg:text-[15px] text-slate-300 leading-relaxed line-clamp-3 sm:line-clamp-4">
+                      {activeCard.description}
+                    </p>
+
+                    {/* Bonus Roster / Feature Strip */}
+                    <div className="hidden sm:block">{renderRosterStrip(activeCard)}</div>
+
+                    {/* Primary Launch CTA + Mobile Prev/Next Row */}
+                    <div className="flex items-center gap-2.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => stepSelection(-1)}
+                        disabled={visibleCards.length <= 1}
+                        aria-label="Previous game"
+                        className="sm:hidden flex items-center justify-center w-11 h-11 rounded-xl border border-white/12 bg-[#0B0F1D] text-slate-200 active:scale-95 transition-transform shrink-0 cursor-pointer disabled:opacity-30"
                       >
-                        {highScores[card.id].toLocaleString()}
-                      </div>
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSelectGame(activeCard.id)}
+                        className={`flex-1 sm:flex-none sm:min-w-[230px] py-3 px-6 rounded-xl active:scale-[0.985] font-bold text-sm flex items-center justify-center gap-2 transition-all focus-visible:outline-none focus-visible:ring-2 whitespace-nowrap cursor-pointer ${activeCard.buttonClass}`}
+                      >
+                        <Play className="w-4 h-4 fill-current shrink-0" />
+                        <span className="truncate">Play {activeCard.title}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => stepSelection(1)}
+                        disabled={visibleCards.length <= 1}
+                        aria-label="Next game"
+                        className="sm:hidden flex items-center justify-center w-11 h-11 rounded-xl border border-white/12 bg-[#0B0F1D] text-slate-200 active:scale-95 transition-transform shrink-0 cursor-pointer disabled:opacity-30"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
                     </div>
                   </div>
+                </motion.section>
+              </AnimatePresence>
+            </div>
 
-                  <p className="text-sm text-slate-300 leading-relaxed">
-                    {card.description}
-                  </p>
-
-                  {renderFooterRoster(card)}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleSelectGame(card.id)}
-                  className={`w-full py-3 px-5 rounded-xl active:scale-[0.99] font-bold text-sm flex items-center justify-center gap-2 transition-all focus-visible:outline-none focus-visible:ring-2 whitespace-nowrap cursor-pointer ${card.buttonClass}`}
-                >
-                  <Play className="w-4 h-4 fill-current" />
-                  <span>Play {card.title}</span>
-                </button>
-              </div>
-            </motion.article>
-          ))}
-        </div>
-
-        {visibleCards.length === 0 && (
-          <div className="py-16 text-center rounded-2xl bg-[#0B0F1D] border border-white/[0.08]">
-            <p className="text-sm text-slate-400">
-              No cabinets match <span className="text-white font-medium">&ldquo;{searchQuery}&rdquo;</span>.
+            {/* Right Arrow Control */}
+            <button
+              type="button"
+              onClick={() => stepSelection(1)}
+              disabled={visibleCards.length <= 1}
+              aria-label="Next game"
+              className="hidden sm:flex items-center justify-center w-11 h-11 lg:w-12 lg:h-12 rounded-xl border border-white/10 bg-[#0B0F1D]/85 hover:bg-white/10 hover:border-white/25 text-slate-200 hover:text-white transition-all shrink-0 ml-3 lg:ml-5 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </div>
+        ) : (
+          <div className="max-w-md w-full py-10 px-6 text-center rounded-2xl bg-[#0B0F1D] border border-white/[0.08]">
+            <p className="text-sm text-slate-300">
+              No cabinets match{' '}
+              <span className="text-white font-semibold">&ldquo;{searchQuery}&rdquo;</span>.
             </p>
             <button
               type="button"
@@ -1813,17 +2163,426 @@ export default function ArcadeHub() {
                 setSearchQuery('');
                 setFilter('all');
               }}
-              className="mt-3 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-xs font-semibold text-white cursor-pointer"
+              className="mt-4 px-4 py-2 rounded-lg bg-white text-slate-950 text-xs font-semibold cursor-pointer hover:bg-slate-200 transition-colors"
             >
-              Show All 87 Cabinets
+              Reset Filter &amp; Show All 87
             </button>
           </div>
         )}
-
-        <p className="mt-8 text-xs text-slate-500 text-center">
-          Switch between all 87 cabinets anytime from the left rail or return here via the top bar · Toggle simulated arcade music in any cabinet
-        </p>
       </main>
+
+      {/* Bottom RetroBat Horizontal Game Wheel Dock */}
+      <footer className="relative z-20 w-full shrink-0 border-t border-white/[0.08] bg-[#070A15]/95 backdrop-blur-md safe-bottom-pad">
+        {/* Dock Utility Strip: Search, Sort A-Z, Random, All Games & Position Indicator */}
+        <div className="mx-auto max-w-[1440px] px-3 sm:px-6 pt-2 pb-1 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            {searchOpen || searchQuery ? (
+              <div className="relative w-44 sm:w-60">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Filter games, year, studio..."
+                  aria-label="Filter arcade games"
+                  className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-[#0D1224] border border-white/15 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-white/35 transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSearchOpen(false);
+                  }}
+                  aria-label="Close search"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchOpen(true);
+                  window.requestAnimationFrame(() => searchInputRef.current?.focus());
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-xs font-medium text-slate-300 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Search</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setSortMode((m) => (m === 'az' ? 'featured' : 'az'))}
+              title={sortMode === 'az' ? 'Sorted A-Z (click for Featured order)' : 'Featured order (click for A-Z)'}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                sortMode === 'az'
+                  ? 'bg-white/12 border-white/25 text-white'
+                  : 'bg-white/[0.04] hover:bg-white/[0.09] border-white/[0.08] text-slate-300 hover:text-white'
+              }`}
+            >
+              <ArrowDownAZ className="w-3.5 h-3.5" />
+              <span>{sortMode === 'az' ? 'A–Z' : 'Featured'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRandomPick}
+              disabled={visibleCards.length <= 1}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-xs font-medium text-slate-300 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-30"
+            >
+              <Shuffle className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Random</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCatalogOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] text-xs font-medium text-slate-300 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">All Games</span>
+            </button>
+          </div>
+
+          {/* Live Position & Alphabet Readout */}
+          <div className="flex items-center gap-2.5 text-xs whitespace-nowrap shrink-0">
+            {activeCard && (
+              <div className="flex items-center gap-2 font-mono tabular-nums text-slate-300">
+                <span
+                  className="font-bold text-sm"
+                  style={{ color: activeAccent }}
+                >
+                  {activeLetter}
+                </span>
+                <span className="text-slate-600" aria-hidden="true">·</span>
+                <span>
+                  {activeIndex + 1} / {visibleCards.length}
+                </span>
+              </div>
+            )}
+            <span className="hidden lg:inline text-[11px] text-slate-500">
+              Home / End · Left / Right · Enter to Play
+            </span>
+          </div>
+        </div>
+
+        {/* Alphabet Quick-Jump Strip (# A-Z) showing exactly where you are */}
+        {visibleCards.length > 0 && (
+          <div className="mx-auto max-w-[1440px] px-3 sm:px-6 pb-1">
+            <div
+              role="navigation"
+              aria-label="Alphabetical quick jump"
+              className="flex items-center sm:justify-center gap-0.5 overflow-x-auto no-scrollbar py-0.5"
+            >
+              {ALPHABET_KEYS.map((letter) => {
+                const count = letterBuckets[letter]?.length ?? 0;
+                const isCurrent = activeLetter === letter;
+                const isAvailable = count > 0;
+                return (
+                  <button
+                    key={letter}
+                    type="button"
+                    disabled={!isAvailable}
+                    onClick={() => jumpToLetter(letter)}
+                    title={
+                      isAvailable
+                        ? `Jump to ${letter} (${count} ${count === 1 ? 'game' : 'games'})`
+                        : `No games under ${letter}`
+                    }
+                    className={`min-w-[24px] sm:min-w-[26px] h-6 px-1 rounded-md font-mono text-[11px] transition-all shrink-0 flex items-center justify-center ${
+                      isCurrent
+                        ? 'font-extrabold text-slate-950 scale-105 cursor-pointer'
+                        : isAvailable
+                          ? 'text-slate-300 hover:text-white hover:bg-white/10 font-medium cursor-pointer'
+                          : 'text-slate-600/45 cursor-default'
+                    }`}
+                    style={
+                      isCurrent
+                        ? {
+                            backgroundColor: activeAccent,
+                            boxShadow: `0 0 12px -2px ${activeAccent}90`,
+                          }
+                        : undefined
+                    }
+                  >
+                    {letter}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Carousel Row with Beginning / Left & Right / End Scroll Buttons */}
+        <div className="mx-auto max-w-[1440px] px-2 sm:px-4 flex items-center gap-1.5 sm:gap-2">
+          {/* Beginning + Scroll Left Buttons */}
+          <div className="flex items-center gap-1 shrink-0 z-20">
+            <button
+              type="button"
+              onClick={() => jumpToIndex(0)}
+              disabled={visibleCards.length <= 1 || activeIndex <= 0}
+              aria-label="Jump to beginning"
+              title="Jump to beginning (Home)"
+              className="flex items-center justify-center w-8 h-10 sm:w-9 sm:h-12 rounded-lg border border-white/10 bg-[#0B0F1D] hover:bg-white/10 hover:border-white/25 text-slate-300 hover:text-white transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => stepSelection(-1)}
+              disabled={visibleCards.length <= 1}
+              aria-label="Scroll carousel left"
+              title="Previous game (Left Arrow)"
+              className="flex items-center justify-center w-8 h-10 sm:w-9 sm:h-12 rounded-lg border border-white/10 bg-[#0B0F1D] hover:bg-white/10 hover:border-white/25 text-slate-200 hover:text-white transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Edge-Faded Horizontal Game Wheel */}
+          <div className="relative flex-1 min-w-0">
+            {/* Left & Right Soft Edge Fade Scrims */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute left-0 top-0 bottom-0 w-7 sm:w-14 z-10 bg-gradient-to-r from-[#070A15] via-[#070A15]/75 to-transparent"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute right-0 top-0 bottom-0 w-7 sm:w-14 z-10 bg-gradient-to-l from-[#070A15] via-[#070A15]/75 to-transparent"
+            />
+
+            <div
+              ref={wheelStripRef}
+              role="listbox"
+              aria-label="Cabinet selector carousel"
+              className="flex items-center gap-2 sm:gap-2.5 overflow-x-auto no-scrollbar px-6 sm:px-12 py-2"
+            >
+              {visibleCards.map((card) => {
+                const isSelected = activeCard?.id === card.id;
+                const accent = getAccentHex(card.titleColorClass);
+                return (
+                  <button
+                    key={card.id}
+                    ref={(el) => {
+                      wheelItemRefs.current[card.id] = el;
+                    }}
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    onClick={() => selectCardById(card.id)}
+                    className={`relative group flex flex-col items-center justify-center gap-1 w-[108px] sm:w-[132px] h-[72px] sm:h-[82px] px-2 rounded-xl border shrink-0 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                      isSelected
+                        ? 'bg-[#10162B] border-white/30 opacity-100 scale-[1.05]'
+                        : 'bg-[#0A0E1B]/80 border-white/[0.06] opacity-55 hover:opacity-90 hover:border-white/15'
+                    }`}
+                    style={
+                      isSelected
+                        ? {
+                            boxShadow: `0 8px 24px -10px ${accent}70`,
+                          }
+                        : undefined
+                    }
+                  >
+                    {/* Crisp Top Accent Bar for Selected Cabinet */}
+                    {isSelected && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute top-0 left-3 right-3 h-[2px] rounded-full"
+                        style={{ backgroundColor: accent }}
+                      />
+                    )}
+
+                    <GameEmblem gameId={card.id} size={26} />
+
+                    <div className="w-full text-center min-w-0">
+                      <div
+                        className={`text-[11px] sm:text-xs font-semibold truncate ${
+                          isSelected ? card.titleColorClass : 'text-slate-200'
+                        }`}
+                      >
+                        {card.title}
+                      </div>
+                      <div className="text-[10px] font-mono tabular-nums text-slate-500">
+                        {card.year}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Scroll Right + End Buttons */}
+          <div className="flex items-center gap-1 shrink-0 z-20">
+            <button
+              type="button"
+              onClick={() => stepSelection(1)}
+              disabled={visibleCards.length <= 1}
+              aria-label="Scroll carousel right"
+              title="Next game (Right Arrow)"
+              className="flex items-center justify-center w-8 h-10 sm:w-9 sm:h-12 rounded-lg border border-white/10 bg-[#0B0F1D] hover:bg-white/10 hover:border-white/25 text-slate-200 hover:text-white transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => jumpToIndex(visibleCards.length - 1)}
+              disabled={visibleCards.length <= 1 || activeIndex >= visibleCards.length - 1}
+              aria-label="Jump to end"
+              title="Jump to end (End)"
+              className="flex items-center justify-center w-8 h-10 sm:w-9 sm:h-12 rounded-lg border border-white/10 bg-[#0B0F1D] hover:bg-white/10 hover:border-white/25 text-slate-300 hover:text-white transition-colors cursor-pointer disabled:opacity-25 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Clickable Position Scrubber Track (Beginning -> End indicator) */}
+        {visibleCards.length > 1 && (
+          <div className="mx-auto max-w-[1440px] px-3 sm:px-6 pt-0.5 pb-1.5">
+            <div
+              role="slider"
+              aria-label="Carousel position"
+              aria-valuemin={1}
+              aria-valuemax={visibleCards.length}
+              aria-valuenow={activeIndex + 1}
+              tabIndex={0}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                jumpToIndex(Math.round(ratio * (visibleCards.length - 1)));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  stepSelection(-1);
+                } else if (e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  stepSelection(1);
+                } else if (e.key === 'Home') {
+                  e.preventDefault();
+                  jumpToIndex(0);
+                } else if (e.key === 'End') {
+                  e.preventDefault();
+                  jumpToIndex(visibleCards.length - 1);
+                }
+              }}
+              className="relative w-full h-2.5 flex items-center cursor-pointer group focus-visible:outline-none"
+            >
+              <div className="w-full h-1 rounded-full bg-white/[0.08] overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-200"
+                  style={{
+                    width: `${Math.max(2, positionPercent)}%`,
+                    backgroundColor: activeAccent,
+                  }}
+                />
+              </div>
+              <span
+                aria-hidden="true"
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border border-slate-950 transition-all duration-200 group-hover:scale-125"
+                style={{
+                  left: `${positionPercent}%`,
+                  backgroundColor: activeAccent,
+                  boxShadow: `0 0 8px ${activeAccent}`,
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </footer>
+
+      {/* Optional Quick Jump Catalog Overlay (for instant 1-tap lookup across all 87 games) */}
+      <AnimatePresence>
+        {catalogOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+            onClick={() => setCatalogOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: 8 }}
+              transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-5xl max-h-[84dvh] rounded-2xl bg-[#0A0E1C] border border-white/12 flex flex-col overflow-hidden"
+            >
+              <div className="px-4 sm:px-6 py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-3 shrink-0">
+                <div>
+                  <h2
+                    className="text-base sm:text-lg font-bold text-white"
+                    style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
+                  >
+                    Quick Cabinet Jump ({visibleCards.length})
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Select any game to preview on the wheel or launch directly
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCatalogOpen(false)}
+                  aria-label="Close quick jump catalog"
+                  className="w-9 h-9 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-slate-200 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-3.5 sm:p-5 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {visibleCards.map((card) => {
+                  const isCurrent = activeCard?.id === card.id;
+                  return (
+                    <div
+                      key={card.id}
+                      className={`flex items-center justify-between gap-2.5 p-2.5 rounded-xl border transition-colors ${
+                        isCurrent
+                          ? 'bg-[#121933] border-white/25'
+                          : 'bg-[#070A15] border-white/[0.06] hover:border-white/15'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedId(card.id);
+                          setCatalogOpen(false);
+                        }}
+                        className="flex items-center gap-2.5 min-w-0 flex-1 text-left cursor-pointer"
+                      >
+                        <GameEmblem gameId={card.id} size={28} />
+                        <div className="min-w-0">
+                          <div className={`text-xs font-bold truncate ${card.titleColorClass}`}>
+                            {card.title}
+                          </div>
+                          <div className="text-[11px] text-slate-400 truncate">
+                            {card.year} · {CATEGORY_LABELS[card.category]}
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSelectGame(card.id)}
+                        className="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-white whitespace-nowrap shrink-0 cursor-pointer"
+                      >
+                        Play
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

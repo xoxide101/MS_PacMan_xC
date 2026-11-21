@@ -12,6 +12,13 @@ export interface ArcadeInputState {
   pointerActive: boolean;
   pointerX: number; // normalized 0..1 across canvas logical width
   pointerY: number; // normalized 0..1 across canvas logical height
+  /** Optional precision movement multiplier (0.45..1.0) from cabinet speed control */
+  moveScale?: number;
+  /** Optional smooth proportional axes (-1..1) from virtual thumbstick or device accelerometer tilt */
+  analogX?: number;
+  analogY?: number;
+  /** True when device accelerometer/orientation tilt steering is active */
+  tiltActive?: boolean;
 }
 
 export interface ClassicGameHud {
@@ -236,5 +243,39 @@ export function createEmptyInput(): ArcadeInputState {
     pointerActive: false,
     pointerX: 0.5,
     pointerY: 0.85,
+    moveScale: 0.8,
+    analogX: 0,
+    analogY: 0,
+    tiltActive: false,
   };
+}
+
+/**
+ * Returns normalized movement vector (-1..1) blending smooth analog/tilt axes with digital keys
+ * and applying the user's precision moveScale multiplier.
+ */
+export function getPrecisionMoveVector(input: ArcadeInputState): { vx: number; vy: number; scale: number } {
+  const scale = input.moveScale !== undefined ? Math.max(0.35, Math.min(1.15, input.moveScale)) : 1;
+  const ax = input.analogX ?? 0;
+  const ay = input.analogY ?? 0;
+  if (Math.hypot(ax, ay) > 0.04) {
+    const mag = Math.hypot(ax, ay);
+    const clampedMag = Math.min(1, mag);
+    return {
+      vx: (ax / mag) * clampedMag * scale,
+      vy: (ay / mag) * clampedMag * scale,
+      scale,
+    };
+  }
+  let dx = 0;
+  let dy = 0;
+  if (input.left) dx -= 1;
+  if (input.right) dx += 1;
+  if (input.up) dy -= 1;
+  if (input.down) dy += 1;
+  const mag = Math.hypot(dx, dy);
+  if (mag > 0) {
+    return { vx: (dx / mag) * scale, vy: (dy / mag) * scale, scale };
+  }
+  return { vx: 0, vy: 0, scale };
 }

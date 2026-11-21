@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Compass,
   Gamepad2,
+  Gauge,
   Heart,
   LayoutGrid,
   Monitor,
@@ -53,6 +55,38 @@ interface MouseSteerTracker {
   owningDir: boolean;
 }
 
+interface TiltCalibState {
+  active: boolean;
+  zeroBeta: number | null;
+  zeroGamma: number | null;
+  smoothX: number;
+  smoothY: number;
+}
+
+type SpeedPreset = 'precision' | 'smooth' | 'arcade';
+const SPEED_PRESET_SCALE: Record<SpeedPreset, number> = {
+  precision: 0.55,
+  smooth: 0.78,
+  arcade: 1.0,
+};
+const SPEED_PRESET_LABEL: Record<SpeedPreset, string> = {
+  precision: '55% Fine',
+  smooth: '78% Smooth',
+  arcade: '100% Fast',
+};
+const SPEED_STORAGE_KEY = 'arcade_move_precision_v1';
+
+function readSpeedPreset(): SpeedPreset {
+  if (typeof window === 'undefined') return 'smooth';
+  try {
+    const raw = window.localStorage.getItem(SPEED_STORAGE_KEY);
+    if (raw === 'precision' || raw === 'smooth' || raw === 'arcade') return raw;
+  } catch {
+    // ignore
+  }
+  return 'smooth';
+}
+
 export default function ClassicArcadeShell({
   gameId,
   onSwitchGame,
@@ -68,6 +102,19 @@ export default function ClassicArcadeShell({
   const inputRef = useRef<ArcadeInputState>(createEmptyInput());
   const visualModeRef = useRef<'hd' | 'crt'>('hd');
   const mouseSteerEnabledRef = useRef<boolean>(true);
+  const speedScaleRef = useRef<number>(SPEED_PRESET_SCALE.smooth);
+  const rawPointerTargetRef = useRef<{ x: number; y: number; active: boolean }>({
+    x: 0.5,
+    y: 0.82,
+    active: false,
+  });
+  const tiltRef = useRef<TiltCalibState>({
+    active: false,
+    zeroBeta: null,
+    zeroGamma: null,
+    smoothX: 0,
+    smoothY: 0,
+  });
   const mouseTrackerRef = useRef<MouseSteerTracker>({
     lastX: 0,
     lastY: 0,
@@ -82,6 +129,8 @@ export default function ClassicArcadeShell({
   const [muted, setMuted] = useState(false);
   const [musicOn, setMusicOn] = useState(() => arcadeMusic.isMusicEnabled());
   const [mouseSteerEnabled, setMouseSteerEnabled] = useState(true);
+  const [speedPreset, setSpeedPreset] = useState<SpeedPreset>(() => readSpeedPreset());
+  const [tiltEnabled, setTiltEnabled] = useState(false);
   const [padOverride, setPadOverride] = useState<'auto' | 'show' | 'hide'>('auto');
   const [railQuery, setRailQuery] = useState('');
   const [canvasDims, setCanvasDims] = useState<{ w: number; h: number }>({ w: 720, h: 816 });
@@ -106,6 +155,17 @@ export default function ClassicArcadeShell({
   }, [visualMode]);
 
   useEffect(() => {
+    const scale = SPEED_PRESET_SCALE[speedPreset];
+    speedScaleRef.current = scale;
+    inputRef.current.moveScale = scale;
+    try {
+      window.localStorage.setItem(SPEED_STORAGE_KEY, speedPreset);
+    } catch {
+      // ignore
+    }
+  }, [speedPreset]);
+
+  useEffect(() => {
     mouseSteerEnabledRef.current = mouseSteerEnabled;
     if (!mouseSteerEnabled && mouseTrackerRef.current.owningDir) {
       mouseTrackerRef.current.activeTimer = 0;
@@ -114,8 +174,97 @@ export default function ClassicArcadeShell({
       inputRef.current.right = false;
       inputRef.current.up = false;
       inputRef.current.down = false;
+      inputRef.current.analogX = 0;
+      inputRef.current.analogY = 0;
     }
   }, [mouseSteerEnabled]);
+
+  // Device Accelerometer / Orientation Tilt Steering for on-screen precision!
+  useEffect(() => {
+    tiltRef.current.active = tiltEnabled;
+    inputRef.current.tiltActive = tiltEnabled;
+    if (!tiltEnabled) {
+      tiltRef.current.zeroBeta = null;
+      tiltRef.current.zeroGamma = null;
+      tiltRef.current.smoothX = 0;
+      tiltRef.current.smoothY = 0;
+      inputRef.current.analogX = 0;
+      inputRef.current.analogY = 0;
+      inputRef.current.left = false;
+      inputRef.current.right = false;
+      inputRef.current.up = false;
+      inputRef.current.down = false;
+      return;
+    }
+
+    const onOrientation = (ev: DeviceOrientationEvent) => {
+      if (ev.beta === null || ev.gamma === null) return;
+      const t = tiltRef.current;
+      // Map tilt axes cleanly for portrait and landscape orientations
+      const angle =
+        typeof window.screen !== 'undefined' && window.screen.orientation
+          ? window.screen.orientation.angle
+          : 0;
+      let rawX = ev.gamma;
+      let rawY = ev.beta;
+      if (angle === 90) {
+        rawX = ev.beta;
+        rawY = -ev.gamma;
+      } else if (angle === -90 || angle === 270) {
+        rawX = -ev.beta;
+        rawY = ev.gamma;
+      }
+
+      if (t.zeroBeta === null || t.zeroGamma === null) {
+        t.zeroGamma = rawX;
+        t.zeroBeta = rawY;
+      }
+
+      const dX = rawX - t.zeroGamma;
+      const dY = rawY - t.zeroBeta;
+      const deadDeg = 3.8;
+      const maxDeg = 24;
+
+      const shapeAxis = (deg: number): number => {
+        const abs = Math.abs(deg);
+        if (abs <= deadDeg) return 0;
+        const norm = Math.min(1, (abs - deadDeg) / (maxDeg - deadDeg));
+        return Math.sign(deg) * Math.pow(norm, 1.35);
+      };
+
+      const targetX = shapeAxis(dX);
+      const targetY = shapeAxis(dY);
+      // Smooth low-pass filter to eliminate hand jitter
+      t.smoothX += (targetX - t.smoothX) * 0.22;
+      t.smoothY += (targetY - t.smoothY) * 0.22;
+
+      const scale = speedScaleRef.current;
+      inputRef.current.analogX = t.smoothX;
+      inputRef.current.analogY = t.smoothY;
+      inputRef.current.tiltActive = true;
+
+      // Also drive directional keys cleanly for non-analog games
+      inputRef.current.left = t.smoothX < -0.18;
+      inputRef.current.right = t.smoothX > 0.18;
+      inputRef.current.up = t.smoothY < -0.18;
+      inputRef.current.down = t.smoothY > 0.18;
+
+      // For pointer-aim games, smoothly glide the virtual on-screen pointer via tilt!
+      const inst = gameRef.current;
+      if (inst?.supportsPointerAim) {
+        const step = 0.022 * scale;
+        rawPointerTargetRef.current.active = true;
+        rawPointerTargetRef.current.x = Math.max(0.03, Math.min(0.97, rawPointerTargetRef.current.x + t.smoothX * step));
+        rawPointerTargetRef.current.y = Math.max(0.05, Math.min(0.96, rawPointerTargetRef.current.y + t.smoothY * step));
+        inputRef.current.pointerActive = true;
+      }
+    };
+
+    window.addEventListener('deviceorientation', onOrientation, true);
+    return () => {
+      window.removeEventListener('deviceorientation', onOrientation, true);
+    };
+  }, [tiltEnabled]);
 
   useEffect(() => {
     arcadeAudio.stopAmbient();
@@ -168,8 +317,12 @@ export default function ClassicArcadeShell({
         const mt = mouseTrackerRef.current;
         if (mt.activeTimer > 0) {
           mt.activeTimer = Math.max(0, mt.activeTimer - FIXED_STEP);
-          mt.vx *= 0.86;
-          mt.vy *= 0.86;
+          mt.vx *= 0.8;
+          mt.vy *= 0.8;
+          if (mt.owningDir) {
+            inputRef.current.analogX = mt.vx;
+            inputRef.current.analogY = mt.vy;
+          }
           if (mt.activeTimer <= 0 && mt.owningDir) {
             mt.owningDir = false;
             mt.vx = 0;
@@ -178,7 +331,18 @@ export default function ClassicArcadeShell({
             inputRef.current.right = false;
             inputRef.current.up = false;
             inputRef.current.down = false;
+            inputRef.current.analogX = 0;
+            inputRef.current.analogY = 0;
           }
+        }
+
+        // Velocity-damped pointer smoothing for silky on-screen accuracy!
+        const scale = speedScaleRef.current;
+        inputRef.current.moveScale = scale;
+        if (rawPointerTargetRef.current.active && inputRef.current.pointerActive) {
+          const smoothAlpha = Math.min(0.68, 0.16 + scale * 0.34);
+          inputRef.current.pointerX += (rawPointerTargetRef.current.x - inputRef.current.pointerX) * smoothAlpha;
+          inputRef.current.pointerY += (rawPointerTargetRef.current.y - inputRef.current.pointerY) * smoothAlpha;
         }
 
         instance.setInput({ ...inputRef.current });
@@ -399,15 +563,20 @@ export default function ClassicArcadeShell({
       const nx = Math.max(0, Math.min(1, (e.clientX - rect.left) / Math.max(1, rect.width)));
       const ny = Math.max(0, Math.min(1, (e.clientY - rect.top) / Math.max(1, rect.height)));
 
-      // 1. Direct 1:1 pointer-aim games (Breakout 2016 Evo, Arkanoid 1/2, Super Breakout, Centipede, Millipede, Missile Command, Star Wars)
+      // 1. Direct pointer-aim games with velocity-damped smoothing for crisp on-screen accuracy
       if (inst.supportsPointerAim) {
         if (kind === 'move' || kind === 'down') {
+          rawPointerTargetRef.current.active = true;
+          rawPointerTargetRef.current.x = nx;
+          rawPointerTargetRef.current.y = ny;
+          if (!inputRef.current.pointerActive || kind === 'down') {
+            inputRef.current.pointerX = nx;
+            inputRef.current.pointerY = ny;
+          }
           inputRef.current.pointerActive = true;
-          inputRef.current.pointerX = nx;
-          inputRef.current.pointerY = ny;
         }
       } else if (mouseSteerEnabledRef.current && (isMouse || kind === 'move' || kind === 'down')) {
-        // 2. Universal Mouse Movement Steering for ALL other 65+ classic games!
+        // 2. Refined Universal Mouse Movement Steering with precision scaling & clean deadzone
         const mt = mouseTrackerRef.current;
         if (kind === 'leave') {
           mt.hasLast = false;
@@ -418,20 +587,25 @@ export default function ClassicArcadeShell({
             inputRef.current.right = false;
             inputRef.current.up = false;
             inputRef.current.down = false;
+            inputRef.current.analogX = 0;
+            inputRef.current.analogY = 0;
           }
         } else if (kind === 'move' && (isMouse || e.buttons > 0)) {
           if (mt.hasLast) {
             const dx = e.clientX - mt.lastX;
             const dy = e.clientY - mt.lastY;
             const dist = Math.hypot(dx, dy);
-            if (dist >= 1.4) {
-              mt.vx = Math.max(-1, Math.min(1, mt.vx * 0.52 + dx * 0.14));
-              mt.vy = Math.max(-1, Math.min(1, mt.vy * 0.52 + dy * 0.14));
-              mt.activeTimer = 0.16;
+            if (dist >= 2.0) {
+              const sens = 0.095 * speedScaleRef.current;
+              mt.vx = Math.max(-1, Math.min(1, mt.vx * 0.45 + dx * sens));
+              mt.vy = Math.max(-1, Math.min(1, mt.vy * 0.45 + dy * sens));
+              mt.activeTimer = 0.12;
               mt.owningDir = true;
 
               const mag = Math.hypot(mt.vx, mt.vy);
-              if (mag >= 0.18) {
+              inputRef.current.analogX = mt.vx;
+              inputRef.current.analogY = mt.vy;
+              if (mag >= 0.22) {
                 const deg = (Math.atan2(mt.vy, mt.vx) * 180) / Math.PI;
                 inputRef.current.up = deg >= -157.5 && deg <= -22.5;
                 inputRef.current.down = deg >= 22.5 && deg <= 157.5;
@@ -478,7 +652,7 @@ export default function ClassicArcadeShell({
     []
   );
 
-  // Virtual Joystick 8-way vector handler
+  // Virtual Joystick 8-way + smooth proportional analog handler
   const handleJoystickVector = useCallback((vec: JoystickVectorState) => {
     arcadeAudio.unlock();
     mouseTrackerRef.current.activeTimer = 0;
@@ -488,6 +662,42 @@ export default function ClassicArcadeShell({
     inputRef.current.down = vec.down;
     inputRef.current.left = vec.left;
     inputRef.current.right = vec.right;
+    inputRef.current.analogX = vec.dx;
+    inputRef.current.analogY = vec.dy;
+  }, []);
+
+  const handleCycleSpeedPreset = useCallback(() => {
+    setSpeedPreset((prev) =>
+      prev === 'precision' ? 'smooth' : prev === 'smooth' ? 'arcade' : 'precision'
+    );
+  }, []);
+
+  const handleToggleTilt = useCallback(async () => {
+    if (tiltEnabled) {
+      setTiltEnabled(false);
+      return;
+    }
+    try {
+      const DevOrient = window.DeviceOrientationEvent as unknown as {
+        requestPermission?: () => Promise<'granted' | 'denied'>;
+      };
+      if (DevOrient && typeof DevOrient.requestPermission === 'function') {
+        const res = await DevOrient.requestPermission();
+        if (res !== 'granted') return;
+      }
+    } catch {
+      // Proceed on browsers that do not require permission prompt
+    }
+    tiltRef.current.zeroBeta = null;
+    tiltRef.current.zeroGamma = null;
+    setTiltEnabled(true);
+  }, [tiltEnabled]);
+
+  const handleRecenterTilt = useCallback(() => {
+    tiltRef.current.zeroBeta = null;
+    tiltRef.current.zeroGamma = null;
+    tiltRef.current.smoothX = 0;
+    tiltRef.current.smoothY = 0;
   }, []);
 
   const setTouchFire = useCallback((active: boolean) => {
@@ -628,6 +838,51 @@ export default function ClassicArcadeShell({
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Precision Speed Control (Fine 55% / Smooth 78% / Fast 100%) */}
+            <button
+              type="button"
+              onClick={handleCycleSpeedPreset}
+              className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                speedPreset === 'precision'
+                  ? 'border-amber-400/45 bg-amber-500/15 text-amber-200 hover:bg-amber-500/25'
+                  : speedPreset === 'smooth'
+                  ? 'border-cyan-400/40 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25'
+                  : 'border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.09]'
+              }`}
+              title="Cycle Control Speed & Pointer Precision (55% Fine / 78% Smooth / 100% Arcade)"
+              aria-label={`Control speed: ${SPEED_PRESET_LABEL[speedPreset]}`}
+            >
+              <Gauge className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">{SPEED_PRESET_LABEL[speedPreset]}</span>
+            </button>
+
+            {/* Accelerometer / Device Tilt Steering */}
+            <button
+              type="button"
+              onClick={handleToggleTilt}
+              className={`inline-flex items-center gap-1 px-2 py-1.5 rounded-lg border text-xs font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                tiltEnabled
+                  ? 'border-violet-400/50 bg-violet-500/20 text-violet-200 hover:bg-violet-500/30'
+                  : 'border-white/10 bg-white/[0.04] text-slate-400 hover:bg-white/[0.09]'
+              }`}
+              title="Toggle Accelerometer / Device Tilt Steering"
+              aria-label={tiltEnabled ? 'Disable tilt steering' : 'Enable tilt steering'}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">{tiltEnabled ? 'Tilt On' : 'Tilt'}</span>
+            </button>
+            {tiltEnabled && (
+              <button
+                type="button"
+                onClick={handleRecenterTilt}
+                className="inline-flex items-center gap-1 px-1.5 py-1.5 rounded-lg border border-violet-400/35 bg-violet-500/10 text-[11px] font-medium text-violet-200 hover:bg-violet-500/20 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                title="Recenter Tilt Neutral Angle"
+                aria-label="Recenter tilt angle"
+              >
+                <RotateCcw className="w-3 h-3" />
+              </button>
+            )}
+
             {/* Mouse Steering Toggle (Desktop, iPad/Tab with Mouse) */}
             <button
               type="button"
@@ -641,7 +896,7 @@ export default function ClassicArcadeShell({
               aria-label={mouseSteerEnabled ? 'Disable mouse movement' : 'Enable mouse movement'}
             >
               <Mouse className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">{mouseSteerEnabled ? 'Mouse On' : 'Mouse Off'}</span>
+              <span className="hidden xl:inline">{mouseSteerEnabled ? 'Mouse On' : 'Mouse Off'}</span>
             </button>
 
             {/* On-Screen Virtual Joystick Toggle */}

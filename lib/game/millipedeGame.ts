@@ -5,6 +5,7 @@ import {
   ClassicGameHud,
   ClassicGamePhase,
   createEmptyInput,
+  getPrecisionMoveVector,
   readHighScore,
   renderCrtOverlay,
   renderParticlesAndPopups,
@@ -55,7 +56,7 @@ interface MilliSegment {
 }
 
 interface BugEntity {
-  kind: 'spider' | 'beetle' | 'inchworm' | 'mosquito' | 'earwig';
+  kind: 'spider' | 'beetle' | 'inchworm' | 'mosquito' | 'earwig' | 'dragonfly';
   x: number;
   y: number;
   vx: number;
@@ -87,6 +88,7 @@ export class MillipedeGame implements ArcadeGameInstance {
   private fireCooldown = 0;
   private invulnTimer = 0;
   private slowMoTimer = 0;
+  private shakeTimer = 0;
 
   private grid: (MilliTile | null)[][] = [];
   private ddtBombs: DdtBomb[] = [];
@@ -247,6 +249,7 @@ export class MillipedeGame implements ArcadeGameInstance {
 
   public step(dt: number): void {
     this.time += dt;
+    if (this.shakeTimer > 0) this.shakeTimer = Math.max(0, this.shakeTimer - dt);
     stepParticlesAndPopups(this.particles, this.popups, dt);
 
     if (this.phase === 'PAUSED' || this.phase === 'GAME_OVER') return;
@@ -323,7 +326,8 @@ export class MillipedeGame implements ArcadeGameInstance {
       return;
     }
 
-    const speed = 355;
+    const { vx, vy, scale } = getPrecisionMoveVector(this.input);
+    const speed = 275;
     let nx = this.playerX;
     let ny = this.playerY;
 
@@ -333,20 +337,14 @@ export class MillipedeGame implements ArcadeGameInstance {
       const dx = tx - this.playerX;
       const dy = ty - this.playerY;
       const dist = Math.hypot(dx, dy);
-      if (dist > 2) {
-        const mv = Math.min(dist, 580 * dt);
+      if (dist > 1.5) {
+        const mv = Math.min(dist, (435 * scale) * dt);
         nx += (dx / dist) * mv;
         ny += (dy / dist) * mv;
       }
     } else {
-      let mx = (this.input.right ? 1 : 0) - (this.input.left ? 1 : 0);
-      let my = (this.input.down ? 1 : 0) - (this.input.up ? 1 : 0);
-      if (mx !== 0 && my !== 0) {
-        mx *= 0.7071;
-        my *= 0.7071;
-      }
-      nx += mx * speed * dt;
-      ny += my * speed * dt;
+      nx += vx * speed * dt;
+      ny += vy * speed * dt;
     }
 
     nx = Math.max(minX, Math.min(maxX, nx));
@@ -369,21 +367,34 @@ export class MillipedeGame implements ArcadeGameInstance {
     }
   }
 
-  private detonateDdt(col: number, row: number, isAttract: boolean): void {
+  private detonateDdt(col: number, row: number, isAttract: boolean, isChain = false): void {
     const cx = col * TILE + TILE * 0.5;
     const cy = row * TILE + TILE * 0.5;
-    if (!isAttract) arcadeAudio.playExplosion(true);
-    spawnBurst(this.particles, cx, cy, '#FB923C', 28, 280, 4.5);
-    spawnBurst(this.particles, cx, cy, '#FDE047', 16, 190, 3.5);
+    if (!isAttract) {
+      arcadeAudio.playDdtExplosion();
+      this.shakeTimer = Math.max(this.shakeTimer, isChain ? 0.34 : 0.24);
+    }
+    spawnBurst(this.particles, cx, cy, '#FB923C', 30, 290, 4.5);
+    spawnBurst(this.particles, cx, cy, '#FDE047', 18, 200, 3.6);
     this.ddtClouds.push({
       x: cx,
       y: cy,
       radius: 18,
-      maxRadius: TILE * 4.4,
-      life: 0.95,
-      maxLife: 0.95,
+      maxRadius: TILE * 4.6,
+      life: 0.98,
+      maxLife: 0.98,
     });
-    this.addScore(800, cx, cy - 16, '#FACC15');
+    this.addScore(isChain ? 1200 : 800, undefined, undefined, '#FACC15');
+    if (!isAttract) {
+      this.popups.push({
+        x: cx,
+        y: cy - 16,
+        text: isChain ? 'DDT CHAIN 3×!' : 'DDT 3× BLAST!',
+        color: '#FEF08A',
+        life: 1.15,
+        maxLife: 1.15,
+      });
+    }
   }
 
   private updateDdtClouds(dt: number, isAttract: boolean): void {
@@ -417,7 +428,7 @@ export class MillipedeGame implements ArcadeGameInstance {
         const dy = d.row * TILE + TILE * 0.5;
         if (Math.hypot(dx - cloud.x, dy - cloud.y) <= cloud.radius) {
           this.ddtBombs.splice(dIdx, 1);
-          this.detonateDdt(d.col, d.row, isAttract);
+          this.detonateDdt(d.col, d.row, isAttract, true);
         }
       }
 
@@ -509,6 +520,9 @@ export class MillipedeGame implements ArcadeGameInstance {
               } else if (bug.kind === 'earwig') {
                 if (!isAttract) arcadeAudio.playExplosion(true);
                 this.addScore(1000, bug.x, bug.y, '#FACC15');
+              } else if (bug.kind === 'dragonfly') {
+                if (!isAttract) arcadeAudio.playExplosion(false);
+                this.addScore(500, bug.x, bug.y, '#22D3EE');
               } else {
                 if (!isAttract) arcadeAudio.playExplosion(false);
                 this.addScore(600, bug.x, bug.y, '#F472B6');
@@ -650,7 +664,7 @@ export class MillipedeGame implements ArcadeGameInstance {
           timer: 1,
           anim: 0,
         });
-      } else if (roll < 0.88) {
+      } else if (roll < 0.84) {
         this.bugs.push({
           kind: 'mosquito',
           x: 40 + Math.random() * (WIDTH - 80),
@@ -659,6 +673,17 @@ export class MillipedeGame implements ArcadeGameInstance {
           vy: 120,
           hp: 1,
           timer: 0.6,
+          anim: 0,
+        });
+      } else if (roll < 0.94 && this.level >= 2) {
+        this.bugs.push({
+          kind: 'dragonfly',
+          x: 50 + Math.random() * (WIDTH - 100),
+          y: TILE,
+          vx: (Math.random() < 0.5 ? -1 : 1) * 195,
+          vy: 105,
+          hp: 1,
+          timer: 0.45,
           anim: 0,
         });
       } else {
@@ -677,6 +702,7 @@ export class MillipedeGame implements ArcadeGameInstance {
 
     for (let i = this.bugs.length - 1; i >= 0; i--) {
       const bug = this.bugs[i];
+      if (!bug) continue;
       bug.anim += dt * 14;
       bug.x += bug.vx * dt;
       bug.y += bug.vy * dt;
@@ -691,6 +717,18 @@ export class MillipedeGame implements ArcadeGameInstance {
         if (bug.y > (ROWS - 1.5) * TILE) bug.vy = -Math.abs(bug.vy);
       } else if (bug.kind === 'mosquito') {
         if (bug.x < 18 || bug.x > WIDTH - 18) bug.vx = -bug.vx;
+      } else if (bug.kind === 'dragonfly') {
+        bug.timer -= dt;
+        if (bug.timer <= 0) {
+          bug.timer = 0.42;
+          bug.vx = -bug.vx;
+          const dc = Math.floor(bug.x / TILE);
+          const dr = Math.floor(bug.y / TILE);
+          if (dr >= 2 && dr < ROWS - 2 && !this.grid[dr]?.[dc]) {
+            this.grid[dr][dc] = { kind: 'mush', hp: 4, poisoned: false };
+          }
+        }
+        if (bug.x < 22 || bug.x > WIDTH - 22) bug.vx = -bug.vx;
       } else if (bug.kind === 'beetle') {
         const c = Math.floor(bug.x / TILE);
         const r = Math.floor(bug.y / TILE);
@@ -736,19 +774,22 @@ export class MillipedeGame implements ArcadeGameInstance {
   }
 
   public render(ctx: CanvasRenderingContext2D, dpr: number, visualMode: 'hd' | 'crt'): void {
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const sx = this.shakeTimer > 0 ? (Math.random() - 0.5) * 9 * (this.shakeTimer / 0.34) : 0;
+    const sy = this.shakeTimer > 0 ? (Math.random() - 0.5) * 9 * (this.shakeTimer / 0.34) : 0;
+    ctx.setTransform(dpr, 0, 0, dpr, sx * dpr, sy * dpr);
 
-    // Rich cosmic indigo-amber arena (shifts icy cyan during Inchworm Slow-Mo!)
+    // Rich Sunset Botanical Overdrive arena (shifts icy cyan during Inchworm Slow-Mo!)
     const bg = ctx.createLinearGradient(0, 0, 0, HEIGHT);
     if (this.slowMoTimer > 0) {
       bg.addColorStop(0, '#07142C');
       bg.addColorStop(1, '#040B1A');
     } else {
-      bg.addColorStop(0, '#0B0616');
-      bg.addColorStop(1, '#120812');
+      bg.addColorStop(0, '#14071A');
+      bg.addColorStop(0.55, '#190A14');
+      bg.addColorStop(1, '#0F0610');
     }
     ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillRect(-12, -12, WIDTH + 24, HEIGHT + 24);
 
     // Ambient twilight spores
     for (let i = 0; i < 24; i++) {
@@ -841,6 +882,23 @@ export class MillipedeGame implements ArcadeGameInstance {
       this.drawSegment(ctx, this.segments[i]);
     }
 
+    // Subtle amber targeting sightline during active play
+    if (this.phase === 'PLAYING') {
+      ctx.save();
+      const sg = ctx.createLinearGradient(0, this.playerY - 18, 0, Math.max(24, this.playerY - 350));
+      sg.addColorStop(0, 'rgba(251, 146, 60, 0.34)');
+      sg.addColorStop(0.6, 'rgba(56, 189, 248, 0.14)');
+      sg.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      ctx.strokeStyle = sg;
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([5, 6]);
+      ctx.beginPath();
+      ctx.moveTo(this.playerX, this.playerY - 18);
+      ctx.lineTo(this.playerX, Math.max(24, this.playerY - 350));
+      ctx.stroke();
+      ctx.restore();
+    }
+
     // Player archer/blaster
     if (this.phase !== 'GAME_OVER') {
       const blink = this.invulnTimer > 0 && Math.floor(this.time * 16) % 2 === 0;
@@ -849,7 +907,31 @@ export class MillipedeGame implements ArcadeGameInstance {
 
     renderParticlesAndPopups(ctx, this.particles, this.popups);
 
-    if (this.bannerText && (this.phase === 'READY' || this.phase === 'STAGE_CLEAR')) {
+    if (this.phase === 'TITLE') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(18, 7, 16, 0.78)';
+      ctx.beginPath();
+      ctx.roundRect(WIDTH * 0.12, HEIGHT * 0.36, WIDTH * 0.76, 138, 16);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(251, 146, 60, 0.7)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#F97316';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = '#FDBA74';
+      ctx.font = '900 44px "Outfit", sans-serif';
+      ctx.fillText('MILLIPEDE', WIDTH * 0.5, HEIGHT * 0.36 + 48);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#FDE047';
+      ctx.font = '700 13px "JetBrains Mono", monospace';
+      ctx.fillText('DDT CHAIN REACTIONS · INCHWORM SLOW-MO · DRAGONFLY SWARM', WIDTH * 0.5, HEIGHT * 0.36 + 86);
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = '600 11px "JetBrains Mono", monospace';
+      ctx.fillText('DDT BLAST 3× PTS · DRAGONFLY 500 · EARWIG 1000 · BEETLE 300', WIDTH * 0.5, HEIGHT * 0.36 + 114);
+      ctx.restore();
+    } else if (this.bannerText && (this.phase === 'READY' || this.phase === 'STAGE_CLEAR')) {
       ctx.save();
       ctx.font = '800 28px "Outfit", sans-serif';
       ctx.textAlign = 'center';
@@ -1103,6 +1185,31 @@ export class MillipedeGame implements ArcadeGameInstance {
       ctx.beginPath();
       ctx.arc(9, -2, 1.8, 0, Math.PI * 2);
       ctx.arc(9, 2, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (bug.kind === 'dragonfly') {
+      const flap = Math.sin(bug.anim * 3.2) * 5;
+      ctx.shadowColor = '#22D3EE';
+      ctx.shadowBlur = 10;
+      // Double iridescent emerald-cyan wings
+      ctx.fillStyle = 'rgba(103, 232, 249, 0.78)';
+      ctx.beginPath();
+      ctx.ellipse(-12, -3 + flap * 0.4, 11, 3.6, -0.22, 0, Math.PI * 2);
+      ctx.ellipse(12, -3 - flap * 0.4, 11, 3.6, 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(52, 211, 153, 0.72)';
+      ctx.beginPath();
+      ctx.ellipse(-10, 4 - flap * 0.3, 9, 3, 0.2, 0, Math.PI * 2);
+      ctx.ellipse(10, 4 + flap * 0.3, 9, 3, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+      // Segmented neon thorax & tail
+      ctx.fillStyle = '#06B6D4';
+      ctx.beginPath();
+      ctx.ellipse(0, 1, 4.2, 13, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FEF08A';
+      ctx.beginPath();
+      ctx.arc(-2.5, -8, 2.2, 0, Math.PI * 2);
+      ctx.arc(2.5, -8, 2.2, 0, Math.PI * 2);
       ctx.fill();
     } else {
       // Spider

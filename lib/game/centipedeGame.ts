@@ -5,6 +5,7 @@ import {
   ClassicGameHud,
   ClassicGamePhase,
   createEmptyInput,
+  getPrecisionMoveVector,
   readHighScore,
   renderCrtOverlay,
   renderParticlesAndPopups,
@@ -419,7 +420,8 @@ export class CentipedeGame implements ArcadeGameInstance {
       return;
     }
 
-    const speed = 340;
+    const { vx, vy, scale } = getPrecisionMoveVector(this.input);
+    const speed = 265;
     let nextX = this.playerX;
     let nextY = this.playerY;
 
@@ -429,24 +431,14 @@ export class CentipedeGame implements ArcadeGameInstance {
       const dx = targetX - this.playerX;
       const dy = targetY - this.playerY;
       const dist = Math.hypot(dx, dy);
-      if (dist > 2) {
-        const move = Math.min(dist, 560 * dt);
+      if (dist > 1.5) {
+        const move = Math.min(dist, (420 * scale) * dt);
         nextX += (dx / dist) * move;
         nextY += (dy / dist) * move;
       }
     } else {
-      let mx = 0;
-      let my = 0;
-      if (this.input.left) mx -= 1;
-      if (this.input.right) mx += 1;
-      if (this.input.up) my -= 1;
-      if (this.input.down) my += 1;
-      if (mx !== 0 && my !== 0) {
-        mx *= 0.7071;
-        my *= 0.7071;
-      }
-      nextX += mx * speed * dt;
-      nextY += my * speed * dt;
+      nextX += vx * speed * dt;
+      nextY += vy * speed * dt;
     }
 
     nextX = Math.max(minX, Math.min(maxX, nextX));
@@ -492,11 +484,22 @@ export class CentipedeGame implements ArcadeGameInstance {
       if (this.spider.active && Math.hypot(b.x - this.spider.x, b.y - this.spider.y) < 22) {
         const dist = Math.abs(this.playerY - this.spider.y);
         const pts = dist < 72 ? 900 : dist < 140 ? 600 : 300;
+        const label = pts === 900 ? '900 CLOSE!' : `${pts}`;
         this.spider.active = false;
         this.spiderSpawnTimer = Math.max(2.6, 5.5 - this.level * 0.3);
         if (!isAttract) arcadeAudio.playExplosion(false);
-        spawnBurst(this.particles, this.spider.x, this.spider.y, palette.spiderColor, 18, 220);
-        this.addScore(pts, this.spider.x, this.spider.y, '#F472B6');
+        spawnBurst(this.particles, this.spider.x, this.spider.y, palette.spiderColor, 20, 230);
+        this.addScore(pts, undefined, undefined, '#F472B6');
+        if (!isAttract) {
+          this.popups.push({
+            x: this.spider.x,
+            y: this.spider.y - 6,
+            text: label,
+            color: pts === 900 ? '#FEF08A' : '#F472B6',
+            life: 1.05,
+            maxLife: 1.05,
+          });
+        }
         hit = true;
       }
 
@@ -877,6 +880,23 @@ export class CentipedeGame implements ArcadeGameInstance {
       this.drawSegment(ctx, this.segments[i], palette);
     }
 
+    // Subtle precision targeting laser sightline during gameplay
+    if (this.phase === 'PLAYING') {
+      ctx.save();
+      const sightGrad = ctx.createLinearGradient(0, this.playerY - 18, 0, Math.max(24, this.playerY - 340));
+      sightGrad.addColorStop(0, 'rgba(56, 189, 248, 0.32)');
+      sightGrad.addColorStop(0.55, 'rgba(163, 230, 53, 0.12)');
+      sightGrad.addColorStop(1, 'rgba(163, 230, 53, 0)');
+      ctx.strokeStyle = sightGrad;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 6]);
+      ctx.beginPath();
+      ctx.moveTo(this.playerX, this.playerY - 18);
+      ctx.lineTo(this.playerX, Math.max(24, this.playerY - 340));
+      ctx.stroke();
+      ctx.restore();
+    }
+
     // Draw player blaster
     if (this.phase !== 'GAME_OVER') {
       const blink = this.invulnTimer > 0 && Math.floor(this.time * 16) % 2 === 0;
@@ -887,7 +907,31 @@ export class CentipedeGame implements ArcadeGameInstance {
 
     renderParticlesAndPopups(ctx, this.particles, this.popups);
 
-    if (this.bannerText && (this.phase === 'READY' || this.phase === 'STAGE_CLEAR')) {
+    if (this.phase === 'TITLE') {
+      ctx.save();
+      ctx.fillStyle = 'rgba(4, 8, 18, 0.72)';
+      ctx.beginPath();
+      ctx.roundRect(WIDTH * 0.14, HEIGHT * 0.36, WIDTH * 0.72, 134, 16);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(163, 230, 53, 0.65)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#84CC16';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = '#BEF264';
+      ctx.font = '900 44px "Outfit", sans-serif';
+      ctx.fillText('CENTIPEDE', WIDTH * 0.5, HEIGHT * 0.36 + 48);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#FDE047';
+      ctx.font = '700 13px "JetBrains Mono", monospace';
+      ctx.fillText('NEON MUSHROOM GARDEN · PRECISION TRACKBALL & TILT', WIDTH * 0.5, HEIGHT * 0.36 + 86);
+      ctx.fillStyle = '#94A3B8';
+      ctx.font = '600 11px "JetBrains Mono", monospace';
+      ctx.fillText('SPIDER 300/600/900 · FLEA 200 · SCORPION 1000 · HEAD 100', WIDTH * 0.5, HEIGHT * 0.36 + 112);
+      ctx.restore();
+    } else if (this.bannerText && (this.phase === 'READY' || this.phase === 'STAGE_CLEAR')) {
       ctx.save();
       ctx.font = '800 30px "Outfit", sans-serif';
       ctx.textAlign = 'center';
@@ -922,7 +966,16 @@ export class CentipedeGame implements ArcadeGameInstance {
 
     if (m.poisoned) {
       ctx.shadowColor = palette.poisonCap;
-      ctx.shadowBlur = 12 * pulse;
+      ctx.shadowBlur = 14 * pulse;
+      // Rising poison spore shimmer
+      const sporeY = -10 - ((this.time * 16 + x) % 10);
+      ctx.fillStyle = 'rgba(254, 240, 138, 0.75)';
+      ctx.beginPath();
+      ctx.arc(Math.sin(this.time * 6 + y) * 4, sporeY, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.shadowColor = capColor;
+      ctx.shadowBlur = 5;
     }
 
     // Shaded fluted stem

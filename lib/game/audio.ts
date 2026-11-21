@@ -398,10 +398,11 @@ class ArcadeAudioEngine {
   // --- Classic Arcade Collection Synth SFX ---
 
   // Crisp laser blaster shot (Centipede, Millipede, Space Invaders 1 & 2)
-  public playLaser(pitch = 960): void {
+  public playLaser(pitch = 960, endPitch?: number, duration = 0.085): void {
     this.unlock();
-    this.playTone(pitch, pitch * 0.24, 0.085, 'square', 0.2);
-    this.playTone(pitch * 1.4, pitch * 0.35, 0.06, 'triangle', 0.12);
+    const targetEnd = endPitch ?? pitch * 0.24;
+    this.playTone(pitch, targetEnd, duration, 'square', 0.2);
+    this.playTone(pitch * 1.4, Math.max(80, targetEnd * 1.3), Math.max(0.04, duration * 0.7), 'triangle', 0.12);
   }
 
   // Punchy arcade explosion (aliens, bugs, DDT bombs, boulders)
@@ -1037,6 +1038,184 @@ class ArcadeAudioEngine {
     // Urgent Death Star II meltdown warning pulse
     this.playTone(620, 440, 0.18, 'sawtooth', 0.16);
     this.playTone(620, 440, 0.18, 'sawtooth', 0.16, 0.22);
+  }
+
+  public playRepulsorJump(heavy = false): void {
+    this.unlock();
+    if (heavy) {
+      // AT-ST hydraulic leap whoosh
+      this.playTone(165, 520, 0.18, 'sawtooth', 0.2);
+      this.playTone(110, 340, 0.2, 'triangle', 0.18, 0.02);
+    } else {
+      // Crisp Speeder Bike / Falcon repulsor lift vault
+      this.playTone(280, 960, 0.16, 'sine', 0.22);
+      this.playTone(420, 1280, 0.14, 'triangle', 0.15, 0.02);
+    }
+  }
+
+  public playCarrierTakeoff(): void {
+    this.unlock();
+    // P-38 twin-engine propeller rev & deck catapult roar
+    this.playTone(95, 290, 0.42, 'sawtooth', 0.18);
+    this.playTone(145, 420, 0.46, 'triangle', 0.16, 0.06);
+    this.playTone(260, 640, 0.28, 'sine', 0.1, 0.2);
+  }
+
+  public playLoopRoll(): void {
+    this.unlock();
+    // Classic 1942 aerial Loop-the-Loop ascending/descending pitch sweep
+    this.playTone(240, 860, 0.24, 'triangle', 0.2);
+    this.playTone(860, 220, 0.34, 'triangle', 0.18, 0.22);
+    this.playTone(180, 520, 0.18, 'sawtooth', 0.1, 0.04);
+  }
+
+  public playPowCycle(): void {
+    this.unlock();
+    // Authentic 1943 crisp metallic chime when shooting a POW icon to cycle its weapon
+    this.playTone(740, 1180, 0.075, 'square', 0.14);
+    this.playTone(1180, 1480, 0.065, 'triangle', 0.12, 0.035);
+  }
+
+  public playShotgunBlast(): void {
+    this.unlock();
+    // Punchy 1943 wide buckshot blast
+    this.playTone(380, 75, 0.12, 'sawtooth', 0.22);
+    this.playTone(210, 52, 0.14, 'square', 0.15, 0.015);
+  }
+
+  public playLightningCrash(): void {
+    this.unlock();
+    // Thunderous 1943 Lightning / Tsunami Mega-Crash
+    this.playTone(1480, 180, 0.22, 'sawtooth', 0.24);
+    this.playTone(1120, 120, 0.26, 'square', 0.18, 0.04);
+    this.playTone(220, 34, 0.65, 'sawtooth', 0.32, 0.06);
+    this.playTone(150, 28, 0.72, 'triangle', 0.28, 0.1);
+  }
+
+  public playShipSinking(): void {
+    this.unlock();
+    // Deep naval hull groan + cascading boiler explosions
+    this.playTone(140, 32, 0.85, 'sawtooth', 0.32);
+    this.playTone(260, 48, 0.38, 'square', 0.18, 0.14);
+    this.playTone(210, 36, 0.44, 'sawtooth', 0.22, 0.34);
+    this.playTone(170, 26, 0.56, 'triangle', 0.26, 0.52);
+  }
+
+  public playSirenSweep(): void {
+    this.unlock();
+    // Classic arcade Battle Stations / Ayako & Flagship approaching warning klaxon
+    this.playTone(420, 880, 0.28, 'sawtooth', 0.18);
+    this.playTone(880, 420, 0.28, 'sawtooth', 0.18, 0.28);
+    this.playTone(440, 920, 0.28, 'triangle', 0.14, 0.56);
+  }
+
+  public playElectricZap(): void {
+    this.unlock();
+    // Berzerk high-voltage plasma wall electrocution
+    this.playTone(1350, 140, 0.16, 'sawtooth', 0.22);
+    this.playTone(980, 190, 0.18, 'square', 0.18, 0.03);
+    this.playTone(1680, 260, 0.14, 'sawtooth', 0.15, 0.07);
+  }
+
+  public playOttoBounce(): void {
+    this.unlock();
+    // Evil Otto sinister low-to-high springy bounce
+    this.playTone(150, 480, 0.14, 'triangle', 0.2);
+    this.playTone(210, 620, 0.1, 'square', 0.08, 0.03);
+  }
+
+  public playGemChime(combo = 1): void {
+    this.unlock();
+    // Crystal Castles sparkling ascending crystal arpeggio
+    const base = 660 + Math.min(12, combo) * 44;
+    this.playTone(base, base * 1.25, 0.085, 'triangle', 0.16);
+    this.playTone(base * 1.5, base * 2.0, 0.095, 'sine', 0.14, 0.04);
+  }
+
+  public playMagicHat(): void {
+    this.unlock();
+    // Crystal Castles Bentley Magic Hat sparkle fanfare
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
+    notes.forEach((f, i) => {
+      this.playTone(f, f * 1.04, 0.11, 'triangle', 0.18, i * 0.055);
+      this.playTone(f * 0.5, f * 0.5, 0.1, 'sine', 0.1, i * 0.055);
+    });
+  }
+
+  public playWingFlap(): void {
+    this.unlock();
+    // Joust crisp Ostrich/Buzzard feathered thrust thump
+    this.playTone(210, 88, 0.09, 'triangle', 0.19);
+    this.playTone(340, 140, 0.06, 'sawtooth', 0.09, 0.015);
+  }
+
+  public playLanceClash(): void {
+    this.unlock();
+    // Joust metallic lance parry clang
+    this.playTone(1520, 620, 0.12, 'square', 0.2);
+    this.playTone(2140, 880, 0.11, 'triangle', 0.15, 0.015);
+  }
+
+  public playPteroScreech(): void {
+    this.unlock();
+    // Joust iconic swooping Pterodactyl war cry
+    this.playTone(1180, 1840, 0.14, 'sawtooth', 0.18);
+    this.playTone(1840, 720, 0.26, 'sawtooth', 0.2, 0.13);
+  }
+
+  public playDdtExplosion(): void {
+    this.unlock();
+    // Millipede massive DDT bomb shockwave blast
+    this.playTone(280, 32, 0.52, 'sawtooth', 0.32);
+    this.playTone(540, 68, 0.34, 'square', 0.2, 0.03);
+    this.playTone(180, 24, 0.62, 'triangle', 0.28, 0.07);
+  }
+
+  public playBellClang(): void {
+    this.unlock();
+    // Mappy attic brass bell drop chime
+    this.playTone(1174.66, 1140, 0.16, 'triangle', 0.24);
+    this.playTone(1760, 1720, 0.22, 'sine', 0.16, 0.012);
+    this.playTone(587.33, 560, 0.24, 'square', 0.09, 0.01);
+  }
+
+  public playBalloonPop(): void {
+    this.unlock();
+    // Mappy Bonus Round bright festive balloon pop
+    this.playTone(620, 1480, 0.055, 'sine', 0.24);
+    this.playTone(980, 280, 0.08, 'triangle', 0.18, 0.02);
+  }
+
+  public playHyperspace(): void {
+    this.unlock();
+    // 1981 Williams Defender erratic hyperspace molecular warp
+    this.playTone(1680, 220, 0.14, 'sawtooth', 0.2);
+    this.playTone(320, 1920, 0.18, 'square', 0.16, 0.06);
+    this.playTone(880, 140, 0.16, 'triangle', 0.15, 0.12);
+  }
+
+  public playInvisoCloak(): void {
+    this.unlock();
+    // Williams Defender II / Stargate shimmering phase cloak hum
+    this.playTone(440, 980, 0.14, 'sine', 0.18);
+    this.playTone(660, 1320, 0.16, 'triangle', 0.14, 0.03);
+  }
+
+  public playStargateWarp(): void {
+    this.unlock();
+    // Iconic Stargate swirling harmonic portal vortex chime
+    const notes = [330, 440, 587.33, 880, 1174.66, 1760];
+    notes.forEach((f, i) => {
+      this.playTone(f, f * 1.18, 0.13, 'sawtooth', 0.14, i * 0.035);
+      this.playTone(f * 0.5, f * 0.6, 0.15, 'triangle', 0.16, i * 0.035);
+    });
+  }
+
+  public playHammerSmash(): void {
+    this.unlock();
+    // Donkey Kong punchy wooden mallet barrel/fireball smash
+    this.playTone(380, 92, 0.12, 'square', 0.24);
+    this.playTone(760, 1280, 0.09, 'triangle', 0.18, 0.035);
   }
 
   public stopAmbient(): void {
