@@ -4,7 +4,7 @@ import { BoulderDashGame } from './boulderdashGame';
 import { BreakerArcadeGame } from './breakerGame';
 import { Breakout2016EvoGame } from './breakout2016EvoGame';
 import { CentipedeGame } from './centipedeGame';
-import { MrDoArcadeGame } from './classicActionPack1';
+import { MrDoArcadeGame, MrDosCastleGame } from './mrDoGame';
 import { DragonsLairArcadeGame } from './classicActionPack2';
 import { CrystalCastlesGame } from './crystalCastlesGame';
 import { JoustGame } from './joustGame';
@@ -53,7 +53,7 @@ import { TimePilotArcadeGame } from './timePilotGame';
 import { VectorSpaceGame } from './vectorSpaceGame';
 import { Ww1942Game } from './ww1942Game';
 import { Ww1943Game } from './ww1943Game';
-import { YsActionRpgGame } from './ysMuleGame';
+import { YsBookRpgGame } from './ysBookRpgGame';
 
 export interface ClassicCabinetSpec {
   id: ClassicArcadeGameId;
@@ -1536,16 +1536,36 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     accentTextClass: 'text-red-400',
     accentButtonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
     borderHoverClass: 'hover:border-red-400/50',
-    subtitle: '1982 · Cherry Orchard Tunneling · Bouncing Powerball & Falling Apples',
+    subtitle: '1982 · 2.5D Orchard Tunneling · 8-Cherry Chains · Bouncing Powerball, Physics Apples & EXTRA',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Tunnel through soil & collect cherry clusters' },
-      { key: 'Space / Z', desc: 'Throw bouncing Powerball at monsters' },
-      { key: 'P', desc: 'Pause / resume cabinet' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Tunnel through 2.5D orchard soil & push red Apples' },
+      { key: 'Space / Z', desc: 'Launch bouncing Powerball along carved tunnels' },
+      { key: 'Shift / X', desc: 'Instant quick-turn 180° inside narrow tunnels' },
     ],
     tips: [
-      'Eat all 8 cherries in a cluster without stopping for a sweet 500-point combo!',
-      'Dig beneath giant red Apples to drop them on pursuing monsters—or push apples off ledges.',
-      'Defeat Alphamonsters to spell E-X-T-R-A for a free extra life!',
+      'Eat 8 cherries in quick succession for the +500 Cherry Chain burst & fanfare!',
+      'Dig beneath giant Apples to drop them onto pursuing Red Monsters & Blue Diggers for 1,000→8,000 chains & rare 8,000-pt Diamonds!',
+      'Grab the glowing Center Prize Treat to summon the E-X-T-R-A Alphamonster and light all 5 marquee letters for an Extra Life!',
+    ],
+  },
+  mrdocastle: {
+    id: 'mrdocastle',
+    title: 'Mr. Do’s Castle',
+    year: 1983,
+    publisher: 'Universal',
+    accentTextClass: 'text-amber-400',
+    accentButtonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
+    borderHoverClass: 'hover:border-amber-400/50',
+    subtitle: '1983 · 5-Tier Medieval Castle · Heavy Hammer · Tilting Ladders · Unicorns & 3-Key Crown EXTRA',
+    controls: [
+      { key: 'Arrows / WASD / Tilt', desc: 'Run castle floors & climb fixed or tilting ladders' },
+      { key: 'Space / Z', desc: 'Swing Heavy Hammer to smash Cherry, Key & Stone blocks' },
+      { key: 'Shift / X', desc: 'Manually flip a nearby blue tilting ladder' },
+    ],
+    tips: [
+      'Smash floor blocks with Mr. Do’s Heavy Hammer to drop them straight onto pursuing Red, Green & Blue Unicorns below!',
+      'Walking across the top of a blue tilting ladder flips its lean—use it to steer Unicorns away from you!',
+      'Knock out all 3 Golden Key Blocks to unlock the top Crown Door, claim the Crown, and crush E-X-T-R-A Letter Unicorns!',
     ],
   },
   spyhunter: {
@@ -1796,40 +1816,40 @@ export const CLASSIC_CABINET_SPECS: Record<ClassicArcadeGameId, ClassicCabinetSp
     id: 'ys1',
     title: 'Ys Book I: Ancient Ys Vanished',
     year: 1987,
-    publisher: 'Nihon Falcom',
+    publisher: 'Nihon Falcom · TurboGrafx-CD',
     accentTextClass: 'text-red-400',
     accentButtonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
     borderHoverClass: 'hover:border-red-400/50',
-    subtitle: '1987 · Adol’s Bump-Combat Action RPG · Esteria, Shrine & Darm Tower',
+    subtitle: 'TurboGrafx-CD · 4×-Scale 2.5D Exploration & Investigation RPG · Minea, Esteria, Shrine & Darm Tower',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Move Adol & off-center Bump Attack monsters' },
-      { key: 'Space / Z', desc: 'Dash-Slash burst & interact with shrines' },
-      { key: 'Shift / X', desc: 'Use Heal Ring / Equipment Boost' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Explore 4×-scale 2.5D worlds, walk behind trees, & jump into shrubs' },
+      { key: 'Space / Z / Enter', desc: 'Investigate signs/statues/shrubs, talk to NPCs, shop, or Sword Dash' },
+      { key: 'Shift / X', desc: 'Toggle Full World Exploration Map & Quest Journal' },
     ],
     tips: [
-      'Hit enemies slightly off-center (half-tile offset) for classic Ys Bump Combat without taking damage!',
-      'Stand still on grassy Esteria fields to rapidly regenerate HP—just like the 1987 original.',
-      'Level up your Sword & Armor to collect the Books of Ys and vanquish Dark Fact!',
+      'Walk right into flowering shrubs & ferns (or press Space) to rustle them and uncover hidden Gold, Heal Herbs, Roda Seeds (+10 Max HP), and Sara’s Sapphire Crystal!',
+      'Walk north behind tall trees and cottage roofs to slip underneath 2.5D canopies, and inspect Fountains, Statues, Signs, Crates & the Ancient Roda Tree.',
+      'Pass through the wide glowing North Gate in Minea Town to enter Esteria Plains, raid the Shrine of Solomon (Jenocres), and ascend Darm Tower (Dark Fact)!',
     ],
   },
   ys2: {
     id: 'ys2',
     title: 'Ys Book II: The Final Chapter',
     year: 1988,
-    publisher: 'Nihon Falcom',
+    publisher: 'Nihon Falcom · TurboGrafx-CD',
     accentTextClass: 'text-sky-400',
     accentButtonClass: 'bg-sky-400 hover:bg-sky-300 text-slate-950 focus-visible:ring-sky-200',
     borderHoverClass: 'hover:border-sky-400/50',
-    subtitle: '1988 · Floating Land of Ys · Fireball Magic · Bump Combat & Bosses',
+    subtitle: 'TurboGrafx-CD · 4×-Scale 2.5D World RPG · Lance Village · Fire/Shield/Time Magic & Darm',
     controls: [
-      { key: 'Arrows / WASD', desc: 'Run & off-center Bump Attack across Ys' },
-      { key: 'Space / Z', desc: 'Cast blazing Fireball Magic (uses MP)' },
-      { key: 'Shift / X', desc: 'Cast Shield / Time Magic burst' },
+      { key: 'Arrows / WASD / Tilt', desc: 'Explore Floating Land of Ys, slip behind spires, & rustle shrubs' },
+      { key: 'Space / Z / Enter', desc: 'Talk to Lilia / Dr. Flair / Shops, inspect shrines, or Sword Dash' },
+      { key: 'Shift / X', desc: 'Cast blazing Fireball & Shield/Time Magic (uses MP)' },
     ],
     tips: [
-      'Combine Adol’s off-center Bump Combat with ranged Fireball Magic to melt demon guardians!',
-      'Pause briefly in safe zones to rapidly recover both HP and MP.',
-      'Explore the Ruined Moondoria, Ice Ridge, and Solomon Shrine to confront Dalles!',
+      'Search the western Lance Village garden shrubs for the rare Celceta Blossom for Lilia, and inspect the Goddess Spring to fully restore HP & MP!',
+      'Head through the wide North Gate into the sprawling Ruins of Moondoria, press Shift/X to blast enemies with Fire Magic, and unlock Shield & Time Magic Rings.',
+      'Conquer Velagunder, cross the glacial spires of Ice Ridge of Noltia (Tyalmath), and vanquish Darm in the Solomon Core!',
     ],
   },
   mule: {
@@ -2020,6 +2040,8 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
       return new PopeyeArcadeGame();
     case 'mrdo':
       return new MrDoArcadeGame();
+    case 'mrdocastle':
+      return new MrDosCastleGame();
     case 'spyhunter':
       return new SpyHunterArcadeGame();
     case 'spyhunter2':
@@ -2045,9 +2067,9 @@ export function createClassicArcadeGame(id: ClassicArcadeGameId): ArcadeGameInst
     case 'smw2':
       return new MarioWorldGame('smw2');
     case 'ys1':
-      return new YsActionRpgGame('ys1');
+      return new YsBookRpgGame('ys1');
     case 'ys2':
-      return new YsActionRpgGame('ys2');
+      return new YsBookRpgGame('ys2');
     case 'mule':
       return new MuleArcadeGame();
     case 'muleevo':

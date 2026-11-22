@@ -1060,25 +1060,144 @@ export class Gauntlet3DEngine {
       this.worldDisposables.push(wGeo, wMat);
     }
 
-    // 3. Instanced Architectural Pillars
+    // 3. Realm-Specific Composite 3D Landmarks (Forest Redwoods, Desert Obelisks, Glacier Spires, Gothic Columns!)
     if (pillarCoords.length > 0) {
-      const pGeo = new THREE.CylinderGeometry(ts * 0.34, ts * 0.4, 4.2, 10);
-      const pMat = new THREE.MeshStandardMaterial({
-        map: this.realmTextures.pillar,
-        roughness: 0.5,
-        metalness: 0.25,
+      if (realmId === 'forest') {
+        const trunkGeo = new THREE.CylinderGeometry(ts * 0.2, ts * 0.28, 3.0, 8);
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.9, metalness: 0.05 });
+        const leafGeo = new THREE.ConeGeometry(ts * 0.68, 3.4, 8);
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0x1e5c2e, roughness: 0.78, metalness: 0.04 });
+        const topGeo = new THREE.ConeGeometry(ts * 0.48, 2.5, 8);
+        const topMat = new THREE.MeshStandardMaterial({ color: 0x2f7d40, roughness: 0.72, metalness: 0.04 });
+        for (const [tx, tz] of pillarCoords) {
+          const g = new THREE.Group();
+          const tr = new THREE.Mesh(trunkGeo, trunkMat);
+          tr.position.y = 1.5;
+          const l1 = new THREE.Mesh(leafGeo, leafMat);
+          l1.position.y = 3.5;
+          const l2 = new THREE.Mesh(topGeo, topMat);
+          l2.position.y = 5.1;
+          g.add(tr, l1, l2);
+          g.position.set(toWorldX(tx), 0, toWorldZ(tz));
+          this.worldGroup.add(g);
+        }
+        this.worldDisposables.push(trunkGeo, trunkMat, leafGeo, leafMat, topGeo, topMat);
+      } else if (realmId === 'ice') {
+        const spireGeo = new THREE.ConeGeometry(ts * 0.36, 4.9, 6);
+        const spireMat = new THREE.MeshStandardMaterial({
+          color: 0x7dd3fc,
+          emissive: 0x0284c7,
+          emissiveIntensity: 0.35,
+          roughness: 0.16,
+          metalness: 0.45,
+        });
+        const baseGeo = new THREE.CylinderGeometry(ts * 0.44, ts * 0.5, 0.9, 6);
+        const baseMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.25, metalness: 0.3 });
+        for (const [tx, tz] of pillarCoords) {
+          const g = new THREE.Group();
+          const b = new THREE.Mesh(baseGeo, baseMat);
+          b.position.y = 0.45;
+          const s = new THREE.Mesh(spireGeo, spireMat);
+          s.position.y = 2.9;
+          g.add(b, s);
+          g.position.set(toWorldX(tx), 0, toWorldZ(tz));
+          this.worldGroup.add(g);
+        }
+        this.worldDisposables.push(spireGeo, spireMat, baseGeo, baseMat);
+      } else if (realmId === 'desert') {
+        const shaftGeo = new THREE.CylinderGeometry(ts * 0.24, ts * 0.38, 4.2, 4);
+        const shaftMat = new THREE.MeshStandardMaterial({ color: 0xb89458, roughness: 0.72, metalness: 0.1 });
+        const capGeo = new THREE.ConeGeometry(ts * 0.3, 0.9, 4);
+        const capMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.25, metalness: 0.85 });
+        for (const [tx, tz] of pillarCoords) {
+          const g = new THREE.Group();
+          const sh = new THREE.Mesh(shaftGeo, shaftMat);
+          sh.position.y = 2.1;
+          sh.rotation.y = Math.PI / 4;
+          const cap = new THREE.Mesh(capGeo, capMat);
+          cap.position.y = 4.65;
+          cap.rotation.y = Math.PI / 4;
+          g.add(sh, cap);
+          g.position.set(toWorldX(tx), 0, toWorldZ(tz));
+          this.worldGroup.add(g);
+        }
+        this.worldDisposables.push(shaftGeo, shaftMat, capGeo, capMat);
+      } else {
+        // Composite Fluted Gothic Stone Column with Plinth Base, Carved Capital & Accent Band!
+        const pGeo = new THREE.CylinderGeometry(ts * 0.3, ts * 0.36, 4.2, 10);
+        const pMat = new THREE.MeshStandardMaterial({
+          map: this.realmTextures.pillar,
+          roughness: 0.55,
+          metalness: 0.22,
+        });
+        const plinthGeo = new THREE.BoxGeometry(ts * 0.86, 0.52, ts * 0.86);
+        const plinthMat = new THREE.MeshStandardMaterial({
+          color: realmDef ? realmDef.wallAccentHex : '#7a6450',
+          roughness: 0.78,
+          metalness: 0.14,
+        });
+        const bandGeo = new THREE.TorusGeometry(ts * 0.35, 0.08, 6, 12);
+        const bandMat = new THREE.MeshStandardMaterial({
+          color: realmDef ? realmDef.portalHex : '#d97706',
+          emissive: realmDef ? realmDef.portalHex : '#78350f',
+          emissiveIntensity: 0.28,
+          metalness: 0.7,
+          roughness: 0.28,
+        });
+        for (const [tx, tz] of pillarCoords) {
+          const g = new THREE.Group();
+          const base = new THREE.Mesh(plinthGeo, plinthMat);
+          base.position.y = 0.26;
+          const shaft = new THREE.Mesh(pGeo, pMat);
+          shaft.position.y = 2.35;
+          shaft.castShadow = !this.isSoftwareGl;
+          shaft.receiveShadow = true;
+          const cap = new THREE.Mesh(plinthGeo, plinthMat);
+          cap.position.y = 4.55;
+          const band = new THREE.Mesh(bandGeo, bandMat);
+          band.rotation.x = Math.PI / 2;
+          band.position.y = 3.6;
+          g.add(base, shaft, cap, band);
+          g.position.set(toWorldX(tx), 0, toWorldZ(tz));
+          this.worldGroup.add(g);
+        }
+        this.worldDisposables.push(pGeo, pMat, plinthGeo, plinthMat, bandGeo, bandMat);
+      }
+    }
+
+    // 3b. Towering 3D Overhead Gothic Stone Archways framing scrolling dungeon thresholds!
+    if (layout.arches && layout.arches.length > 0) {
+      const colGeo = new THREE.BoxGeometry(0.68, 4.6, 0.88);
+      const lintelGeo = new THREE.BoxGeometry(ts * 3.4, 0.72, 1.05);
+      const crestGeo = new THREE.OctahedronGeometry(0.45, 0);
+      const stoneMat = new THREE.MeshStandardMaterial({
+        map: this.realmTextures.wall,
+        roughness: 0.76,
+        metalness: 0.14,
       });
-      const inst = new THREE.InstancedMesh(pGeo, pMat, pillarCoords.length);
-      inst.castShadow = !this.isSoftwareGl;
-      inst.receiveShadow = true;
-      pillarCoords.forEach(([tx, tz], i) => {
-        _m4.makeTranslation(toWorldX(tx), 2.1, toWorldZ(tz));
-        inst.setMatrixAt(i, _m4);
+      const crestMat = new THREE.MeshStandardMaterial({
+        color: realmDef ? realmDef.portalHex : '#d97706',
+        emissive: realmDef ? realmDef.portalHex : '#b45309',
+        emissiveIntensity: 0.45,
+        metalness: 0.72,
+        roughness: 0.25,
       });
-      inst.instanceMatrix.needsUpdate = true;
-      inst.computeBoundingSphere();
-      this.worldGroup.add(inst);
-      this.worldDisposables.push(pGeo, pMat);
+      for (const arch of layout.arches) {
+        const ag = new THREE.Group();
+        const leftP = new THREE.Mesh(colGeo, stoneMat);
+        leftP.position.set(-ts * 1.45, 2.3, 0);
+        const rightP = new THREE.Mesh(colGeo, stoneMat);
+        rightP.position.set(ts * 1.45, 2.3, 0);
+        const lintel = new THREE.Mesh(lintelGeo, stoneMat);
+        lintel.position.set(0, 4.75, 0);
+        const crest = new THREE.Mesh(crestGeo, crestMat);
+        crest.position.set(0, 5.4, 0);
+        ag.add(leftP, rightP, lintel, crest);
+        ag.position.set(toWorldX(arch.tx), 0, toWorldZ(arch.tz));
+        ag.rotation.y = arch.rotY;
+        this.worldGroup.add(ag);
+      }
+      this.worldDisposables.push(colGeo, lintelGeo, crestGeo, stoneMat, crestMat);
     }
 
     // 4. Instanced Glowing Hazard Pools (Lava / Acid / Glacial Chasm / Void)
@@ -1401,9 +1520,9 @@ export class Gauntlet3DEngine {
       }
     }
 
-    // Spawn an initial patrol wave of monsters in the dungeon
+    // Spawn an initial patrol wave of monsters across the scrolling dungeon chambers
     if (!layout.isBossArena) {
-      const patrolCoords = [
+      const patrolCoords = layout.patrolCoords ?? [
         [12, 16],
         [14, 16],
         [13, 13],
@@ -2301,17 +2420,22 @@ export class Gauntlet3DEngine {
       emissive: 0x78350f,
       emissiveIntensity: 0.35,
     });
-    for (let tz = 7; tz <= 9; tz++) {
-      this.layout.tiles[tz][22] = 6;
+    const tilesToRaise: Array<[number, number]> = this.layout.bridgeTiles ?? [
+      [22, 7],
+      [22, 8],
+      [22, 9],
+    ];
+    for (const [tx, tz] of tilesToRaise) {
+      this.layout.tiles[tz][tx] = 6;
       const m = new THREE.Mesh(bGeo, bMat);
-      m.position.set(22 * ts - halfW + ts * 0.5, -0.02, tz * ts - halfH + ts * 0.5);
+      m.position.set(tx * ts - halfW + ts * 0.5, -0.02, tz * ts - halfH + ts * 0.5);
       this.worldGroup.add(m);
       this.bridgeMeshes.push(m);
     }
     this.worldDisposables.push(bGeo, bMat);
     gauntletSfx.playKeyUnlock();
     this.screenShake = 0.25;
-    this.announce('Secret Floor Switch pressed! Stone Bridge raised across the East Chasm!', true);
+    this.announce('Secret Floor Switch pressed! Stone Bridge raised across the Chasm!', true);
   }
 
   private updateProjectiles(dt: number): void {

@@ -73,6 +73,7 @@ export type ClassicArcadeGameId =
   | 'pengo'
   | 'popeye'
   | 'mrdo'
+  | 'mrdocastle'
   | 'spyhunter'
   | 'spyhunter2'
   | 'tapper'
@@ -293,7 +294,7 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Gauntlet: Dark Legacy',
     year: 2000,
     category: 'action',
-    tagline: 'Authentic 2000 Midway 3D · Torchlit Stonework · Sumner’s Tower · 9 Bosses & 10 Relics',
+    tagline: 'Full 3D Scrolling Realm Maps · 3D Arches & Landmarks · Sumner’s Tower · 9 Bosses & 10 Relics',
     accentHex: '#D97706',
     storageKey: 'gauntlet_dark_legacy_hd_highscore_v1',
   },
@@ -870,9 +871,18 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Mr. Do!',
     year: 1982,
     category: 'action',
-    tagline: 'Dig Cherry Orchards · Powerball · Falling Apples & EXTRA',
+    tagline: '2.5D Cherry Orchards · 8-Cherry Chains · Powerball · Physics Apples & EXTRA',
     accentHex: '#EF4444',
     storageKey: 'mrdo_hd_highscore_v1',
+  },
+  {
+    id: 'mrdocastle',
+    title: 'Mr. Do’s Castle',
+    year: 1983,
+    category: 'action',
+    tagline: '5-Tier Castle · Heavy Hammer · Tilting Ladders · Unicorns & 3-Key Crown EXTRA',
+    accentHex: '#F59E0B',
+    storageKey: 'arcade_mrdocastle_v1_high',
   },
   {
     id: 'tapper',
@@ -946,18 +956,18 @@ export const CABINET_LIST: CabinetMeta[] = [
     title: 'Ys Book I: Ancient Ys Vanished',
     year: 1987,
     category: 'rpg',
-    tagline: 'Adol’s Bump-Combat Action RPG · Esteria Fields & Darm Tower',
+    tagline: 'TurboGrafx-CD 2.5D 4-Way Scrolling World · Minea Town, Shops, Portraits & Darm Tower',
     accentHex: '#EF4444',
-    storageKey: 'ys1_hd_highscore_v1',
+    storageKey: 'arcade_ys1_tgcd_high_v2',
   },
   {
     id: 'ys2',
     title: 'Ys Book II: The Final Chapter',
     year: 1988,
     category: 'rpg',
-    tagline: 'Floating Island of Ys · Fireball Magic · Bump Combat & Bosses',
+    tagline: 'TurboGrafx-CD 2.5D World RPG · Lance Village · Fire/Shield/Time Magic & Darm Boss',
     accentHex: '#38BDF8',
-    storageKey: 'ys2_hd_highscore_v1',
+    storageKey: 'arcade_ys2_tgcd_high_v2',
   },
   {
     id: 'mule',

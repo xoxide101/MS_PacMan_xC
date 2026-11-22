@@ -367,6 +367,7 @@ export default function ClassicArcadeShell({
 
     return () => {
       window.cancelAnimationFrame(rafId);
+      instance.dispose?.();
       arcadeAudio.stopAmbient();
       arcadeMusic.stop();
     };
@@ -817,10 +818,10 @@ export default function ClassicArcadeShell({
               type="button"
               onClick={onOpenLobby}
               className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.04] hover:bg-white/[0.09] text-xs font-medium text-slate-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              aria-label="All 94 Cabinets"
+              aria-label="All 95 Cabinets"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline sm:inline">All 94</span>
+              <span className="hidden xs:inline sm:inline">All 95</span>
               <span className="hidden md:inline">Cabinets</span>
             </button>
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
@@ -982,7 +983,7 @@ export default function ClassicArcadeShell({
                 type="text"
                 value={railQuery}
                 onChange={(e) => setRailQuery(e.target.value)}
-                placeholder="Filter 94 games..."
+                placeholder="Filter 95 games..."
                 aria-label="Filter cabinets"
                 className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-white/[0.04] border border-white/10 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-white/25"
               />

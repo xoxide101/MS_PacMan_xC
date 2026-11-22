@@ -661,6 +661,7 @@ type ClassicIconKind =
   | 'pengo'
   | 'popeye'
   | 'mrdo'
+  | 'mrdocastle'
   | 'spyhunter'
   | 'spyhunter2'
   | 'tapper'
@@ -2029,17 +2030,54 @@ function ClassicIconCanvas({
       ctx.arc(16, 16, 4.5, 0, Math.PI * 2);
       ctx.fill();
     } else if (kind === 'mrdo') {
-      // Red cherry pair + clown hat
+      // Lush emerald orchard + red cherry pair + Mr. Do clown cap!
+      ctx.fillStyle = '#14532D';
+      ctx.fillRect(0, 0, 32, 32);
       ctx.strokeStyle = '#4ADE80';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(11, 18);
-      ctx.quadraticCurveTo(16, 5, 21, 18);
+      ctx.quadraticCurveTo(16, 6, 21, 18);
       ctx.stroke();
       ctx.fillStyle = '#EF4444';
       ctx.beginPath();
-      ctx.arc(11, 21, 5.5, 0, Math.PI * 2);
-      ctx.arc(21, 21, 5.5, 0, Math.PI * 2);
+      ctx.arc(11, 21.5, 5.6, 0, Math.PI * 2);
+      ctx.arc(21, 21.5, 5.6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#FECACA';
+      ctx.beginPath();
+      ctx.arc(9.5, 19.8, 1.8, 0, Math.PI * 2);
+      ctx.arc(19.5, 19.8, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === 'mrdocastle') {
+      // Mr. Do's Castle: Indigo stone citadel + golden royal Crown + Heavy Mallet!
+      ctx.fillStyle = '#1E1B4B';
+      ctx.fillRect(0, 0, 32, 32);
+      // Stone battlement silhouette
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(4, 15, 24, 14);
+      ctx.fillRect(4, 11, 5, 5);
+      ctx.fillRect(13.5, 11, 5, 5);
+      ctx.fillRect(23, 11, 5, 5);
+      // Golden Crown
+      ctx.fillStyle = '#FACC15';
+      ctx.beginPath();
+      ctx.moveTo(9, 11);
+      ctx.lineTo(8, 4.5);
+      ctx.lineTo(13, 7.5);
+      ctx.lineTo(16, 3.5);
+      ctx.lineTo(19, 7.5);
+      ctx.lineTo(24, 4.5);
+      ctx.lineTo(23, 11);
+      ctx.closePath();
+      ctx.fill();
+      // Heavy Hammer head & cherry block highlight
+      ctx.fillStyle = '#F59E0B';
+      ctx.fillRect(9, 19, 14, 6);
+      ctx.fillStyle = '#FB7185';
+      ctx.beginPath();
+      ctx.arc(13.5, 22, 2.2, 0, Math.PI * 2);
+      ctx.arc(18.5, 22, 2.2, 0, Math.PI * 2);
       ctx.fill();
     } else if (kind === 'spyhunter') {
       // White G-6155 Interceptor top-down
@@ -2422,6 +2460,7 @@ export function GameEmblem({
     case 'pengo':
     case 'popeye':
     case 'mrdo':
+    case 'mrdocastle':
     case 'spyhunter':
     case 'spyhunter2':
     case 'tapper':

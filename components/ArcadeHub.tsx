@@ -18,7 +18,7 @@ import {
 import { CABINET_LIST, CabinetCategory, GameId } from '@/lib/game/arcadeTypes';
 import { arcadeAudio } from '@/lib/game/audio';
 import { CLASSIC_BONUS_ORDER } from '@/lib/game/classicEngine';
-import { isClassicArcadeGameId } from '@/lib/game/classicRegistry';
+import { CLASSIC_CABINET_SPECS, isClassicArcadeGameId } from '@/lib/game/classicRegistry';
 import { arcadeMusic } from '@/lib/game/musicEngine';
 import { JR_LEVEL_PRIZE_ORDER } from '@/lib/game/jrTypes';
 import { PLUS_BONUS_ORDER } from '@/lib/game/plusEngine';
@@ -93,6 +93,106 @@ interface CabinetCardConfig {
   scoreColorClass: string;
   borderHoverClass: string;
   buttonClass: string;
+}
+
+interface CabinetFaqGuide {
+  controls: Array<{ key: string; desc: string }>;
+  tips: string[];
+}
+
+const STANDALONE_FAQ_GUIDES: Partial<Record<GameId, CabinetFaqGuide>> = {
+  classic: {
+    controls: [
+      { key: 'Arrows / WASD / Swipe', desc: 'Steer Pac-Man with corner pre-turn buffering' },
+      { key: 'P / Space', desc: 'Pause / resume cabinet' },
+    ],
+    tips: [
+      'Each ghost has its authentic 1980 AI: Blinky chases directly, Pinky ambushes ahead, Inky flanks with Blinky, and Clyde retreats when close.',
+      'Chain all 4 blue Energizer ghosts in a single pellet window for 200 → 400 → 800 → 1,600 points.',
+      'Bonus fruit appears twice per maze after 70 and 170 dots—snag Keys on later boards for 5,000 points!',
+    ],
+  },
+  plus: {
+    controls: [
+      { key: 'Arrows / WASD / Swipe', desc: 'Navigate high-speed maze corridors' },
+      { key: 'P / Space', desc: 'Pause / resume cabinet' },
+    ],
+    tips: [
+      'Watch out for Pac-Man Plus twists: Energizers can turn the maze walls invisible or leave one ghost dangerous!',
+      'Eating a bonus soda can or cocktail turns ALL ghosts blue and invisible for huge ambush chains.',
+    ],
+  },
+  ms: {
+    controls: [
+      { key: 'Arrows / WASD / Swipe', desc: 'Steer Ms. Pac-Man through all 4 distinct mazes' },
+      { key: 'P / Space', desc: 'Pause / resume cabinet' },
+    ],
+    tips: [
+      'Bouncing bonus fruit enters through warp tunnels and roams the maze—intercept it before it exits!',
+      'Memorize the twin side warp tunnels on Maze 1 and Maze 3 to shake Blinky & Sue cleanly.',
+    ],
+  },
+  super: {
+    controls: [
+      { key: 'Arrows / WASD / Swipe', desc: 'Unlock doors with Keys & dash as Giant Super Pac-Man' },
+      { key: 'Space / Shift', desc: 'Super Speed Boost while transformed into Giant Super Pac-Man' },
+    ],
+    tips: [
+      'Collect Keys to open locked fruit vaults—there are no dots, only high-value bonus prizes!',
+      'Green Super Pellets transform you into Giant Super Pac-Man: smash straight through locked doors and ghosts safely.',
+    ],
+  },
+  jr: {
+    controls: [
+      { key: 'Arrows / WASD / Swipe', desc: 'Explore wide 2× horizontally scrolling mazes' },
+      { key: 'P / Space', desc: 'Pause / resume cabinet' },
+    ],
+    tips: [
+      'Bouncing toys turn dots into giant 50-point super dots—watch out if a toy touches an Energizer, as it explodes!',
+      'Use the extra-wide scrolling corridors to bait ghosts to one wing before clearing the opposite side.',
+    ],
+  },
+  pacmania: {
+    controls: [
+      { key: 'Arrows / WASD / Swipe', desc: 'Move across the 3D isometric scrolling town' },
+      { key: 'Space / Tap', desc: 'Bounce-Jump straight over ghosts (watch out for green Funky & Sue!)' },
+    ],
+    tips: [
+      'Jump over Blinky, Pinky, Inky & Clyde at any time—but green Funky and Sue can jump right back at you!',
+      'Explore Block Town, Pac-Man’s Park, Sandbox Land, and Jungly Steps.',
+    ],
+  },
+  gauntletdl: {
+    controls: [
+      { key: 'WASD / Arrows', desc: 'Move hero through sprawling 33×35 3D scrolling dungeon realms' },
+      { key: 'Space / Left Click', desc: 'Primary Weapon Attack · Hold/Tap for rapid combos' },
+      { key: 'Shift / Right Click / Q', desc: 'Unleash Turbo Special & Magic Potions' },
+    ],
+    tips: [
+      'Destroy enemy Generators first so hordes stop spawning, and watch for cracked walls hiding Secret Gold Vaults!',
+      'Collect Runestones, Keys, Food roasts, and glowing Realm Weapon Shrines before entering the Boss Portal.',
+      'Switch between 8 classic Dark Legacy heroes including Knight, Valkyrie, Wizard, Archer, Jester, Dwarf, Minotaur & Falconess.',
+    ],
+  },
+};
+
+function getCabinetFaqGuide(card: CabinetCardConfig): CabinetFaqGuide {
+  if (isClassicArcadeGameId(card.id)) {
+    const spec = CLASSIC_CABINET_SPECS[card.id];
+    if (spec) {
+      return { controls: spec.controls, tips: spec.tips };
+    }
+  }
+  const standalone = STANDALONE_FAQ_GUIDES[card.id];
+  if (standalone) return standalone;
+  return {
+    controls: [
+      { key: 'Arrows / WASD / Touch', desc: 'Move & steer cleanly in 60fps HD' },
+      { key: 'Space / Click', desc: 'Primary arcade action' },
+      { key: 'Shift / Right Click', desc: 'Secondary special action' },
+    ],
+    tips: [card.description],
+  };
 }
 
 const CABINET_CARDS: CabinetCardConfig[] = [
@@ -297,11 +397,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Ys Book I: Ancient Ys Vanished',
     year: 1987,
     category: 'rpg',
-    meta: '1987 · Nihon Falcom · Bump-Combat Action RPG · Esteria',
+    meta: 'TurboGrafx-CD · 2.5D 4-Way Scrolling World · Minea Town, Portraits & Darm Tower',
     description:
-      'Guide crimson-haired Adol Christin across Esteria and Darm Tower with blistering off-center Bump Combat, rapid field HP recovery, and driving 80s synth-rock BGM.',
-    footerLabel: 'Falcom Action RPG',
-    footerSummary: 'Bump Combat · Level & Gear · Books of Ys',
+      'Authentic PC Engine / TurboGrafx-CD 2.5D scrolling Action RPG! Explore Minea Town with illustrated NPC portraits (Sara, Feena, Weapons, Armor & Inn), roam Esteria Plains with auto-heal, raid the Shrine of Solomon (Jenocres), and scale Darm Tower to face Dark Fact!',
+    footerLabel: 'TurboGrafx-CD 2.5D RPG',
+    footerSummary: '4-Way Scrolling World · Shops & Portraits · Bump Combat · Bosses',
     titleColorClass: 'text-red-400',
     scoreColorClass: 'text-red-200',
     borderHoverClass: 'hover:border-red-400/50',
@@ -312,11 +412,11 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Ys Book II: The Final Chapter',
     year: 1988,
     category: 'rpg',
-    meta: '1988 · Nihon Falcom · Floating Land of Ys · Fireball Magic',
+    meta: 'TurboGrafx-CD · 2.5D World RPG · Lance Village · Fire/Shield/Time Magic & Darm',
     description:
-      'Ascend to the floating land of Ys armed with blazing Fireball and Shield magic alongside classic high-speed Bump Combat across Moondoria, Ice Ridge, and Solomon Shrine.',
-    footerLabel: 'Arcane Action RPG',
-    footerSummary: 'Fireball Magic · MP Regen · Demon Bosses',
+      'Full 4-way scrolling 2.5D sequel atop the Floating Land of Ys! Visit Lilia & shops in Lance Village, unleash Fireball, Shield & Time Magic across Moondoria, the Ice Ridge of Noltia, and the Moat of Burnedbless to vanquish Velagunder, Tyalmath & Darm!',
+    footerLabel: 'TurboGrafx-CD 2.5D RPG',
+    footerSummary: '4-Way World Maps · Fire/Shield/Time Magic · Illustrated Portraits',
     titleColorClass: 'text-sky-400',
     scoreColorClass: 'text-sky-200',
     borderHoverClass: 'hover:border-sky-400/50',
@@ -717,15 +817,30 @@ const CABINET_CARDS: CabinetCardConfig[] = [
     title: 'Mr. Do!',
     year: 1982,
     category: 'action',
-    meta: '1982 · Universal · Cherry Tunnels · Powerball & Apples',
+    meta: '1982 · Universal · 2.5D Orchard Tunnels · Powerball, Apples & EXTRA',
     description:
-      'Carve cherry-filled orchards, whip your bouncing Powerball down tunnels, topple giant red Apples onto pursuing monsters, and spell E-X-T-R-A for bonus lives.',
+      'Dedicated upgraded 1982 engine! Carve 2.5D cherry orchards for 8-cherry combo chains, whip your bouncing Powerball through tunnels, drop physics Apples onto Red Monsters & Blue Diggers for 8,000-pt Diamonds, and spell E-X-T-R-A!',
     footerLabel: 'Orchard Tactics',
-    footerSummary: '8-Cherry Combos · Powerball · Apple Crush',
+    footerSummary: '8-Cherry Combos · Powerball · Physics Apples & Diamonds',
     titleColorClass: 'text-red-400',
     scoreColorClass: 'text-red-200',
     borderHoverClass: 'hover:border-red-400/50',
     buttonClass: 'bg-red-500 hover:bg-red-400 text-white focus-visible:ring-red-300',
+  },
+  {
+    id: 'mrdocastle',
+    title: 'Mr. Do’s Castle',
+    year: 1983,
+    category: 'action',
+    meta: '1983 · Universal · Heavy Hammer · Tilting Ladders · Unicorns & Crown EXTRA',
+    description:
+      'Climb fixed and dynamic tilting ladders across 5 medieval castle tiers, swing Mr. Do’s Heavy Hammer to smash Cherry & Key blocks straight down onto pursuing Red, Green & Blue Unicorns, unlock the top Crown Door, and crush E-X-T-R-A Letter Monsters!',
+    footerLabel: '1983 Castle Sequel',
+    footerSummary: 'Heavy Hammer · Tilting Ladders · Unicorns · 3-Key Crown',
+    titleColorClass: 'text-amber-400',
+    scoreColorClass: 'text-amber-200',
+    borderHoverClass: 'hover:border-amber-400/50',
+    buttonClass: 'bg-amber-400 hover:bg-amber-300 text-slate-950 focus-visible:ring-amber-200',
   },
   {
     id: 'spyhunter',
@@ -2082,7 +2197,7 @@ export default function ArcadeHub() {
               </a>
             ) : (
               <span className="text-xs font-mono tabular-nums text-slate-400 whitespace-nowrap shrink-0">
-                94 Cabinets
+                95 Cabinets
               </span>
             )}
           </div>
@@ -2121,7 +2236,7 @@ export default function ArcadeHub() {
 
       {/* Center RetroBat Hero Showcase Stage */}
       <main
-        className="relative z-10 flex-1 min-h-0 w-full mx-auto max-w-[1440px] px-3 sm:px-6 py-2.5 sm:py-4 flex items-center justify-center"
+        className="relative z-10 flex-1 min-h-0 w-full mx-auto max-w-[1440px] px-2.5 sm:px-5 py-2 sm:py-3 flex items-center justify-center"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -2133,23 +2248,23 @@ export default function ArcadeHub() {
               onClick={() => stepSelection(-1)}
               disabled={visibleCards.length <= 1}
               aria-label="Previous game"
-              className="hidden sm:flex items-center justify-center w-11 h-11 lg:w-12 lg:h-12 rounded-xl border border-white/10 bg-[#0B0F1D]/85 hover:bg-white/10 hover:border-white/25 text-slate-200 hover:text-white transition-all shrink-0 mr-3 lg:mr-5 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="hidden sm:flex items-center justify-center w-10 h-10 lg:w-11 lg:h-11 rounded-xl border border-white/10 bg-[#0B0F1D]/85 hover:bg-white/10 hover:border-white/25 text-slate-200 hover:text-white transition-all shrink-0 mr-2 lg:mr-3.5 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
 
-            {/* Cross-Fading Showcase Content */}
-            <div className="flex-1 min-w-0 h-full max-w-[1220px] flex items-center justify-center overflow-hidden">
+            {/* Cross-Fading Showcase Content: Larger Game Image + Locked Title/Summary & Scrollable FAQ */}
+            <div className="flex-1 min-w-0 h-full max-w-[1340px] flex items-center justify-center overflow-hidden">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.section
                   key={activeCard.id}
-                  initial={{ opacity: 0, x: navDir * 32, scale: 0.988 }}
+                  initial={{ opacity: 0, x: navDir * 28, scale: 0.99 }}
                   animate={{ opacity: 1, x: 0, scale: 1 }}
-                  exit={{ opacity: 0, x: -navDir * 32, scale: 0.988 }}
+                  exit={{ opacity: 0, x: -navDir * 28, scale: 0.99 }}
                   transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                  className="w-full h-full flex flex-col lg:grid lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)] gap-3 sm:gap-5 lg:gap-8 items-center justify-center"
+                  className="w-full h-full min-h-0 flex flex-col lg:grid lg:grid-cols-[minmax(0,1.58fr)_minmax(0,0.92fr)] gap-2.5 sm:gap-4 lg:gap-6 items-stretch"
                 >
-                  {/* Focal Anchor: Full Top-to-Bottom Uncropped 60fps Cabinet Display */}
+                  {/* Focal Anchor: Much Larger Full-Height Uncropped 60fps Cabinet Display */}
                   <div
                     onClick={() => handleSelectGame(activeCard.id)}
                     role="button"
@@ -2161,66 +2276,131 @@ export default function ArcadeHub() {
                       }
                     }}
                     aria-label={`Launch ${activeCard.title}`}
-                    className="group relative flex-1 lg:flex-none w-full min-h-[200px] max-h-[46dvh] sm:max-h-[50dvh] lg:h-full lg:max-h-[68dvh] p-1.5 sm:p-2.5 rounded-2xl overflow-hidden bg-[#04060D] border border-white/[0.1] hover:border-white/20 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-colors duration-200"
+                    className="group relative flex-[1.35] lg:flex-none w-full min-h-[240px] sm:min-h-[300px] lg:h-full p-1 sm:p-1.5 rounded-2xl overflow-hidden bg-[#04060D] border border-white/[0.11] hover:border-white/25 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 transition-colors duration-200"
                     style={{
-                      boxShadow: `0 22px 54px -24px ${activeAccent}45, 0 0 0 1px rgba(255,255,255,0.04)`,
+                      boxShadow: `0 22px 54px -22px ${activeAccent}50, 0 0 0 1px rgba(255,255,255,0.05)`,
                     }}
                   >
                     <CabinetPreviewCanvas game={activeCard.id} />
                   </div>
 
-                  {/* Cabinet Dossier & Primary Action */}
-                  <div className="w-full shrink-0 flex flex-col justify-center gap-2.5 sm:gap-4 min-w-0">
-                    {/* Unboxed Index & Category Metadata */}
-                    <div className="flex items-center justify-between gap-3 text-xs text-slate-400">
-                      <div className="flex items-center gap-2 min-w-0 truncate">
-                        <span className="font-mono tabular-nums text-slate-200 font-semibold">
-                          {String(activeIndex + 1).padStart(2, '0')} / {String(visibleCards.length).padStart(2, '0')}
-                        </span>
-                        <span aria-hidden="true">·</span>
-                        <span>{CATEGORY_LABELS[activeCard.category]}</span>
-                        <span aria-hidden="true">·</span>
-                        <span className="font-mono tabular-nums">{activeCard.year}</span>
+                  {/* Right / Above-Selector Dossier: Locked Name & 2-3 Line Detail + Scrollable FAQ + Locked Play CTA */}
+                  <div className="flex-1 lg:flex-none lg:h-full min-h-0 w-full flex flex-col justify-between gap-2 sm:gap-2.5 overflow-hidden">
+                    {/* LOCKED TOP SECTION: Game Name + 2-3 Line Detail Summary */}
+                    <div className="shrink-0 flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between gap-2 text-[11px] sm:text-xs text-slate-400">
+                        <div className="flex items-center gap-1.5 min-w-0 truncate">
+                          <span className="font-mono tabular-nums text-slate-200 font-semibold">
+                            {String(activeIndex + 1).padStart(2, '0')} / {String(visibleCards.length).padStart(2, '0')}
+                          </span>
+                          <span aria-hidden="true">·</span>
+                          <span>{CATEGORY_LABELS[activeCard.category]}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="font-mono tabular-nums">{activeCard.year}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-slate-500">High</span>
+                          <span
+                            className={`font-mono tabular-nums font-semibold ${activeCard.scoreColorClass}`}
+                          >
+                            {highScores[activeCard.id].toLocaleString()}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-slate-500">High Score</span>
-                        <span
-                          className={`font-mono tabular-nums font-semibold ${activeCard.scoreColorClass}`}
-                        >
-                          {highScores[activeCard.id].toLocaleString()}
-                        </span>
+                      {/* Locked Display Title + Emblem */}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="shrink-0 rounded-xl bg-[#0B0F1D] border border-white/[0.08] p-1">
+                          <GameEmblem gameId={activeCard.id} size={36} />
+                        </div>
+                        <div className="min-w-0">
+                          <h1
+                            className={`text-xl sm:text-2xl lg:text-[1.85rem] font-extrabold tracking-tight leading-[1.12] truncate ${activeCard.titleColorClass}`}
+                            style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
+                          >
+                            {activeCard.title}
+                          </h1>
+                          <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                            {activeCard.meta}
+                          </p>
+                        </div>
                       </div>
+
+                      {/* Locked 2–3 Line Game Detail Summary */}
+                      <p className="text-xs sm:text-[13px] text-slate-200/95 leading-snug line-clamp-3">
+                        {activeCard.description}
+                      </p>
                     </div>
 
-                    {/* Emblem + Display Title */}
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="shrink-0 rounded-xl bg-[#0B0F1D] border border-white/[0.08] p-1.5">
-                        <GameEmblem gameId={activeCard.id} size={42} />
-                      </div>
-                      <div className="min-w-0">
-                        <h1
-                          className={`text-2xl sm:text-3xl lg:text-[2.35rem] font-extrabold tracking-tight leading-[1.1] text-balance ${activeCard.titleColorClass}`}
-                          style={{ fontFamily: 'var(--font-outfit), sans-serif' }}
+                    {/* SCROLLABLE MIDDLE SECTION: Controls, Highlights & Game FAQ */}
+                    {(() => {
+                      const faq = getCabinetFaqGuide(activeCard);
+                      return (
+                        <div
+                          onWheel={(e) => e.stopPropagation()}
+                          onTouchStart={(e) => e.stopPropagation()}
+                          onTouchEnd={(e) => e.stopPropagation()}
+                          className="flex-1 min-h-[78px] overflow-y-auto overscroll-contain rounded-xl border border-white/[0.08] bg-[#0A0E1B]/85 px-3 py-2.5 space-y-2.5 select-text"
                         >
-                          {activeCard.title}
-                        </h1>
-                        <p className="text-xs text-slate-400 mt-1 truncate">
-                          {activeCard.meta}
-                        </p>
-                      </div>
-                    </div>
+                          <div className="flex items-center justify-between gap-2 pb-1 border-b border-white/[0.07]">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Controls &amp; FAQ Guide
+                            </span>
+                            <span className="text-[10px] text-slate-500">Scroll for tips</span>
+                          </div>
 
-                    {/* Description */}
-                    <p className="text-xs sm:text-sm lg:text-[15px] text-slate-300 leading-relaxed line-clamp-3 sm:line-clamp-4">
-                      {activeCard.description}
-                    </p>
+                          {/* Controls Quick Reference */}
+                          <div className="space-y-1">
+                            {faq.controls.map((ctrl, idx) => (
+                              <div key={idx} className="flex items-baseline justify-between gap-2 text-[11.5px] leading-snug">
+                                <span className="font-mono text-[10.5px] font-semibold text-amber-300/95 shrink-0">
+                                  {ctrl.key}
+                                </span>
+                                <span className="text-slate-300 text-right">{ctrl.desc}</span>
+                              </div>
+                            ))}
+                          </div>
 
-                    {/* Bonus Roster / Feature Strip */}
-                    <div className="hidden sm:block">{renderRosterStrip(activeCard)}</div>
+                          {/* Game-Specific FAQ & Strategy Notes */}
+                          <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              How to Play &amp; FAQ
+                            </div>
+                            <ul className="space-y-1.5 text-[11.5px] text-slate-300 leading-relaxed">
+                              {faq.tips.map((tip, idx) => (
+                                <li key={idx} className="flex items-start gap-1.5">
+                                  <span
+                                    aria-hidden="true"
+                                    className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
+                                    style={{ backgroundColor: activeAccent }}
+                                  />
+                                  <span>{tip}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
 
-                    {/* Primary Launch CTA + Mobile Prev/Next Row */}
-                    <div className="flex items-center gap-2.5 pt-1">
+                          {/* Feature Highlights / Roster Strip */}
+                          <div className="pt-0.5">{renderRosterStrip(activeCard)}</div>
+
+                          {/* General Cabinet FAQ */}
+                          <div className="space-y-1 pt-1.5 border-t border-white/[0.06] text-[11px] text-slate-400 leading-relaxed">
+                            <div>
+                              <span className="text-slate-200 font-semibold">Q: Can I play with mouse, touch, or keyboard?</span>{' '}
+                              Yes—every cabinet supports keyboard, mouse/pointer steering where applicable, and an adaptive multi-touch pad on tablets/phones.
+                            </div>
+                            <div>
+                              <span className="text-slate-200 font-semibold">Q: Are high scores saved?</span>{' '}
+                              Yes—your best score for each of the 95 cabinets is stored locally on your device automatically.
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* LOCKED BOTTOM ACTION ROW: Primary Launch CTA + Mobile Prev/Next */}
+                    <div className="shrink-0 flex items-center gap-2 pt-0.5">
                       <button
                         type="button"
                         onClick={() => stepSelection(-1)}
@@ -2234,7 +2414,7 @@ export default function ArcadeHub() {
                       <button
                         type="button"
                         onClick={() => handleSelectGame(activeCard.id)}
-                        className={`flex-1 sm:flex-none sm:min-w-[230px] py-3 px-6 rounded-xl active:scale-[0.985] font-bold text-sm flex items-center justify-center gap-2 transition-all focus-visible:outline-none focus-visible:ring-2 whitespace-nowrap cursor-pointer ${activeCard.buttonClass}`}
+                        className={`flex-1 py-2.5 sm:py-3 px-5 rounded-xl active:scale-[0.985] font-bold text-sm flex items-center justify-center gap-2 transition-all focus-visible:outline-none focus-visible:ring-2 whitespace-nowrap cursor-pointer ${activeCard.buttonClass}`}
                       >
                         <Play className="w-4 h-4 fill-current shrink-0" />
                         <span className="truncate">Play {activeCard.title}</span>
@@ -2261,9 +2441,9 @@ export default function ArcadeHub() {
               onClick={() => stepSelection(1)}
               disabled={visibleCards.length <= 1}
               aria-label="Next game"
-              className="hidden sm:flex items-center justify-center w-11 h-11 lg:w-12 lg:h-12 rounded-xl border border-white/10 bg-[#0B0F1D]/85 hover:bg-white/10 hover:border-white/25 text-slate-200 hover:text-white transition-all shrink-0 ml-3 lg:ml-5 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              className="hidden sm:flex items-center justify-center w-10 h-10 lg:w-11 lg:h-11 rounded-xl border border-white/10 bg-[#0B0F1D]/85 hover:bg-white/10 hover:border-white/25 text-slate-200 hover:text-white transition-all shrink-0 ml-2 lg:ml-3.5 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-5 h-5" />
             </button>
           </div>
         ) : (
@@ -2280,7 +2460,7 @@ export default function ArcadeHub() {
               }}
               className="mt-4 px-4 py-2 rounded-lg bg-white text-slate-950 text-xs font-semibold cursor-pointer hover:bg-slate-200 transition-colors"
             >
-              Reset Filter &amp; Show All 94
+              Reset Filter &amp; Show All 95
             </button>
           </div>
         )}
@@ -2489,10 +2669,10 @@ export default function ArcadeHub() {
                     role="option"
                     aria-selected={isSelected}
                     onClick={() => selectCardById(card.id)}
-                    className={`relative group flex flex-col items-center justify-center gap-1 w-[108px] sm:w-[132px] h-[72px] sm:h-[82px] px-2 rounded-xl border shrink-0 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                    className={`relative group flex flex-col items-center justify-center gap-1 w-[114px] sm:w-[140px] h-[76px] sm:h-[86px] px-2 rounded-xl border shrink-0 transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
                       isSelected
                         ? 'bg-[#10162B] border-white/30 opacity-100 scale-[1.05]'
-                        : 'bg-[#0A0E1B]/80 border-white/[0.06] opacity-55 hover:opacity-90 hover:border-white/15'
+                        : 'bg-[#0A0E1B]/80 border-white/[0.06] opacity-60 hover:opacity-95 hover:border-white/15'
                     }`}
                     style={
                       isSelected
@@ -2511,7 +2691,7 @@ export default function ArcadeHub() {
                       />
                     )}
 
-                    <GameEmblem gameId={card.id} size={26} />
+                    <GameEmblem gameId={card.id} size={36} />
 
                     <div className="w-full text-center min-w-0">
                       <div

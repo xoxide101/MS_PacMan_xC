@@ -780,6 +780,9 @@ export interface DungeonLayout {
   spawns: SpawnPoint[];
   isBossArena: boolean;
   isHub: boolean;
+  bridgeTiles?: Array<[number, number]>;
+  patrolCoords?: Array<[number, number]>;
+  arches?: Array<{ tx: number; tz: number; rotY: number }>;
 }
 
 // Deterministic hash PRNG so each realm has a distinctive, memorable handcrafted-feeling layout
@@ -810,7 +813,6 @@ export function generateRealmDungeon(realmId: RealmId, isBossArena: boolean): Du
         if (d <= 8.6) tiles[z][x] = 0;
       }
     }
-    // Decorative ring pillars around Sumner's Tower
     const pillarAngles = 8;
     for (let i = 0; i < pillarAngles; i++) {
       const a = (i / pillarAngles) * Math.PI * 2 + Math.PI / 8;
@@ -849,7 +851,6 @@ export function generateRealmDungeon(realmId: RealmId, isBossArena: boolean): Du
         if (d <= 7.8) tiles[z][x] = 0;
       }
     }
-    // 4 Tactical cover pillars & corner braziers + explosive barrels & food caches
     const pillars = [
       [cx - 4, cz - 4],
       [cx + 4, cz - 4],
@@ -883,11 +884,11 @@ export function generateRealmDungeon(realmId: RealmId, isBossArena: boolean): Du
     };
   }
 
-  // 3. MULTI-WING AUTHENTIC 3D REALM DUNGEON (27 x 27 grid -> ~70m x 70m world!)
+  // 3. SPRAWLING 33 x 35 FULL-3D SCROLLING REALM LEVEL MAP (~86m x 91m World!)
   const realm = REALM_MAP[realmId];
   const rand = mulberry32(realm.order * 9187 + 1337);
-  const W = 27;
-  const H = 27;
+  const W = 33;
+  const H = 35;
   const tiles: TileCode[][] = Array.from({ length: H }, () => Array<TileCode>(W).fill(1));
 
   const carve = (x0: number, z0: number, w: number, h: number, code: TileCode = 0) => {
@@ -900,51 +901,91 @@ export function generateRealmDungeon(realmId: RealmId, isBossArena: boolean): Du
     }
   };
 
-  // South Entry Hall
-  carve(10, 20, 7, 5, 0);
-  // Wide Main Central Courtyard
-  carve(8, 10, 11, 8, 0);
-  // Corridor South -> Center
-  carve(12, 17, 3, 4, 0);
-  // West Wing (Treasure & Secret Runestone Vault)
-  carve(2, 9, 5, 9, 0);
-  carve(6, 12, 3, 3, 0);
-  // West Secret Alcove hidden behind Cracked Secret Wall
-  carve(1, 2, 5, 5, 0);
-  carve(3, 6, 2, 4, 0);
-  tiles[8][3] = 5;
-  tiles[8][4] = 5;
+  // Distinct Architectural Level Flow per Realm Archetype!
+  const archetype = realm.order % 3;
 
-  // East Wing (Locked Gate -> Legendary Boss-Weakening Weapon Shrine!)
-  carve(20, 9, 5, 9, 0);
-  carve(18, 12, 3, 3, 0);
-  // Bronze/Gold Locked Gate guarding the Legendary Weapon Shrine
-  tiles[12][19] = 4;
-  tiles[13][19] = 4;
-  tiles[14][19] = 4;
+  // STAGE 1: South Entry Courtyard (z = 27..32)
+  carve(12, 27, 9, 6, 0);
+  // STAGE 2: Lower Causeway / Chasm Crossing (z = 21..27)
+  if (archetype === 1) {
+    // Volcanic / Magma Split Twin Bridges over Hazard River!
+    carve(7, 22, 19, 4, 3);
+    carve(10, 21, 3, 7, 0);
+    carve(20, 21, 3, 7, 0);
+    carve(9, 26, 15, 2, 0);
+  } else if (archetype === 2) {
+    // Grand Citadel Colonnade & Side Guardhouses
+    carve(14, 21, 5, 7, 0);
+    carve(5, 23, 8, 4, 0);
+    carve(20, 23, 8, 4, 0);
+    carve(12, 24, 9, 2, 0);
+  } else {
+    // Winding Wilderness / Catacomb S-Curve Gauntlet
+    carve(8, 25, 10, 3, 0);
+    carve(8, 21, 4, 6, 0);
+    carve(8, 20, 17, 3, 0);
+    carve(21, 21, 4, 6, 0);
+  }
 
-  // East North Runestone Gallery (connected via Hazard Chasm with Switch Bridge!)
-  carve(20, 2, 5, 6, 0);
-  carve(21, 7, 3, 3, 3); // Lava/Acid/Void chasm!
-  // Switch opens bridge on tile (22, 7..9) OR Levitation Boots floats straight across!
+  // STAGE 3: Massive Central Great Hall / Sanctuary (z = 12..20)
+  carve(10, 12, 13, 9, 0);
 
-  // North Boss Gate Hall
-  carve(9, 2, 9, 6, 0);
-  carve(12, 7, 3, 4, 0);
+  // WEST WING: Reliquary Wing + Switch Pedestal + Hidden Cracked-Wall Runestone Vault
+  carve(2, 13, 7, 8, 0);
+  carve(8, 15, 3, 3, 0);
+  carve(2, 3, 6, 7, 0);
+  carve(4, 9, 2, 5, 0);
+  tiles[11][4] = 5; // Cracked Secret Stone Wall!
+  tiles[11][5] = 5;
 
-  // Decorative architectural pillars in Central Courtyard & North Hall
-  tiles[11][10] = 2;
-  tiles[11][16] = 2;
-  tiles[16][10] = 2;
-  tiles[16][16] = 2;
-  tiles[4][10] = 2;
-  tiles[4][16] = 2;
+  // EAST WING: Locked Portcullis Gate -> Legendary Boss-Weakening Weapon Shrine!
+  carve(24, 13, 7, 8, 0);
+  carve(22, 15, 3, 3, 0);
+  tiles[15][23] = 4; // Locked Golden Gate
+  tiles[16][23] = 4;
+  tiles[17][23] = 4;
 
-  // Small thematic hazard pools on courtyard flanks
-  tiles[13][9] = 3;
-  tiles[14][9] = 3;
-  tiles[13][17] = 3;
-  tiles[14][17] = 3;
+  // NORTH-EAST OVERLOOK: Hazard Chasm + Switch-Raised Stone Bridge -> Runestone #2 Gallery!
+  carve(24, 3, 7, 7, 0);
+  carve(25, 9, 5, 4, 3); // Deep Lava/Acid/Void Chasm
+  const bridgeTiles: Array<[number, number]> = [
+    [27, 9],
+    [27, 10],
+    [27, 11],
+    [27, 12],
+  ];
+
+  // STAGE 4: North Inner Keep & Boss Sanctum Portal Hall (z = 2..11)
+  carve(11, 2, 11, 7, 0);
+  carve(15, 8, 3, 5, 0);
+
+  // Realm-specific 3D environmental landmarks (Pillars / Trees / Obelisks / Crystal Spires)
+  const landmarkCoords: Array<[number, number]> = [
+    [12, 14], [20, 14], [12, 19], [20, 19],
+    [13, 4], [19, 4], [13, 7], [19, 7],
+    [13, 29], [19, 29],
+    [4, 15], [4, 19],
+    [29, 15], [29, 19],
+  ];
+  for (const [px, pz] of landmarkCoords) {
+    if (tiles[pz]?.[px] === 0) tiles[pz][px] = 2;
+  }
+
+  // Thematic hazard pools flanking the central hall
+  tiles[16][11] = 3;
+  tiles[17][11] = 3;
+  tiles[16][21] = 3;
+  tiles[17][21] = 3;
+
+  // Overhead 3D Gothic Stone Archways framing key chamber entrances!
+  const arches: Array<{ tx: number; tz: number; rotY: number }> = [
+    { tx: 16, tz: 27, rotY: 0 },
+    { tx: 16, tz: 20, rotY: 0 },
+    { tx: 16, tz: 11, rotY: 0 },
+    { tx: 16, tz: 8, rotY: 0 },
+    { tx: 9, tz: 16, rotY: Math.PI / 2 },
+    { tx: 23, tz: 16, rotY: Math.PI / 2 },
+  ];
 
   const relicPool: RelicId[] = [
     'phoenix',
@@ -961,85 +1002,105 @@ export function generateRealmDungeon(realmId: RealmId, isBossArena: boolean): Du
   const pickRelic = (idx: number): RelicId => relicPool[(realm.order * 2 + idx) % relicPool.length];
 
   const spawns: SpawnPoint[] = [
-    // Return to Sumner's Tower portal near entrance
-    { x: 13, z: 23.8, kind: 'return_portal' },
-    // Entrance braziers & starter key + food
-    { x: 10.6, z: 21.2, kind: 'brazier' },
-    { x: 15.4, z: 21.2, kind: 'brazier' },
-    { x: 11.2, z: 22.5, kind: 'key' },
-    { x: 15.2, z: 22.5, kind: 'food_apple' },
+    // South Entry Courtyard
+    { x: 16, z: 31.6, kind: 'return_portal' },
+    { x: 13.4, z: 28.4, kind: 'brazier' },
+    { x: 18.6, z: 28.4, kind: 'brazier' },
+    { x: 14, z: 30, kind: 'key' },
+    { x: 18, z: 30, kind: 'food_apple' },
 
-    // Central Courtyard — 3-tier Generators, Explosive Powder Kegs, Gold, Potions
-    { x: 11, z: 14.5, kind: 'generator_wood' },
-    { x: 15, z: 14.5, kind: 'generator_stone' },
-    { x: 13, z: 11.2, kind: 'generator_steel' },
-    { x: 12.2, z: 14.4, kind: 'barrel' },
-    { x: 14.4, z: 12.2, kind: 'barrel' },
-    { x: 13, z: 15.8, kind: 'gold_pile' },
-    { x: 10, z: 12, kind: 'potion' },
-    { x: 16, z: 15, kind: 'poison_cider' }, // Classic Gauntlet trap: shoot from afar!
-    { x: 10.5, z: 16.2, kind: 'food_ham' },
-    { x: 16.2, z: 12.2, kind: 'key' },
+    // Lower Causeway / Guardhouses
+    { x: 11, z: 24, kind: 'generator_wood' },
+    { x: 21, z: 24, kind: 'generator_wood' },
+    { x: 16, z: 24.5, kind: 'barrel' },
+    { x: 15.5, z: 22.5, kind: 'gold_pile' },
 
-    // West Wing — Generators, Chest, Switch for East Bridge, Relic
-    { x: 4, z: 15, kind: 'generator_stone' },
-    { x: 3.5, z: 11, kind: 'chest' },
-    { x: 5.2, z: 15.2, kind: 'barrel' },
-    { x: 3.2, z: 13.5, kind: 'switch' }, // Lowers bridge across East Hazard Chasm!
-    { x: 5.2, z: 10.8, kind: 'relic', relicId: pickRelic(0) },
-    { x: 2.8, z: 16.2, kind: 'food_turkey' },
+    // Massive Central Great Hall
+    { x: 13.5, z: 17.5, kind: 'generator_wood' },
+    { x: 18.5, z: 17.5, kind: 'generator_stone' },
+    { x: 16, z: 13.5, kind: 'generator_steel' },
+    { x: 14.8, z: 17.2, kind: 'barrel' },
+    { x: 17.5, z: 14.5, kind: 'barrel' },
+    { x: 16, z: 19, kind: 'gold_pile' },
+    { x: 12.5, z: 15.5, kind: 'potion' },
+    { x: 19.5, z: 18.2, kind: 'poison_cider' },
+    { x: 13, z: 19.5, kind: 'food_ham' },
+    { x: 19.2, z: 13.5, kind: 'key' },
 
-    // Secret North-West Vault (behind Cracked Secret Wall!) -> Runestone #1 + Gold + Chest
-    { x: 3.2, z: 4, kind: 'runestone', runestoneIndex: 0 },
-    { x: 2.2, z: 3, kind: 'chest' },
-    { x: 4.5, z: 3.2, kind: 'gold_pile' },
-    { x: 4.5, z: 5.2, kind: 'relic', relicId: 'xray_glasses' },
+    // West Wing + Switch Pedestal
+    { x: 5.5, z: 17.5, kind: 'generator_stone' },
+    { x: 3.5, z: 14.5, kind: 'chest' },
+    { x: 6.5, z: 17.5, kind: 'barrel' },
+    { x: 3.5, z: 17, kind: 'switch' },
+    { x: 6.5, z: 14.2, kind: 'relic', relicId: pickRelic(0) },
+    { x: 3.5, z: 19.5, kind: 'food_turkey' },
 
-    // East Wing (behind Locked Gate!) -> Authentic Legendary Boss-Weakening Weapon!
-    { x: 22.5, z: 13.5, kind: 'legendary_weapon' },
-    { x: 21.2, z: 15.5, kind: 'generator_stone' },
-    { x: 23.6, z: 15.5, kind: 'chest' },
-    { x: 21.2, z: 11.2, kind: 'brazier' },
-    { x: 23.8, z: 11.2, kind: 'brazier' },
-    { x: 22.5, z: 16.4, kind: 'potion' },
+    // Secret North-West Vault (behind Cracked Wall) -> Runestone #1
+    { x: 4.5, z: 5.5, kind: 'runestone', runestoneIndex: 0 },
+    { x: 3.2, z: 4.2, kind: 'chest' },
+    { x: 6.2, z: 4.5, kind: 'gold_pile' },
+    { x: 6.2, z: 7.5, kind: 'relic', relicId: 'xray_glasses' },
 
-    // North-East Gallery (across Chasm/Bridge) -> Runestone #2 (if realm has 2) or Rare Relic + Chest!
+    // East Wing (behind Locked Golden Gate) -> Legendary Weapon Shrine
+    { x: 27.5, z: 16.5, kind: 'legendary_weapon' },
+    { x: 25.5, z: 18.8, kind: 'generator_stone' },
+    { x: 29.2, z: 18.8, kind: 'chest' },
+    { x: 25.5, z: 14.2, kind: 'brazier' },
+    { x: 29.5, z: 14.2, kind: 'brazier' },
+    { x: 27.5, z: 19.5, kind: 'potion' },
+
+    // North-East Gallery (across Switch Bridge / Chasm) -> Runestone #2 or Rare Relic
     {
-      x: 22.5,
-      z: 4.5,
+      x: 27.5,
+      z: 5.5,
       kind: realm.runestoneCount >= 2 ? 'runestone' : 'relic',
       runestoneIndex: 1,
       relicId: 'anti_death',
     },
-    { x: 21.2, z: 3.5, kind: 'chest' },
-    { x: 23.8, z: 3.5, kind: 'gold_pile' },
+    { x: 25.5, z: 4.5, kind: 'chest' },
+    { x: 29.5, z: 4.5, kind: 'gold_pile' },
 
-    // North Boss Gate Hall — Steel Generator, Red Death ambush, Food, Boss Sanctum Portal!
-    { x: 11.2, z: 5.5, kind: 'generator_steel' },
-    { x: 14.8, z: 5.5, kind: 'generator_steel' },
-    { x: 12.2, z: 5.5, kind: 'barrel' },
-    { x: 13, z: 6.4, kind: 'death_spawn' },
-    { x: 10.2, z: 3.2, kind: 'food_turkey' },
-    { x: 15.8, z: 3.2, kind: 'relic', relicId: pickRelic(1) },
-    { x: 10.6, z: 2.8, kind: 'brazier' },
-    { x: 15.4, z: 2.8, kind: 'brazier' },
-    { x: 13, z: 3.1, kind: 'boss_portal' },
+    // North Inner Keep & Boss Gate Sanctum
+    { x: 13.5, z: 6.2, kind: 'generator_steel' },
+    { x: 18.5, z: 6.2, kind: 'generator_steel' },
+    { x: 15, z: 6.2, kind: 'barrel' },
+    { x: 16, z: 7.5, kind: 'death_spawn' },
+    { x: 12.2, z: 3.5, kind: 'food_turkey' },
+    { x: 19.8, z: 3.5, kind: 'relic', relicId: pickRelic(1) },
+    { x: 13, z: 3, kind: 'brazier' },
+    { x: 19, z: 3, kind: 'brazier' },
+    { x: 16, z: 3.2, kind: 'boss_portal' },
   ];
 
-  // Add 2 extra randomized gold piles or apples per realm for rich looting
-  if (rand() > 0.3) {
-    spawns.push({ x: 11.2, z: 10.8, kind: 'gold_pile' });
-    spawns.push({ x: 15.2, z: 16.4, kind: 'food_apple' });
+  if (rand() > 0.25) {
+    spawns.push({ x: 14.2, z: 13.2, kind: 'gold_pile' });
+    spawns.push({ x: 18.2, z: 19.2, kind: 'food_apple' });
   }
+
+  const patrolCoords: Array<[number, number]> = [
+    [11, 24],
+    [21, 24],
+    [14, 19],
+    [18, 19],
+    [16, 15.5],
+    [5.5, 16.5],
+    [27, 17],
+    [14.5, 6.5],
+    [17.5, 6.5],
+    [16, 4.5],
+  ];
 
   return {
     width: W,
     height: H,
     tileSize,
     tiles,
-    playerStart: { x: 13, z: 22.2 },
+    playerStart: { x: 16, z: 29.8 },
     spawns,
     isBossArena: false,
     isHub: false,
+    bridgeTiles,
+    patrolCoords,
+    arches,
   };
 }

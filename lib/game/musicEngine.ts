@@ -2,7 +2,7 @@
  * Procedural 5-Channel (4 Pitched + Percussion) Arcade BGM Synthesizer (Pure Web Audio API)
  * Zero external audio files — works 100% offline including standalone index.html.
  * Simulates classic 1979–1995 arcade PSG / POKEY / YM2151 FM / SNES 4+ channel chiptune
- * & orchestral synth background music mapped across all 94 cabinets.
+ * & orchestral synth background music mapped across all 95 cabinets.
  */
 
 type Wave = OscillatorType;
@@ -540,44 +540,263 @@ const TRACKS: Record<string, TrackPattern> = {
     ],
   },
 
-  // 10. Ys Book I & II Blistering Falcom 80s Action-RPG Synth-Rock!
+  // 10a. Ys Book I Overworld — "First Step Towards Wars" (Charming Uplifting Pastoral Adventure, Gentle BG)
   ys_falcom_rock: {
     id: 'ys_falcom_rock',
-    title: 'Esteria Legend Rock',
-    bpm: 164,
+    title: 'First Step Towards Wars (Esteria Plains)',
+    bpm: 118,
     stepsPerBeat: 4,
-    leadWave: 'sawtooth',
-    leadGain: 0.055,
-    leadDecay: 0.14,
-    arpWave: 'square',
-    arpGain: 0.036,
-    arpDecay: 0.09,
-    bassWave: 'sawtooth',
-    bassGain: 0.072,
-    bassDecay: 0.11,
+    leadWave: 'triangle',
+    leadGain: 0.044,
+    leadDecay: 0.24,
+    harmonyWave: 'sine',
+    harmonyGain: 0.024,
+    harmonyDecay: 0.28,
+    arpWave: 'sine',
+    arpGain: 0.025,
+    arpDecay: 0.16,
+    bassWave: 'triangle',
+    bassGain: 0.046,
+    bassDecay: 0.22,
+    detuneCents: 4,
+    volume: 0.5,
     lead: [
       76, 0, 79, 81, 83, 0, 81, 79, 76, 0, 74, 76, 79, 0, 0, 0,
-      81, 0, 79, 76, 74, 0, 71, 74, 76, 0, 0, 0, 71, 0, 74, 0,
-      76, 0, 79, 81, 83, 0, 86, 83, 81, 0, 79, 81, 83, 0, 0, 0,
-      84, 83, 81, 79, 78, 0, 79, 81, 76, 0, 0, 0, 0, 0, 0, 0,
+      74, 0, 76, 79, 81, 0, 79, 76, 74, 0, 71, 74, 76, 0, 0, 0,
+      79, 0, 81, 83, 86, 0, 83, 81, 79, 0, 81, 83, 84, 0, 83, 0,
+      81, 0, 79, 76, 74, 0, 76, 79, 76, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    harmony: [
+      71, 0, 74, 76, 79, 0, 76, 74, 71, 0, 69, 71, 74, 0, 0, 0,
+      69, 0, 71, 74, 76, 0, 74, 71, 69, 0, 67, 69, 71, 0, 0, 0,
+      74, 0, 76, 79, 81, 0, 79, 76, 74, 0, 76, 79, 79, 0, 79, 0,
+      76, 0, 74, 71, 69, 0, 71, 74, 71, 0, 0, 0, 0, 0, 0, 0,
     ],
     arp: [
-      64, 67, 71, 76, 64, 67, 71, 76, 62, 66, 69, 74, 62, 66, 69, 74,
-      60, 64, 67, 72, 62, 66, 69, 74, 64, 67, 71, 76, 64, 67, 71, 76,
-      64, 67, 71, 76, 67, 71, 74, 79, 69, 72, 76, 81, 67, 71, 74, 79,
-      60, 64, 67, 72, 62, 66, 69, 74, 64, 67, 71, 76, 71, 67, 64, 0,
+      60, 64, 67, 72, 60, 64, 67, 72, 59, 62, 67, 71, 59, 62, 67, 71,
+      57, 60, 64, 69, 57, 60, 64, 69, 55, 59, 62, 67, 55, 59, 62, 67,
+      60, 64, 67, 72, 62, 67, 71, 74, 57, 60, 64, 69, 60, 64, 67, 72,
+      53, 57, 60, 65, 55, 59, 62, 67, 60, 64, 67, 72, 67, 64, 60, 0,
     ],
     bass: [
-      52, 52, 52, 52, 52, 52, 52, 52, 50, 50, 50, 50, 50, 50, 50, 50,
-      48, 48, 48, 48, 50, 50, 50, 50, 52, 52, 52, 52, 47, 47, 50, 50,
-      52, 52, 52, 52, 55, 55, 55, 55, 57, 57, 57, 57, 55, 55, 55, 55,
-      48, 48, 48, 48, 50, 50, 50, 50, 52, 0, 52, 0, 52, 0, 0, 0,
+      48, 0, 0, 48, 52, 0, 55, 0, 47, 0, 0, 47, 50, 0, 55, 0,
+      45, 0, 0, 45, 48, 0, 52, 0, 43, 0, 0, 43, 47, 0, 50, 0,
+      48, 0, 0, 48, 50, 0, 55, 0, 45, 0, 0, 45, 48, 0, 52, 0,
+      41, 0, 0, 41, 43, 0, 47, 0, 48, 0, 55, 0, 48, 0, 0, 0,
     ],
     drums: [
-      4, 3, 4, 3, 5, 3, 4, 1, 4, 3, 4, 3, 5, 3, 4, 3,
-      4, 3, 4, 3, 5, 3, 4, 1, 4, 3, 5, 3, 1, 2, 1, 2,
-      4, 3, 4, 3, 5, 3, 4, 1, 4, 3, 4, 3, 5, 3, 4, 3,
-      4, 3, 5, 3, 4, 1, 5, 2, 4, 0, 5, 0, 1, 0, 0, 0,
+      0, 0, 3, 0, 0, 0, 3, 0, 1, 0, 3, 0, 0, 0, 3, 0,
+      0, 0, 3, 0, 0, 0, 3, 0, 1, 0, 3, 0, 0, 0, 3, 0,
+      0, 0, 3, 0, 0, 0, 3, 0, 1, 0, 3, 0, 0, 0, 3, 0,
+      0, 0, 3, 0, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ],
+  },
+
+  // 10b. Ys Book I Town — "Fountain of Love" (Charming Serene Flute & Harp Background)
+  ys_town_fountain: {
+    id: 'ys_town_fountain',
+    title: 'Fountain of Love (Minea Town)',
+    bpm: 98,
+    stepsPerBeat: 4,
+    leadWave: 'sine',
+    leadGain: 0.042,
+    leadDecay: 0.36,
+    harmonyWave: 'triangle',
+    harmonyGain: 0.022,
+    harmonyDecay: 0.38,
+    arpWave: 'sine',
+    arpGain: 0.026,
+    arpDecay: 0.24,
+    bassWave: 'triangle',
+    bassGain: 0.04,
+    bassDecay: 0.32,
+    detuneCents: 3,
+    volume: 0.45,
+    lead: [
+      74, 0, 0, 76, 78, 0, 81, 0, 79, 0, 78, 0, 76, 0, 0, 0,
+      71, 0, 0, 74, 76, 0, 79, 0, 78, 0, 76, 0, 74, 0, 0, 0,
+      81, 0, 0, 83, 86, 0, 83, 81, 79, 0, 78, 0, 76, 0, 74, 0,
+      76, 0, 78, 0, 79, 0, 78, 76, 74, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    harmony: [
+      69, 0, 0, 71, 74, 0, 76, 0, 74, 0, 74, 0, 71, 0, 0, 0,
+      67, 0, 0, 71, 71, 0, 74, 0, 74, 0, 73, 0, 69, 0, 0, 0,
+      74, 0, 0, 79, 81, 0, 79, 78, 74, 0, 74, 0, 71, 0, 69, 0,
+      71, 0, 74, 0, 74, 0, 73, 71, 69, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    arp: [
+      62, 66, 69, 74, 62, 66, 69, 74, 59, 62, 67, 71, 61, 64, 69, 73,
+      55, 59, 62, 67, 57, 61, 64, 69, 62, 66, 69, 74, 62, 66, 69, 74,
+      62, 66, 69, 74, 59, 62, 67, 71, 55, 59, 62, 67, 57, 61, 64, 69,
+      55, 59, 62, 67, 57, 61, 64, 69, 62, 66, 69, 74, 69, 66, 62, 0,
+    ],
+    bass: [
+      50, 0, 0, 0, 0, 0, 57, 0, 47, 0, 0, 0, 49, 0, 0, 0,
+      43, 0, 0, 0, 45, 0, 0, 0, 50, 0, 0, 0, 50, 0, 49, 0,
+      50, 0, 0, 0, 47, 0, 0, 0, 43, 0, 0, 0, 45, 0, 0, 0,
+      43, 0, 0, 0, 45, 0, 49, 0, 50, 0, 0, 0, 50, 0, 0, 0,
+    ],
+    drums: [
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ],
+  },
+
+  // 10c. Ys Book I & II — "Feena's Melody" (Tender Music-Box Celesta & Flute Ballad for Lance Village)
+  ys_feena: {
+    id: 'ys_feena',
+    title: "Feena's Melody (Lance Village)",
+    bpm: 94,
+    stepsPerBeat: 4,
+    leadWave: 'sine',
+    leadGain: 0.044,
+    leadDecay: 0.42,
+    harmonyWave: 'sine',
+    harmonyGain: 0.022,
+    harmonyDecay: 0.4,
+    arpWave: 'triangle',
+    arpGain: 0.022,
+    arpDecay: 0.24,
+    bassWave: 'triangle',
+    bassGain: 0.038,
+    bassDecay: 0.34,
+    detuneCents: 3,
+    volume: 0.45,
+    lead: [
+      79, 0, 0, 78, 76, 0, 74, 0, 71, 0, 0, 74, 76, 0, 0, 0,
+      79, 0, 0, 81, 83, 0, 81, 79, 78, 0, 0, 76, 74, 0, 0, 0,
+      83, 0, 0, 84, 86, 0, 83, 0, 81, 0, 79, 0, 76, 0, 79, 0,
+      78, 0, 76, 0, 74, 0, 71, 74, 76, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    harmony: [
+      74, 0, 0, 74, 71, 0, 71, 0, 67, 0, 0, 71, 71, 0, 0, 0,
+      74, 0, 0, 76, 79, 0, 76, 74, 74, 0, 0, 72, 69, 0, 0, 0,
+      79, 0, 0, 79, 81, 0, 79, 0, 76, 0, 74, 0, 71, 0, 74, 0,
+      74, 0, 72, 0, 69, 0, 67, 69, 71, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    arp: [
+      64, 67, 71, 76, 62, 67, 71, 74, 60, 64, 67, 72, 64, 67, 71, 76,
+      67, 71, 74, 79, 64, 67, 71, 76, 62, 66, 69, 74, 62, 66, 69, 74,
+      60, 64, 67, 72, 67, 71, 74, 79, 57, 60, 64, 69, 64, 67, 71, 76,
+      62, 66, 69, 74, 59, 62, 66, 71, 64, 67, 71, 76, 71, 67, 64, 0,
+    ],
+    bass: [
+      52, 0, 0, 0, 50, 0, 0, 0, 48, 0, 0, 0, 52, 0, 0, 0,
+      55, 0, 0, 0, 52, 0, 0, 0, 50, 0, 0, 0, 50, 0, 47, 0,
+      48, 0, 0, 0, 55, 0, 0, 0, 45, 0, 0, 0, 52, 0, 0, 0,
+      50, 0, 0, 0, 47, 0, 0, 0, 52, 0, 0, 0, 52, 0, 0, 0,
+    ],
+    drums: [
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ],
+  },
+
+  // 10d. Ys Shrine / Ruins — "Palace of Destruction" (Baroque Harpsichord & Sweeping Strings)
+  ys_shrine_palace: {
+    id: 'ys_shrine_palace',
+    title: 'Palace of Destruction (Shrine of Solomon)',
+    bpm: 118,
+    stepsPerBeat: 4,
+    leadWave: 'triangle',
+    leadGain: 0.044,
+    leadDecay: 0.21,
+    harmonyWave: 'sine',
+    harmonyGain: 0.024,
+    harmonyDecay: 0.26,
+    arpWave: 'triangle',
+    arpGain: 0.024,
+    arpDecay: 0.14,
+    bassWave: 'triangle',
+    bassGain: 0.05,
+    bassDecay: 0.22,
+    detuneCents: 4,
+    volume: 0.48,
+    lead: [
+      76, 0, 79, 0, 81, 0, 79, 76, 75, 0, 76, 0, 79, 0, 0, 0,
+      83, 0, 81, 0, 79, 0, 76, 74, 76, 0, 0, 0, 71, 0, 0, 0,
+      79, 0, 81, 0, 83, 0, 86, 83, 81, 0, 79, 0, 78, 0, 76, 0,
+      79, 0, 78, 76, 75, 0, 78, 0, 76, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    harmony: [
+      71, 0, 74, 0, 76, 0, 74, 71, 71, 0, 71, 0, 74, 0, 0, 0,
+      79, 0, 76, 0, 74, 0, 71, 69, 71, 0, 0, 0, 67, 0, 0, 0,
+      74, 0, 76, 0, 79, 0, 81, 79, 76, 0, 74, 0, 74, 0, 71, 0,
+      74, 0, 74, 71, 71, 0, 74, 0, 71, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    arp: [
+      64, 67, 71, 76, 64, 67, 71, 76, 63, 66, 71, 75, 64, 67, 71, 76,
+      60, 64, 67, 72, 62, 66, 69, 74, 64, 67, 71, 76, 59, 63, 66, 71,
+      67, 71, 74, 79, 60, 64, 67, 72, 57, 60, 64, 69, 62, 66, 69, 74,
+      60, 64, 67, 72, 59, 63, 66, 71, 64, 67, 71, 76, 71, 67, 64, 0,
+    ],
+    bass: [
+      52, 0, 0, 52, 55, 0, 52, 0, 51, 0, 0, 51, 52, 0, 55, 0,
+      48, 0, 0, 48, 50, 0, 54, 0, 52, 0, 0, 47, 52, 0, 47, 0,
+      55, 0, 0, 55, 48, 0, 52, 0, 45, 0, 0, 45, 50, 0, 54, 0,
+      48, 0, 0, 48, 47, 0, 51, 0, 52, 0, 55, 0, 52, 0, 0, 0,
+    ],
+    drums: [
+      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 0, 0, 3, 0,
+      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 6, 0, 3, 0,
+      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 0, 0, 3, 0,
+      6, 0, 3, 0, 6, 0, 3, 0, 6, 0, 0, 0, 0, 0, 0, 0,
+    ],
+  },
+
+  // 10e. Ys Darm Tower / Ice Ridge / Solomon Core — "Tower of the Shadow of Death"
+  ys_tower_end: {
+    id: 'ys_tower_end',
+    title: 'Tower of the Shadow of Death (Darm Citadel)',
+    bpm: 124,
+    stepsPerBeat: 4,
+    leadWave: 'triangle',
+    leadGain: 0.046,
+    leadDecay: 0.2,
+    harmonyWave: 'sine',
+    harmonyGain: 0.026,
+    harmonyDecay: 0.24,
+    arpWave: 'triangle',
+    arpGain: 0.024,
+    arpDecay: 0.13,
+    bassWave: 'triangle',
+    bassGain: 0.052,
+    bassDecay: 0.2,
+    detuneCents: 5,
+    volume: 0.5,
+    lead: [
+      74, 0, 77, 0, 81, 0, 82, 81, 79, 0, 77, 0, 76, 0, 74, 0,
+      77, 0, 81, 0, 86, 0, 84, 81, 79, 0, 76, 0, 73, 0, 0, 0,
+      81, 0, 82, 0, 86, 0, 84, 82, 81, 0, 79, 77, 76, 0, 79, 0,
+      81, 0, 77, 76, 74, 0, 73, 0, 74, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    harmony: [
+      69, 0, 74, 0, 77, 0, 79, 77, 74, 0, 74, 0, 73, 0, 69, 0,
+      74, 0, 77, 0, 81, 0, 79, 77, 76, 0, 73, 0, 69, 0, 0, 0,
+      77, 0, 79, 0, 82, 0, 81, 79, 77, 0, 76, 74, 73, 0, 76, 0,
+      77, 0, 74, 73, 69, 0, 69, 0, 69, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    arp: [
+      62, 65, 69, 74, 62, 65, 69, 74, 67, 70, 74, 79, 64, 69, 73, 76,
+      62, 65, 69, 74, 65, 69, 72, 77, 64, 67, 70, 76, 61, 64, 69, 73,
+      65, 69, 72, 77, 67, 70, 74, 79, 62, 65, 69, 74, 64, 67, 70, 76,
+      62, 65, 69, 74, 61, 64, 69, 73, 62, 65, 69, 74, 69, 65, 62, 0,
+    ],
+    bass: [
+      50, 0, 0, 50, 53, 0, 50, 0, 55, 0, 0, 55, 52, 0, 45, 0,
+      50, 0, 0, 50, 53, 0, 57, 0, 52, 0, 0, 49, 45, 0, 52, 0,
+      53, 0, 0, 53, 55, 0, 58, 0, 50, 0, 0, 50, 52, 0, 55, 0,
+      50, 0, 0, 45, 49, 0, 52, 0, 50, 0, 57, 0, 50, 0, 0, 0,
+    ],
+    drums: [
+      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 0, 0, 3, 0,
+      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 6, 0, 3, 0,
+      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 0, 0, 3, 0,
+      6, 0, 3, 0, 6, 0, 3, 0, 6, 0, 0, 0, 0, 0, 0, 0,
     ],
   },
 
@@ -2091,6 +2310,7 @@ const GAME_TO_TRACK: Record<string, string> = {
   pengo: 'arcade_cheerful',
   popeye: 'dk_girder',
   mrdo: 'arcade_cheerful',
+  mrdocastle: 'arcade_cheerful',
   mappy: 'mappy_mansion',
   foodfight: 'food_fight_bistro',
   digdug: 'digdug_march',
@@ -2122,8 +2342,8 @@ const GAME_TO_TRACK: Record<string, string> = {
   // Strategy & Action RPG
   mule: 'mule_frontier',
   muleevo: 'mule_frontier',
-  ys1: 'ys_falcom_rock',
-  ys2: 'ys_falcom_rock',
+  ys1: 'ys_town_fountain',
+  ys2: 'ys_feena',
 };
 
 class ArcadeMusicEngine {
@@ -2229,6 +2449,26 @@ class ArcadeMusicEngine {
     this.stepIdx = 0;
     this.nextStepTime = ctx.currentTime + 0.05;
 
+    this.timer = window.setInterval(() => {
+      this.schedulerTick();
+    }, 35);
+  }
+
+  public switchTrackById(trackKey: string): void {
+    const track = TRACKS[trackKey];
+    if (!track) return;
+    if (this.playing && this.currentTrack?.id === track.id) return;
+    this.currentTrack = track;
+    if (!this.musicEnabled || this.muted) {
+      this.stopScheduler();
+      return;
+    }
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+    this.stopScheduler();
+    this.playing = true;
+    this.stepIdx = 0;
+    this.nextStepTime = ctx.currentTime + 0.05;
     this.timer = window.setInterval(() => {
       this.schedulerTick();
     }, 35);

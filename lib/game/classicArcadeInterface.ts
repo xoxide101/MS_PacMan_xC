@@ -50,6 +50,7 @@ export interface ArcadeGameInstance {
   restartStage?(): void;
   setInput(input: ArcadeInputState): void;
   getHudSnapshot(): ClassicGameHud;
+  dispose?(): void;
 }
 
 export interface SimpleParticle {
