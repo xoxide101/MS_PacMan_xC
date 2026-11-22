@@ -34,7 +34,7 @@ import {
   getYsPixelAtlas,
   themeToWallKind,
 } from './ysPixelAtlas';
-import { YsThreeWorldRenderer } from './ysThreeWorldRenderer';
+import { YsCameraZoomMode, YsThreeWorldRenderer } from './ysThreeWorldRenderer';
 
 export type { YsBookVariant } from './ysWorldBuilder';
 
@@ -188,8 +188,8 @@ function lerpAngle(current: number, target: number, t: number): number {
 }
 
 export class YsBookRpgGame implements ArcadeGameInstance {
-  public readonly logicalWidth = 640;
-  public readonly logicalHeight = 680;
+  public readonly logicalWidth = 920;
+  public readonly logicalHeight = 640;
   public readonly supportsPointerAim = false;
   public readonly primaryActionLabel = 'Investigate / Dash';
   public readonly secondaryActionLabel = 'Magic / Map';
@@ -266,6 +266,11 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   private atlas: YsPixelAtlas | null = null;
   private threeRenderer: YsThreeWorldRenderer | null = null;
   private threeInitFailed = false;
+  private cameraYaw = Math.PI * 0.25; // True 45° Isometric 2.5D Evo Angle!
+  private targetCameraYaw = Math.PI * 0.25;
+  private cameraZoomMode: YsCameraZoomMode = 'evo45';
+  private prevPointerActive = false;
+  private cameraKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
   // PC Engine CD / Chronicles+ Dialogue & Combat VFX
   private dialogue: DialogueOverlay | null = null;
@@ -312,6 +317,39 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     this.resetHeroState();
     this.enterZone(variant === 'ys1' ? 'minea' : 'lance', 28, 22, false);
     this.phase = 'TITLE';
+
+    if (typeof window !== 'undefined') {
+      this.cameraKeyHandler = (e: KeyboardEvent) => {
+        if (this.dialogue) return;
+        const k = e.key.toLowerCase();
+        if (k === 'v') {
+          this.cycleCameraZoomMode();
+        } else if (k === 'q') {
+          this.targetCameraYaw -= Math.PI / 12; // Smooth -15° 3D orbit
+        } else if (k === 'e') {
+          this.targetCameraYaw += Math.PI / 12; // Smooth +15° 3D orbit
+        } else if (k === 'r') {
+          this.targetCameraYaw = Math.PI * 0.25; // Snap back to true 45° isometric
+          this.zoneBannerText = 'CAMERA · 45° ISOMETRIC';
+          this.zoneBannerTimer = 1.6;
+        }
+      };
+      window.addEventListener('keydown', this.cameraKeyHandler);
+    }
+  }
+
+  private cycleCameraZoomMode(): void {
+    const order: YsCameraZoomMode[] = ['evo45', 'wide45', 'fullmap45'];
+    const idx = order.indexOf(this.cameraZoomMode);
+    this.cameraZoomMode = order[(idx + 1) % order.length];
+    const labels: Record<YsCameraZoomMode, string> = {
+      evo45: 'CAMERA · 45° EVO 2.5D',
+      wide45: 'CAMERA · 45° WIDE VISTA',
+      fullmap45: 'CAMERA · 45° FULL MAP DIORAMA',
+    };
+    this.zoneBannerText = labels[this.cameraZoomMode];
+    this.zoneBannerTimer = 2.0;
+    sfx.playPellet();
   }
 
   private resetHeroState(): void {
@@ -413,6 +451,10 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   }
 
   public dispose(): void {
+    if (this.cameraKeyHandler && typeof window !== 'undefined') {
+      window.removeEventListener('keydown', this.cameraKeyHandler);
+      this.cameraKeyHandler = null;
+    }
     if (this.threeRenderer) {
       this.threeRenderer.dispose();
       this.threeRenderer = null;
@@ -703,6 +745,19 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     stepParticlesAndPopups(this.particles, this.popups, dt);
     this.stepCombatVfx(dt);
 
+    // Smoothly interpolate 3D 45° camera yaw + handle direct tap/click on top-right Camera Pill!
+    const camYawLerp = 1 - Math.exp(-8.5 * dt);
+    this.cameraYaw += (this.targetCameraYaw - this.cameraYaw) * camYawLerp;
+    if (this.input.pointerActive && !this.prevPointerActive) {
+      const pxClick = this.input.pointerX;
+      const pyClick = this.input.pointerY;
+      const pillX = this.logicalWidth - 148;
+      if (pxClick >= pillX && pxClick <= this.logicalWidth - 8 && pyClick >= 126 && pyClick <= 158) {
+        this.cycleCameraZoomMode();
+      }
+    }
+    this.prevPointerActive = this.input.pointerActive;
+
     if (this.phase === 'TITLE') {
       this.walkAnim += dt * 3;
       this.bodyAngle = Math.sin(this.time * 0.7) * 0.9 + Math.PI * 0.5;
@@ -780,14 +835,18 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     this.stepProjectiles(dt, zone);
     this.stepEnemies(dt, zone);
 
-    // Smooth 4-way scrolling camera clamped to full-viewport tilted 2.5D zone bounds
+    // Smooth 4-way scrolling camera (unclamped in Three.js 45° 3D Diorama so edges & harbor stay centered!)
     const activeZone = this.zones[this.currentZoneId];
-    const halfW = this.logicalWidth * 0.5;
-    const halfHWorld = (this.logicalHeight * 0.5) / TILT;
-    const worldW = activeZone.width * TILE;
-    const worldH = activeZone.height * TILE;
-    const targetCamX = Math.max(halfW, Math.min(worldW - halfW, this.px));
-    const targetCamY = Math.max(halfHWorld, Math.min(worldH - halfHWorld, this.py));
+    let targetCamX = this.px;
+    let targetCamY = this.py;
+    if (!this.threeRenderer) {
+      const halfW = this.logicalWidth * 0.5;
+      const halfHWorld = (this.logicalHeight * 0.5) / TILT;
+      const worldW = activeZone.width * TILE;
+      const worldH = activeZone.height * TILE;
+      targetCamX = Math.max(halfW, Math.min(worldW - halfW, this.px));
+      targetCamY = Math.max(halfHWorld, Math.min(worldH - halfHWorld, this.py));
+    }
     const lerpK = 1 - Math.exp(-9.2 * dt);
     this.camX += (targetCamX - this.camX) * lerpK;
     this.camY += (targetCamY - this.camY) * lerpK;
@@ -911,8 +970,14 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     const mag = Math.hypot(mv.vx, mv.vy);
     const moving = mag > 0.08;
     if (moving) {
-      const ux = mv.vx / mag;
-      const uy = mv.vy / mag;
+      // Align directional movement seamlessly with the 45° 3D isometric camera yaw!
+      const yaw = this.threeRenderer ? this.cameraYaw : 0;
+      const cosY = Math.cos(yaw);
+      const sinY = Math.sin(yaw);
+      const rawX = mv.vx / mag;
+      const rawY = mv.vy / mag;
+      const ux = rawX * cosY + rawY * sinY;
+      const uy = -rawX * sinY + rawY * cosY;
       this.facingX = ux;
       this.facingY = uy;
       const targetAngle = Math.atan2(uy, ux);
@@ -1164,7 +1229,14 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       const d = Math.hypot(this.px - x, this.py - y);
       if (d < bestDist) {
         bestDist = d;
-        const verb = obj.kind === 'sign' || obj.kind === 'tablet' ? 'READ' : 'INSPECT';
+        const verb =
+          obj.kind === 'sign' || obj.kind === 'tablet' || obj.kind === 'noticeboard' || obj.kind === 'bookshelf'
+            ? 'READ'
+            : obj.kind === 'bell'
+              ? 'RING'
+              : obj.kind === 'telescope'
+                ? 'LOOK'
+                : 'INSPECT';
         best = { kind: 'inspect', x, y, label: `${verb} · ${obj.title}`, inspectable: obj };
       }
     }
@@ -1650,12 +1722,16 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     }
 
     if (this.threeRenderer) {
+      const renderYaw =
+        this.phase === 'TITLE' ? Math.PI * 0.25 + Math.sin(this.time * 0.32) * 0.16 : this.cameraYaw;
       this.threeRenderer.renderFrame({
         zone,
         time: this.time,
         camX: this.camX,
         camY: this.camY,
         screenShake: this.screenShake,
+        cameraYaw: renderYaw,
+        cameraZoomMode: this.phase === 'TITLE' ? 'wide45' : this.cameraZoomMode,
         px: this.px,
         py: this.py,
         bodyAngle: this.bodyAngle,
@@ -1880,7 +1956,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       ctx.restore();
     }
 
-    // 2. Glowing Zone Portal Destination Banners
+    // 2. RPG-JS Frosted Zone Portal Destination Banners
     ctx.save();
     ctx.font = '800 9px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
@@ -1891,44 +1967,97 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       if (!scr.visible || scr.x < -80 || scr.x > W + 80 || scr.y < -40 || scr.y > H + 40) continue;
       const locked = Boolean(portal.requiredFlag && !this.flags.has(portal.requiredFlag));
       const label = locked ? `LOCKED · ${portal.label}` : portal.label;
-      const tw = ctx.measureText(label).width + 14;
-      ctx.fillStyle = 'rgba(7, 11, 22, 0.78)';
-      ctx.strokeStyle = locked ? 'rgba(244, 63, 94, 0.85)' : 'rgba(56, 189, 248, 0.85)';
-      ctx.lineWidth = 1.2;
+      const tw = ctx.measureText(label).width + 16;
+      ctx.fillStyle = 'rgba(17, 25, 56, 0.86)';
+      ctx.strokeStyle = locked ? 'rgba(251, 113, 133, 0.92)' : 'rgba(186, 230, 253, 0.9)';
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.roundRect(scr.x - tw * 0.5, scr.y - 8, tw, 15, 4);
+      ctx.roundRect(scr.x - tw * 0.5, scr.y - 9, tw, 17, 5);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = locked ? '#fda4af' : '#e0f2fe';
+      ctx.fillStyle = locked ? '#fecdd3' : '#e0f2fe';
       ctx.fillText(label, scr.x, scr.y + 3);
     }
 
-    // 3. Crisp NPC Nameplates
+    // 2B. RPG-JS Crisp 3D-Projected Guild & Landmark Building Signplates
+    if (zone.buildings) {
+      ctx.font = '800 8.5px "JetBrains Mono", monospace';
+      for (const b of zone.buildings) {
+        const bx = (b.tx + b.w * 0.5) * TILE;
+        const by = (b.ty + b.h) * TILE;
+        const scr = tr.projectWorldToScreen(bx, by, 2.35);
+        if (!scr.visible || scr.x < -80 || scr.x > W + 80 || scr.y < -30 || scr.y > H + 30) continue;
+        const tw = ctx.measureText(b.name).width + 14;
+        ctx.fillStyle = 'rgba(19, 28, 60, 0.84)';
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.78)';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.roundRect(scr.x - tw * 0.5, scr.y - 8, tw, 15, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#fde68a';
+        ctx.fillText(b.name, scr.x, scr.y + 2.5);
+      }
+      ctx.font = '800 9px "JetBrains Mono", monospace';
+    }
+
+    // 3. RPG-JS Frosted NPC Nameplates + Floating Golden Quest (!) / Shop Badges
     for (const npc of zone.npcs) {
       const nx = (npc.tx + 0.5) * TILE;
       const ny = (npc.ty + 0.5) * TILE;
-      const scr = tr.projectWorldToScreen(nx, ny, 1.55);
+      const scr = tr.projectWorldToScreen(nx, ny, 1.58);
       if (!scr.visible || scr.x < -60 || scr.x > W + 60 || scr.y < -40 || scr.y > H + 40) continue;
-      const tw = ctx.measureText(npc.name).width + 10;
-      ctx.fillStyle = 'rgba(7, 11, 22, 0.72)';
+
+      // Floating RPG-JS golden Quest "!" or Shop/Inn badge above nameplate
+      const isActiveQuest = npc.role === 'quest' && (!npc.grantFlag || !this.flags.has(npc.grantFlag));
+      const isShopOrInn = npc.role === 'weapon' || npc.role === 'armor' || npc.role === 'inn';
+      if (isActiveQuest || isShopOrInn) {
+        const bobY = scr.y - 21 + Math.sin(this.time * 5.2 + npc.tx) * 2.4;
+        ctx.save();
+        ctx.fillStyle = isActiveQuest ? '#facc15' : '#38bdf8';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.arc(scr.x, bobY, 7.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '900 10px "JetBrains Mono", monospace';
+        ctx.fillText(isActiveQuest ? '!' : npc.role === 'inn' ? '+' : '$', scr.x, bobY + 3.5);
+        ctx.restore();
+        ctx.font = '800 9px "JetBrains Mono", monospace';
+      }
+
+      const tw = ctx.measureText(npc.name).width + 12;
+      ctx.fillStyle = 'rgba(17, 25, 56, 0.84)';
+      ctx.strokeStyle = 'rgba(226, 232, 240, 0.72)';
+      ctx.lineWidth = 1.1;
       ctx.beginPath();
-      ctx.roundRect(scr.x - tw * 0.5, scr.y - 8, tw, 13, 4);
+      ctx.roundRect(scr.x - tw * 0.5, scr.y - 8, tw, 14, 4);
       ctx.fill();
-      ctx.fillStyle = '#fef08a';
-      ctx.fillText(npc.name, scr.x, scr.y + 1.5);
+      ctx.stroke();
+      ctx.fillStyle = isActiveQuest ? '#fef08a' : '#f8fafc';
+      ctx.fillText(npc.name, scr.x, scr.y + 2);
     }
 
-    // 4. Mini HP Bars above Hurt Non-Boss Enemies
+    // 4. Crisp RPG-JS Overhead HP Bars above Hurt Non-Boss Enemies
     for (const e of this.enemies) {
       if (e.kind === 'boss' || e.hp >= e.maxHp) continue;
-      const scr = tr.projectWorldToScreen(e.x, e.y, 1.5);
+      const scr = tr.projectWorldToScreen(e.x, e.y, 1.55);
       if (!scr.visible) continue;
-      const bw = 30;
+      const bw = 34;
       const frac = Math.max(0, e.hp / e.maxHp);
-      ctx.fillStyle = 'rgba(7, 11, 20, 0.85)';
-      ctx.fillRect(scr.x - bw * 0.5 - 1, scr.y - 3, bw + 2, 5);
-      ctx.fillStyle = '#ef4444';
-      ctx.fillRect(scr.x - bw * 0.5, scr.y - 2, bw * frac, 3);
+      ctx.fillStyle = 'rgba(15, 23, 52, 0.9)';
+      ctx.strokeStyle = 'rgba(226, 232, 240, 0.75)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(scr.x - bw * 0.5 - 1.5, scr.y - 4, bw + 3, 6.5, 3);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#f43f5e';
+      ctx.beginPath();
+      ctx.roundRect(scr.x - bw * 0.5, scr.y - 2.5, Math.max(2, bw * frac), 3.5, 1.5);
+      ctx.fill();
     }
 
     // 5. Floating Damage, Level-Up & Discovery Popups
@@ -1945,24 +2074,29 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     }
     ctx.globalAlpha = 1;
 
-    // 6. Contextual [SPACE] Interaction Prompt Badge projected cleanly over target
+    // 6. RPG-JS Contextual [SPACE] Interaction Prompt Badge projected cleanly over target
     if (this.nearestInteract && !this.dialogue && this.phase === 'PLAYING') {
       const t = this.nearestInteract;
-      const scr = tr.projectWorldToScreen(t.x, t.y, 1.85);
+      const scr = tr.projectWorldToScreen(t.x, t.y, 1.9);
       if (scr.visible) {
         const floatY = scr.y + Math.sin(this.time * 6) * 2.5;
         const text = `[SPACE] ${t.label}`;
         ctx.font = '800 10px "JetBrains Mono", monospace';
-        const tw = ctx.measureText(text).width + 16;
-        ctx.fillStyle = 'rgba(9, 15, 30, 0.92)';
-        ctx.strokeStyle = '#fbbf24';
+        const tw = ctx.measureText(text).width + 18;
+        ctx.fillStyle = 'rgba(18, 27, 62, 0.92)';
+        ctx.strokeStyle = '#e2e8f0';
         ctx.lineWidth = 1.6;
         ctx.beginPath();
-        ctx.roundRect(scr.x - tw * 0.5, floatY - 11, tw, 19, 6);
+        ctx.roundRect(scr.x - tw * 0.5, floatY - 11, tw, 20, 6);
         ctx.fill();
         ctx.stroke();
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(scr.x - tw * 0.5 + 2, floatY - 9, tw - 4, 16, 4.5);
+        ctx.stroke();
         ctx.fillStyle = '#fef08a';
-        ctx.fillText(text, scr.x, floatY + 2);
+        ctx.fillText(text, scr.x, floatY + 2.5);
       }
     }
     ctx.restore();
@@ -2985,373 +3119,446 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   }
 
   // ---------------------------------------------------------------------------
-  // PASS 4: AUTHENTIC YS I & II CHRONICLES+ FLOATING WINGED-GODDESS HUD!
+  // PASS 4: RPG-JS (RSamaium/RPG-JS) FROSTED INDIGO-SLATE JRPG HUD & GUI!
   // ---------------------------------------------------------------------------
+  private drawRpgJsWindow(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    radius = 9,
+    borderColor = 'rgba(226, 232, 240, 0.88)'
+  ): void {
+    const grad = ctx.createLinearGradient(x, y, x, y + h);
+    grad.addColorStop(0, 'rgba(24, 36, 78, 0.88)');
+    grad.addColorStop(0.55, 'rgba(15, 23, 54, 0.9)');
+    grad.addColorStop(1, 'rgba(9, 15, 36, 0.94)');
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, radius);
+    ctx.fill();
+
+    // Crisp outer luminous white-silver RPG-JS window frame
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    // Subtle inner indigo-cyan double trim line
+    ctx.strokeStyle = 'rgba(96, 165, 250, 0.34)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x + 2.5, y + 2.5, w - 5, h - 5, Math.max(2, radius - 2));
+    ctx.stroke();
+  }
+
+  private drawRpgJsBar(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    frac: number,
+    topColor: string,
+    botColor: string
+  ): void {
+    const clamped = Math.max(0, Math.min(1, frac));
+    ctx.fillStyle = 'rgba(7, 11, 26, 0.88)';
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, h * 0.5);
+    ctx.fill();
+
+    if (clamped > 0.005) {
+      const barGrad = ctx.createLinearGradient(x, y, x, y + h);
+      barGrad.addColorStop(0, topColor);
+      barGrad.addColorStop(1, botColor);
+      ctx.fillStyle = barGrad;
+      ctx.beginPath();
+      ctx.roundRect(x + 1, y + 1, Math.max(h - 2, (w - 2) * clamped), h - 2, (h - 2) * 0.5);
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = 'rgba(203, 213, 225, 0.42)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, h * 0.5);
+    ctx.stroke();
+  }
+
+  private drawAdolMiniAvatar(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number): void {
+    ctx.save();
+    // Glowing RPG-JS portrait medallion
+    const bg = ctx.createRadialGradient(cx - 4, cy - 5, 2, cx, cy, r);
+    bg.addColorStop(0, '#3b5998');
+    bg.addColorStop(1, '#0f172a');
+    ctx.fillStyle = bg;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 1.5, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Armor shoulders & red tunic scarf
+    ctx.fillStyle = '#cbd5e1';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + r * 0.82, r * 0.85, r * 0.58, 0, Math.PI, 0);
+    ctx.fill();
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(cx - r * 0.38, cy + r * 0.36, r * 0.76, r * 0.24);
+
+    // Warm anime face
+    ctx.fillStyle = '#fed7aa';
+    ctx.beginPath();
+    ctx.arc(cx, cy + 1, r * 0.48, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Crisp expressive eyes
+    ctx.fillStyle = '#1e3a8a';
+    ctx.fillRect(cx - 5, cy + 1, 3, 3.5);
+    ctx.fillRect(cx + 2, cy + 1, 3, 3.5);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(cx - 4.5, cy + 1.2, 1.4, 1.4);
+    ctx.fillRect(cx + 2.5, cy + 1.2, 1.4, 1.4);
+
+    // Signature crimson windswept Adol hair
+    const hGrad = ctx.createLinearGradient(cx, cy - r, cx, cy + 4);
+    hGrad.addColorStop(0, '#f87171');
+    hGrad.addColorStop(0.55, '#dc2626');
+    hGrad.addColorStop(1, '#991b1b');
+    ctx.fillStyle = hGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy - 2, r * 0.58, Math.PI * 0.96, Math.PI * 0.04);
+    ctx.lineTo(cx + r * 0.55, cy + 3);
+    ctx.lineTo(cx + r * 0.28, cy - 4);
+    ctx.lineTo(cx + 1, cy + 1);
+    ctx.lineTo(cx - r * 0.28, cy - 4);
+    ctx.lineTo(cx - r * 0.55, cy + 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Crisp silver-gold ring border
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   private drawChroniclesTopLeftStats(ctx: CanvasRenderingContext2D): void {
     ctx.save();
-    const x = 14;
-    let y = 20;
-    const drawCrispText = (txt: string, tx: number, ty: number, color = '#f8fafc', size = 12, bold = false) => {
-      ctx.font = `${bold ? '800' : '700'} ${size}px "JetBrains Mono", monospace`;
-      ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(2, 6, 23, 0.92)';
-      ctx.fillText(txt, tx + 1.5, ty + 1.5);
-      ctx.fillText(txt, tx - 0.8, ty + 0.8);
-      ctx.fillStyle = color;
-      ctx.fillText(txt, tx, ty);
-    };
+    const x = 12;
+    const y = 12;
+    const w = 234;
+    const h = 92;
 
-    drawCrispText('Adol Christin', x, y, '#f8fafc', 12.5, true);
-    y += 16;
-    drawCrispText(`Lv.${this.level} Swordsman`, x, y, '#e2e8f0', 11.5);
-    y += 16;
-    drawCrispText(`HP: ${Math.ceil(this.hp)} / ${this.maxHp}`, x, y, '#e2e8f0', 11.5);
-    y += 16;
-    drawCrispText(`STR: ${this.getEffectiveAtk()}`, x, y, '#e2e8f0', 11.5);
-    y += 16;
-    drawCrispText(`DEF: ${this.getEffectiveDef()}`, x, y, '#e2e8f0', 11.5);
-    y += 16;
-    drawCrispText(`EXP: ${this.exp}`, x, y, '#e2e8f0', 11.5);
-    y += 18;
+    // RPG-JS Hero Status Card
+    this.drawRpgJsWindow(ctx, x, y, w, h, 10);
 
-    // Mini crisp pixel Sword / Shield / Armor equipment icons + names (just like Screenshot #2!)
-    // 1. Sword icon
-    ctx.fillStyle = '#cbd5e1';
-    ctx.fillRect(x + 8, y - 10, 2, 2);
-    ctx.fillRect(x + 6, y - 8, 3, 3);
-    ctx.fillRect(x + 4, y - 6, 3, 3);
-    ctx.fillStyle = '#fbbf24';
-    ctx.fillRect(x + 2, y - 4, 5, 2);
-    ctx.fillRect(x + 1, y - 2, 2, 3);
-    drawCrispText(this.WEAPONS[this.weaponTier].name, x + 16, y, '#f8fafc', 11);
-    y += 16;
+    // Circular Adol Portrait Medallion + LV Pill
+    const avCx = x + 30;
+    const avCy = y + 36;
+    this.drawAdolMiniAvatar(ctx, avCx, avCy, 20);
 
-    // 2. Shield icon
-    ctx.fillStyle = '#e2e8f0';
-    ctx.fillRect(x + 2, y - 10, 9, 10);
-    ctx.fillStyle = '#dc2626';
-    ctx.fillRect(x + 5, y - 9, 3, 8);
-    ctx.fillRect(x + 3, y - 6, 7, 2);
-    drawCrispText(this.SHIELDS[this.shieldTier].name, x + 16, y, '#f8fafc', 11);
-    y += 16;
+    ctx.fillStyle = '#1d4ed8';
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.roundRect(avCx - 17, avCy + 14, 34, 14, 4);
+    ctx.fill();
+    ctx.stroke();
+    ctx.font = '800 9px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fef08a';
+    ctx.fillText(`LV.${this.level}`, avCx, avCy + 24);
 
-    // 3. Armor icon
-    ctx.fillStyle = '#94a3b8';
-    ctx.fillRect(x + 2, y - 10, 9, 9);
+    // Right Column: Hero Name + Gold Coin Badge
+    const rx = x + 58;
+    const rw = w - 68;
+    ctx.font = '800 11.5px "Plus Jakarta Sans", sans-serif';
+    ctx.textAlign = 'left';
     ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(x + 4, y - 9, 5, 6);
-    ctx.fillStyle = '#38bdf8';
-    ctx.fillRect(x + 5, y - 7, 3, 2);
-    drawCrispText(this.ARMORS[this.armorTier].name, x + 16, y, '#f8fafc', 11);
+    ctx.fillText('Adol Christin', rx, y + 20);
 
-    // Compact Books / MP status tag underneath
-    y += 17;
-    const statusTag =
-      this.variant === 'ys1'
-        ? `Books ${this.booksCollected}/${this.totalBooks} · ★${this.secretsFound}`
-        : `MP ${Math.ceil(this.mp)}/${this.maxMp} · Crests ${this.booksCollected}/${this.totalBooks}`;
-    drawCrispText(statusTag, x, y, '#fde047', 10.5, true);
+    ctx.font = '800 10.5px "JetBrains Mono", monospace';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fde047';
+    ctx.fillText(`${this.gold} G`, x + w - 10, y + 20);
+
+    // HP Bar (Emerald RPG-JS pill bar)
+    const hpFrac = this.hp / Math.max(1, this.maxHp);
+    ctx.font = '800 9px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#86efac';
+    ctx.fillText('HP', rx, y + 35);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillText(`${Math.ceil(this.hp)}/${this.maxHp}`, x + w - 10, y + 35);
+    this.drawRpgJsBar(ctx, rx + 20, y + 27, rw - 66, 9, hpFrac, '#4ade80', '#15803d');
+
+    // MP Bar (Ys II) or EXP Progress Bar
+    const expFrac = this.exp / Math.max(1, this.expNext);
+    if (this.variant === 'ys2') {
+      const mpFrac = this.mp / Math.max(1, this.maxMp);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText('MP', rx, y + 51);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#e0f2fe';
+      ctx.fillText(`${Math.ceil(this.mp)}/${this.maxMp}`, x + w - 10, y + 51);
+      this.drawRpgJsBar(ctx, rx + 20, y + 43, rw - 66, 9, mpFrac, '#38bdf8', '#0369a1');
+    } else {
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#fde047';
+      ctx.fillText('EXP', rx, y + 51);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#fef9c3';
+      ctx.fillText(`${this.exp}/${this.expNext}`, x + w - 10, y + 51);
+      this.drawRpgJsBar(ctx, rx + 24, y + 43, rw - 76, 9, expFrac, '#facc15', '#b45309');
+    }
+
+    // Compact STR / DEF + Equipment Tier Strip
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.56)';
+    ctx.beginPath();
+    ctx.roundRect(x + 8, y + 66, w - 16, 19, 5);
+    ctx.fill();
+
+    ctx.font = '700 9px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#cbd5e1';
+    const swordShort = this.WEAPONS[this.weaponTier].name.replace(' Sword', '');
+    ctx.fillText(`STR ${this.getEffectiveAtk()} · DEF ${this.getEffectiveDef()}`, x + 14, y + 79);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#93c5fd';
+    ctx.fillText(`${swordShort}`, x + w - 14, y + 79);
     ctx.restore();
   }
 
   private drawChroniclesZoneAndMiniMap(ctx: CanvasRenderingContext2D, zone: ZoneDef, W: number): void {
     ctx.save();
-    // Embossed Golden Serif Zone Title (exact Chronicles+ Screenshot #2 style!)
-    ctx.font = '800 18px Georgia, "Times New Roman", serif';
-    ctx.textAlign = 'right';
-    ctx.fillStyle = 'rgba(2, 6, 23, 0.94)';
-    ctx.fillText(zone.name, W - 12, 26);
-    ctx.fillText(zone.name, W - 15, 25);
-    const goldGrad = ctx.createLinearGradient(0, 10, 0, 28);
-    goldGrad.addColorStop(0, '#fef9c3');
-    goldGrad.addColorStop(0.55, '#facc15');
-    goldGrad.addColorStop(1, '#ca8a04');
-    ctx.fillStyle = goldGrad;
-    ctx.fillText(zone.name, W - 14, 24);
+    const mw = 136;
+    const mx = W - mw - 12;
+    const my = 12;
 
-    // Sleek compact translucent mini-map tucked neatly below the golden zone title
-    this.drawMiniMap(ctx, zone, W - 126, 32, 114, 78);
-    ctx.restore();
-  }
+    // RPG-JS Frosted Zone Header + Minimap Container
+    this.drawRpgJsWindow(ctx, mx, my, mw, 114, 10);
 
-  private drawWingedGoddessSculpture(ctx: CanvasRenderingContext2D, x: number, y: number, flip = false, scale = 1): void {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(flip ? -scale : scale, scale);
-
-    // Outstretched sculpted ivory-gold feathered wings!
-    const wingGrad = ctx.createLinearGradient(0, -34, 48, 4);
-    wingGrad.addColorStop(0, '#fef3c7');
-    wingGrad.addColorStop(0.5, '#d6c198');
-    wingGrad.addColorStop(1, '#786646');
-    ctx.fillStyle = wingGrad;
+    // Zone Name Pill Strip at top of Minimap Card
+    ctx.fillStyle = 'rgba(30, 58, 138, 0.55)';
     ctx.beginPath();
-    ctx.moveTo(8, -12);
-    ctx.quadraticCurveTo(22, -40, 50, -32);
-    ctx.quadraticCurveTo(34, -22, 42, -16);
-    ctx.quadraticCurveTo(28, -12, 34, -6);
-    ctx.quadraticCurveTo(18, -4, 8, 2);
-    ctx.closePath();
+    ctx.roundRect(mx + 6, my + 6, mw - 12, 18, 5);
     ctx.fill();
-    ctx.strokeStyle = '#473a24';
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
 
-    // Sculpted Ivory Goddess Bust (reminiscent of Feena / Reah relief in Chronicles+!)
-    const bustGrad = ctx.createLinearGradient(-12, -42, 14, 4);
-    bustGrad.addColorStop(0, '#fef9c3');
-    bustGrad.addColorStop(0.55, '#d8c5a0');
-    bustGrad.addColorStop(1, '#6e5c3e');
-    ctx.fillStyle = bustGrad;
-    // Draped shoulders & flowing robe
-    ctx.beginPath();
-    ctx.moveTo(-16, 8);
-    ctx.quadraticCurveTo(-15, -14, -4, -18);
-    ctx.lineTo(10, -16);
-    ctx.quadraticCurveTo(16, -6, 18, 8);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    ctx.font = '800 9.5px "Plus Jakarta Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fef08a';
+    const zTitle = zone.name.length > 18 ? `${zone.name.slice(0, 17)}…` : zone.name;
+    ctx.fillText(zTitle, mx + mw * 0.5, my + 18.5);
 
-    // Classical head & flowing hair curls
-    ctx.beginPath();
-    ctx.arc(1, -27, 8.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    // Hair tresses sweeping over shoulder
-    ctx.fillStyle = '#c8b288';
-    ctx.beginPath();
-    ctx.moveTo(-5, -33);
-    ctx.quadraticCurveTo(-13, -24, -11, -10);
-    ctx.lineTo(-4, -14);
-    ctx.quadraticCurveTo(-5, -24, 0, -28);
-    ctx.closePath();
-    ctx.fill();
-    // Gentle closed eyes & brow
-    ctx.fillStyle = '#5c4b30';
-    ctx.fillRect(2, -28, 4, 1.5);
+    // Embedded Live Minimap
+    this.drawMiniMap(ctx, zone, mx + 6, my + 27, mw - 12, 80);
+
+    // Sleek Interactive RPG-JS 45° Camera Mode & Orbit Badge right beneath Minimap!
+    const badgeY = my + 118;
+    this.drawRpgJsWindow(ctx, mx, badgeY, mw, 28, 7, 'rgba(125, 211, 252, 0.78)');
+    const deg = Math.round((((this.cameraYaw * 180) / Math.PI) % 360 + 360) % 360);
+    const modeLabel =
+      this.cameraZoomMode === 'fullmap45'
+        ? 'FULL MAP'
+        : this.cameraZoomMode === 'wide45'
+          ? 'WIDE'
+          : 'EVO';
+    ctx.font = '800 8.5px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fef08a';
+    ctx.fillText(`${deg}° ${modeLabel} · [V] VIEW`, mx + mw * 0.5, badgeY + 12);
+    ctx.font = '700 7.5px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#93c5fd';
+    ctx.fillText('[Q/E] ORBIT · [R] 45°', mx + mw * 0.5, badgeY + 23);
     ctx.restore();
   }
 
   private drawChroniclesBottomHud(ctx: CanvasRenderingContext2D, W: number, H: number): void {
     ctx.save();
-    const baseY = H - 14;
 
-    // 1. BOTTOM-LEFT: Sculpted Ivory Winged-Goddess Relief + Item/Ring Slots + Angled Silver HP Bar + Gold!
-    // Beveled Item & Ring Slate Slots resting above the HP bar
-    const drawSlot = (sx: number, sy: number, label: string, subText: string, iconKind: 'herb' | 'ring') => {
-      ctx.fillStyle = 'rgba(12, 18, 30, 0.84)';
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(sx + 5, sy);
-      ctx.lineTo(sx + 44, sy);
-      ctx.lineTo(sx + 39, sy + 26);
-      ctx.lineTo(sx, sy + 26);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      if (iconKind === 'herb') {
-        // Crisp green leaf herb icon
-        ctx.fillStyle = this.herbs > 0 ? '#4ade80' : '#475569';
-        ctx.fillRect(sx + 16, sy + 7, 10, 8);
-        ctx.fillStyle = this.herbs > 0 ? '#bbf7d0' : '#64748b';
-        ctx.fillRect(sx + 18, sy + 5, 6, 4);
-      } else {
-        // Crisp Ring icon (colored by equipped ring!)
-        const ringCol =
-          this.equippedRing === 'power'
-            ? '#f97316'
-            : this.equippedRing === 'shield'
-              ? '#38bdf8'
-              : this.equippedRing === 'time'
-                ? '#c084fc'
-                : '#475569';
-        ctx.strokeStyle = ringCol;
-        ctx.lineWidth = 2.4;
-        ctx.beginPath();
-        ctx.arc(sx + 22, sy + 12, 5.5, 0, Math.PI * 2);
-        ctx.stroke();
-        if (this.equippedRing !== 'none') {
-          ctx.fillStyle = '#fef9c3';
-          ctx.fillRect(sx + 20, sy + 5, 4, 3);
-        }
-      }
-
-      ctx.font = '800 9px "JetBrains Mono", monospace';
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#020617';
-      ctx.fillText(label, sx + 5, sy + 23);
-      ctx.fillStyle = '#e2e8f0';
-      ctx.fillText(label, sx + 4, sy + 22);
-
-      if (subText) {
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#fde047';
-        ctx.fillText(subText, sx + 37, sy + 12);
-      }
-    };
-
-    drawSlot(54, baseY - 58, 'Item', this.herbs > 0 ? `x${this.herbs}` : '', 'herb');
-    const ringTag =
-      this.equippedRing === 'power' ? 'PWR' : this.equippedRing === 'shield' ? 'SHD' : this.equippedRing === 'time' ? 'TIM' : '';
-    drawSlot(102, baseY - 58, 'Ring', ringTag, 'ring');
-
-    // Angled Metallic-Silver Framed Emerald HP Bar (matching Screenshots #1 & #2!)
-    const hpBarX = 48;
-    const hpBarY = baseY - 30;
-    const hpBarW = 216;
-    const hpBarH = 11;
-    const hpFrac = Math.max(0, Math.min(1, this.hp / Math.max(1, this.maxHp)));
-
-    // Metallic bevel housing
-    ctx.fillStyle = '#0f172a';
-    ctx.strokeStyle = '#cbd5e1';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(hpBarX, hpBarY);
-    ctx.lineTo(hpBarX + hpBarW - 6, hpBarY);
-    ctx.lineTo(hpBarX + hpBarW, hpBarY + hpBarH);
-    ctx.lineTo(hpBarX - 4, hpBarY + hpBarH);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Bright vivid emerald HP gradient fill
-    const hpGrad = ctx.createLinearGradient(hpBarX, hpBarY, hpBarX, hpBarY + hpBarH);
-    hpGrad.addColorStop(0, '#bbf7d0');
-    hpGrad.addColorStop(0.4, '#22c55e');
-    hpGrad.addColorStop(1, '#15803d');
-    ctx.fillStyle = hpGrad;
-    ctx.fillRect(hpBarX + 2, hpBarY + 2, Math.max(0, (hpBarW - 8) * hpFrac), hpBarH - 4);
-
-    // Razor-thin gold EXP progress needle tucked right below HP bar
-    const expFrac = Math.max(0, Math.min(1, this.exp / Math.max(1, this.expNext)));
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    ctx.fillRect(hpBarX + 2, hpBarY + hpBarH + 2, hpBarW - 14, 3);
-    ctx.fillStyle = '#facc15';
-    ctx.fillRect(hpBarX + 2, hpBarY + hpBarH + 2, (hpBarW - 14) * expFrac, 3);
-
-    // Bright Green HP Readout (`77/80`) perched right above the HP bar!
-    ctx.font = '900 16px "JetBrains Mono", monospace';
-    ctx.textAlign = 'right';
-    const hpTxt = `${Math.ceil(this.hp)}`;
-    ctx.fillStyle = '#020617';
-    ctx.fillText(hpTxt, hpBarX + hpBarW - 44, hpBarY - 4);
-    ctx.fillStyle = '#4ade80';
-    ctx.fillText(hpTxt, hpBarX + hpBarW - 45, hpBarY - 5);
-    ctx.font = '800 12px "JetBrains Mono", monospace';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#020617';
-    ctx.fillText(`/${this.maxHp}`, hpBarX + hpBarW - 42, hpBarY - 4);
-    ctx.fillStyle = '#bbf7d0';
-    ctx.fillText(`/${this.maxHp}`, hpBarX + hpBarW - 43, hpBarY - 5);
-
-    // Gold Coin Pouch Icon + Embossed Gold Readout underneath HP bar
-    ctx.fillStyle = '#b45309';
-    ctx.beginPath();
-    ctx.arc(hpBarX + 26, baseY - 6, 5.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#facc15';
-    ctx.fillRect(hpBarX + 24, baseY - 11, 4, 3);
-    ctx.font = '800 14px Georgia, serif';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#020617';
-    ctx.fillText(`${this.gold}`, hpBarX + 37, baseY - 1);
-    ctx.fillStyle = '#fde047';
-    ctx.fillText(`${this.gold}`, hpBarX + 36, baseY - 2);
-
-    // Sculpted Ivory Winged-Goddess anchored on the far bottom-left corner!
-    this.drawWingedGoddessSculpture(ctx, 26, baseY - 4, false, 1.0);
-
-    // 2. BOTTOM-RIGHT: Matching Angled Metallic ENEMY HP Bar with Sculpted Wing Filigree!
+    // 1. TOP-CENTER: Sleek RPG-JS Target Enemy / Boss Status Bar (only when engaged!)
     const targetEnemy =
       this.activeBoss && this.activeBoss.hp > 0
-        ? { name: this.activeBoss.name, hp: this.activeBoss.hp, maxHp: this.activeBoss.maxHp }
-        : this.engagedEnemy;
-    const eBarW = 200;
-    const eBarX = W - eBarW - 22;
-    const eBarY = baseY - 30;
-    const eBarH = 11;
-
-    // Subtle decorative wing scroll behind Enemy bar
-    ctx.fillStyle = 'rgba(180, 155, 110, 0.52)';
-    ctx.beginPath();
-    ctx.moveTo(W - 68, eBarY + 2);
-    ctx.quadraticCurveTo(W - 44, eBarY - 20, W - 12, eBarY - 12);
-    ctx.quadraticCurveTo(W - 24, eBarY + 12, W - 52, eBarY + 16);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = '#0f172a';
-    ctx.strokeStyle = '#cbd5e1';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(eBarX + 6, eBarY);
-    ctx.lineTo(eBarX + eBarW, eBarY);
-    ctx.lineTo(eBarX + eBarW + 4, eBarY + eBarH);
-    ctx.lineTo(eBarX, eBarY + eBarH);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+        ? { name: this.activeBoss.name, hp: this.activeBoss.hp, maxHp: this.activeBoss.maxHp, isBoss: true }
+        : this.engagedEnemy
+          ? { name: this.engagedEnemy.name, hp: this.engagedEnemy.hp, maxHp: this.engagedEnemy.maxHp, isBoss: false }
+          : null;
 
     if (targetEnemy) {
-      const eFrac = Math.max(0, Math.min(1, targetEnemy.hp / Math.max(1, targetEnemy.maxHp)));
-      const eGrad = ctx.createLinearGradient(eBarX, eBarY, eBarX, eBarY + eBarH);
-      eGrad.addColorStop(0, '#fca5a5');
-      eGrad.addColorStop(0.45, '#ef4444');
-      eGrad.addColorStop(1, '#991b1b');
-      ctx.fillStyle = eGrad;
-      const fillW = (eBarW - 6) * eFrac;
-      ctx.fillRect(eBarX + eBarW - 3 - fillW, eBarY + 2, fillW, eBarH - 4);
-
-      ctx.font = '800 10.5px "JetBrains Mono", monospace';
+      const ew = 248;
+      const eh = 38;
+      const ex = Math.round(W * 0.5 - ew * 0.5);
+      const ey = 12;
+      this.drawRpgJsWindow(
+        ctx,
+        ex,
+        ey,
+        ew,
+        eh,
+        9,
+        targetEnemy.isBoss ? 'rgba(251, 191, 36, 0.92)' : 'rgba(248, 113, 113, 0.88)'
+      );
+      ctx.font = '800 10px "Plus Jakarta Sans", sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = targetEnemy.isBoss ? '#fde047' : '#fecdd3';
+      ctx.fillText(targetEnemy.isBoss ? `★ ${targetEnemy.name}` : targetEnemy.name, ex + 10, ey + 15);
+      ctx.font = '800 9.5px "JetBrains Mono", monospace';
       ctx.textAlign = 'right';
-      ctx.fillStyle = '#020617';
-      ctx.fillText(targetEnemy.name, eBarX + eBarW, eBarY - 4);
-      ctx.fillStyle = '#fde68a';
-      ctx.fillText(targetEnemy.name, eBarX + eBarW - 1, eBarY - 5);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillText(`${Math.ceil(targetEnemy.hp)}/${targetEnemy.maxHp}`, ex + ew - 10, ey + 15);
+      this.drawRpgJsBar(
+        ctx,
+        ex + 10,
+        ey + 21,
+        ew - 20,
+        9,
+        targetEnemy.hp / Math.max(1, targetEnemy.maxHp),
+        targetEnemy.isBoss ? '#fb923c' : '#fb7185',
+        '#991b1b'
+      );
     }
 
-    ctx.font = 'italic 900 12px Georgia, serif';
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#020617';
-    ctx.fillText('ENEMY', eBarX + eBarW + 2, baseY - 2);
-    ctx.fillStyle = '#e2e8f0';
-    ctx.fillText('ENEMY', eBarX + eBarW + 1, baseY - 3);
-
-    // 3. Subtle Bottom-Center Whisper Quest Hint (cleanly tucked between Left & Right wings)
+    // 2. BOTTOM-CENTER: RPG-JS Frosted Action / Skill / Item Hotbar (keeps 3D center 100% open!)
     if (!this.dialogue) {
       const hint = this.getActiveQuestHint();
-      ctx.font = '700 10px "JetBrains Mono", monospace';
+      ctx.font = '700 9.5px "Plus Jakarta Sans", sans-serif';
       ctx.textAlign = 'center';
-      const hw = Math.min(268, ctx.measureText(hint).width + 18);
-      ctx.fillStyle = 'rgba(6, 10, 20, 0.72)';
+      const hintTxt = hint.length > 54 ? `${hint.slice(0, 52)}…` : hint;
+      const hw = Math.min(W - 40, Math.max(210, ctx.measureText(hintTxt).width + 26));
+      const dockW = 368;
+      const dockH = 48;
+      const dockX = Math.round(W * 0.5 - dockW * 0.5);
+      const dockY = H - dockH - 10;
+
+      // Subtle RPG-JS quest tracker whisper strip sitting neatly above the bottom hotbar
+      ctx.fillStyle = 'rgba(15, 23, 52, 0.82)';
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.55)';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.roundRect(W * 0.5 - hw * 0.5, baseY - 13, hw, 16, 4);
+      ctx.roundRect(W * 0.5 - hw * 0.5, dockY - 22, hw, 18, 5);
       ctx.fill();
-      ctx.fillStyle = '#fde68a';
-      ctx.fillText(hint.length > 42 ? `${hint.slice(0, 40)}…` : hint, W * 0.5, baseY - 2);
+      ctx.stroke();
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(hintTxt, W * 0.5, dockY - 9.5);
+
+      // Main RPG-JS 5-Slot Hotbar Dock
+      this.drawRpgJsWindow(ctx, dockX, dockY, dockW, dockH, 10);
+
+      const slots: Array<{ key: string; title: string; value: string; accent: string; kind: 'sword' | 'magic' | 'herb' | 'ring' | 'relic' }> = [
+        {
+          key: 'SPC',
+          title: 'ACTION',
+          value: this.WEAPONS[this.weaponTier].name.split(' ')[0],
+          accent: '#38bdf8',
+          kind: 'sword',
+        },
+        {
+          key: 'SHF',
+          title: this.variant === 'ys2' ? 'FIRE' : 'MAP',
+          value: this.variant === 'ys2' ? `${Math.ceil(this.mp)} MP` : 'CHART',
+          accent: this.variant === 'ys2' ? '#fb923c' : '#a78bfa',
+          kind: 'magic',
+        },
+        {
+          key: 'HRB',
+          title: 'HERB',
+          value: `x${this.herbs}`,
+          accent: this.herbs > 0 ? '#4ade80' : '#64748b',
+          kind: 'herb',
+        },
+        {
+          key: 'RNG',
+          title: 'RING',
+          value:
+            this.equippedRing === 'power'
+              ? 'PWR'
+              : this.equippedRing === 'shield'
+                ? 'SHD'
+                : this.equippedRing === 'time'
+                  ? 'TIM'
+                  : 'NONE',
+          accent:
+            this.equippedRing === 'power'
+              ? '#f97316'
+              : this.equippedRing === 'shield'
+                ? '#38bdf8'
+                : this.equippedRing === 'time'
+                  ? '#c084fc'
+                  : '#64748b',
+          kind: 'ring',
+        },
+        {
+          key: 'YS',
+          title: this.variant === 'ys1' ? 'BOOKS' : 'CRESTS',
+          value: `${this.booksCollected}/${this.totalBooks} ★${this.secretsFound}`,
+          accent: '#facc15',
+          kind: 'relic',
+        },
+      ];
+
+      const slotGap = 6;
+      const slotW = (dockW - 16 - slotGap * (slots.length - 1)) / slots.length;
+      const slotH = 36;
+      for (let i = 0; i < slots.length; i++) {
+        const s = slots[i];
+        const sx = dockX + 8 + i * (slotW + slotGap);
+        const sy = dockY + 6;
+        ctx.fillStyle = 'rgba(9, 14, 34, 0.78)';
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+        ctx.lineWidth = 1.1;
+        ctx.beginPath();
+        ctx.roundRect(sx, sy, slotW, slotH, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        // Top color accent strip
+        ctx.fillStyle = s.accent;
+        ctx.fillRect(sx + 4, sy + 2, slotW - 8, 2);
+
+        // Keycap badge
+        ctx.font = '800 7.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText(s.key, sx + 5, sy + 13);
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = s.accent;
+        ctx.fillText(s.title, sx + slotW - 5, sy + 13);
+
+        ctx.font = '800 9.5px "JetBrains Mono", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillText(s.value, sx + slotW * 0.5, sy + 29);
+      }
     }
     ctx.restore();
   }
 
   // ---------------------------------------------------------------------------
-  // Live Compact Mini-Map & Full World Exploration Chart
+  // Live Compact Mini-Map & Full World Exploration Chart (RPG-JS Style)
   // ---------------------------------------------------------------------------
   private drawMiniMap(ctx: CanvasRenderingContext2D, zone: ZoneDef, x: number, y: number, w: number, h: number): void {
     ctx.save();
-    ctx.fillStyle = 'rgba(7, 11, 22, 0.76)';
-    ctx.strokeStyle = 'rgba(250, 204, 21, 0.55)';
-    ctx.lineWidth = 1.4;
+    ctx.fillStyle = 'rgba(10, 16, 36, 0.92)';
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.52)';
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 6);
+    ctx.roundRect(x, y, w, h, 5);
     ctx.fill();
     ctx.stroke();
 
-    const cw = (w - 8) / zone.width;
-    const ch = (h - 8) / zone.height;
+    const cw = (w - 6) / zone.width;
+    const ch = (h - 6) / zone.height;
     for (let r = 0; r < zone.height; r++) {
       for (let c = 0; c < zone.width; c++) {
         const t = zone.tiles[r][c];
@@ -3361,67 +3568,75 @@ export class YsBookRpgGame implements ArcadeGameInstance {
             : t === 3
               ? '#0284c7'
               : t === 6 || t === 4
-                ? '#d97706'
+                ? '#e2b675'
                 : t === 2 || t === 9
                   ? '#15803d'
-                  : '#1e293b';
-        ctx.fillRect(x + 4 + c * cw, y + 4 + r * ch, Math.ceil(cw), Math.ceil(ch));
+                  : zone.theme === 'shrine' || zone.theme === 'tower' || zone.theme === 'lava'
+                    ? '#334155'
+                    : '#22a055';
+        ctx.fillRect(x + 3 + c * cw, y + 3 + r * ch, Math.ceil(cw), Math.ceil(ch));
       }
     }
 
     for (const p of zone.portals) {
       ctx.fillStyle = '#38bdf8';
-      ctx.fillRect(x + 4 + p.tx * cw, y + 4 + p.ty * ch, Math.max(4, p.widthTiles * cw), Math.max(3, p.heightTiles * ch));
+      ctx.fillRect(x + 3 + p.tx * cw, y + 3 + p.ty * ch, Math.max(4, p.widthTiles * cw), Math.max(3, p.heightTiles * ch));
     }
     for (const chObj of zone.chests) {
       if (this.openedChests.has(chObj.id)) continue;
       ctx.fillStyle = '#fde047';
-      ctx.fillRect(x + 4 + chObj.tx * cw - 1, y + 4 + chObj.ty * ch - 1, 3, 3);
+      ctx.fillRect(x + 3 + chObj.tx * cw - 1, y + 3 + chObj.ty * ch - 1, 3, 3);
     }
     for (const npc of zone.npcs) {
-      ctx.fillStyle = '#f472b6';
-      ctx.fillRect(x + 4 + npc.tx * cw - 1, y + 4 + npc.ty * ch - 1, 3, 3);
+      ctx.fillStyle = npc.role === 'quest' ? '#fde047' : '#f472b6';
+      ctx.fillRect(x + 3 + npc.tx * cw - 1, y + 3 + npc.ty * ch - 1, 3, 3);
     }
 
-    const ax = x + 4 + (this.px / TILE) * cw;
-    const ay = y + 4 + (this.py / TILE) * ch;
-    ctx.strokeStyle = 'rgba(254, 240, 138, 0.9)';
-    ctx.lineWidth = 1.5;
+    const ax = x + 3 + (this.px / TILE) * cw;
+    const ay = y + 3 + (this.py / TILE) * ch;
+    ctx.strokeStyle = 'rgba(254, 240, 138, 0.95)';
+    ctx.lineWidth = 1.6;
     ctx.beginPath();
     ctx.moveTo(ax, ay);
     ctx.lineTo(ax + Math.cos(this.bodyAngle) * 7, ay + Math.sin(this.bodyAngle) * 7);
     ctx.stroke();
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(ax, ay, 2.6, 0, Math.PI * 2);
+    ctx.arc(ax, ay, 2.7, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
 
   private drawFullMapOverlay(ctx: CanvasRenderingContext2D, zone: ZoneDef, W: number, viewH: number): void {
     ctx.save();
-    ctx.fillStyle = 'rgba(5, 9, 20, 0.9)';
+    ctx.fillStyle = 'rgba(7, 11, 28, 0.88)';
     ctx.fillRect(0, 0, W, viewH);
 
-    const mx = 46;
-    const my = 38;
-    const mw = W - 92;
-    const mh = viewH - 160;
+    const px = 34;
+    const py = 26;
+    const pw = W - 68;
+    const ph = viewH - 52;
+    this.drawRpgJsWindow(ctx, px, py, pw, ph, 12);
+
+    const mx = px + 18;
+    const my = py + 18;
+    const mw = pw - 36;
+    const mh = ph - 126;
     this.drawMiniMap(ctx, zone, mx, my, mw, mh);
 
-    ctx.fillStyle = '#fde047';
-    ctx.font = '800 18px Georgia, serif';
+    ctx.fillStyle = '#fef08a';
+    ctx.font = '800 17px "Plus Jakarta Sans", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${zone.name} · EXPLORATION CHART`, W * 0.5, my + mh + 28);
+    ctx.fillText(`${zone.name} · WORLD MAP`, W * 0.5, my + mh + 28);
 
-    ctx.fillStyle = '#e2e8f0';
+    ctx.fillStyle = '#f1f5f9';
     ctx.font = '600 12.5px "Plus Jakarta Sans", sans-serif';
     ctx.fillText(this.getActiveQuestHint(), W * 0.5, my + mh + 52);
 
     ctx.fillStyle = '#94a3b8';
-    ctx.font = '700 11px "JetBrains Mono", monospace';
+    ctx.font = '700 10.5px "JetBrains Mono", monospace';
     ctx.fillText(
-      `Cyan = Zone Gateways · Pink = Citizens · Yellow = Chests · Secrets Found: ${this.secretsFound}`,
+      `Cyan = Zone Portals · Gold = Quest/Chests · Pink = Citizens · Secrets: ${this.secretsFound}`,
       W * 0.5,
       my + mh + 74
     );
@@ -3649,80 +3864,68 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     const dlg = this.dialogue;
     if (!dlg) return;
 
-    const bx = 26;
-    const bw = W - 52;
-    const bh = dlg.shopKind ? 186 : 138;
-    const by = viewH - bh - 20;
+    const bx = 24;
+    const bw = W - 48;
+    const bh = dlg.shopKind ? 184 : 134;
+    const by = viewH - bh - 18;
 
     ctx.save();
-    // Subtle scenic dim so the large anime portrait & Twin-Goddess box stand out cleanly
-    ctx.fillStyle = 'rgba(4, 7, 16, 0.34)';
+    // Subtle scenic dim so the anime portrait & RPG-JS frosted dialogue window stand out cleanly
+    ctx.fillStyle = 'rgba(6, 10, 26, 0.36)';
     ctx.fillRect(0, 0, W, viewH);
 
-    // Large Half-Body Right-Side Anime Bust Portrait rising above the dialogue box!
-    this.drawLargeAnimeBust(ctx, dlg.portrait, W - 108, by + 12);
+    // Large Half-Body Right-Side Anime Bust Portrait rising cleanly behind the dialogue window
+    this.drawLargeAnimeBust(ctx, dlg.portrait, W - 104, by + 14);
 
-    // Ornate Chronicles+ Dark Slate-Parchment Dialogue Frame with Botanical Gold Border
-    const boxGrad = ctx.createLinearGradient(bx, by, bx, by + bh);
-    boxGrad.addColorStop(0, 'rgba(13, 20, 38, 0.96)');
-    boxGrad.addColorStop(1, 'rgba(7, 11, 24, 0.98)');
-    ctx.fillStyle = boxGrad;
-    ctx.beginPath();
-    ctx.roundRect(bx, by, bw, bh, 10);
-    ctx.fill();
+    // Iconic RPG-JS Default-GUI Translucent Indigo-Slate Window with Crisp White-Silver Double Border
+    this.drawRpgJsWindow(ctx, bx, by, bw, bh, 11, 'rgba(241, 245, 249, 0.92)');
 
-    // Double gilded botanical vine border
-    ctx.strokeStyle = '#ca8a04';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(254, 240, 138, 0.52)';
-    ctx.lineWidth = 1.1;
-    ctx.beginPath();
-    ctx.roundRect(bx + 4, by + 4, bw - 8, bh - 8, 7);
-    ctx.stroke();
-
-    // Twin Sculpted Winged Goddesses flanking the bottom corners of the dialogue box!
-    this.drawWingedGoddessSculpture(ctx, bx + 14, by + bh - 4, false, 0.72);
-    this.drawWingedGoddessSculpture(ctx, bx + bw - 14, by + bh - 4, true, 0.72);
-
-    // Speaker Nameplate Tab
-    const tx = bx + 48;
-    ctx.font = '800 13.5px Georgia, serif';
+    // Perched RPG-JS Speaker Name Pill Tab resting on top-left edge of dialogue box
+    ctx.font = '800 12.5px "Plus Jakarta Sans", sans-serif';
+    const spW = Math.max(118, ctx.measureText(dlg.speaker).width + 28);
+    const spX = bx + 18;
+    const spY = by - 16;
+    this.drawRpgJsWindow(ctx, spX, spY, spW, 28, 7, 'rgba(186, 230, 253, 0.92)');
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#fde047';
-    ctx.fillText(dlg.speaker, tx, by + 26);
-    ctx.fillStyle = 'rgba(250, 204, 21, 0.35)';
-    ctx.fillRect(tx, by + 31, Math.min(260, ctx.measureText(dlg.speaker).width + 24), 1.5);
+    ctx.fillStyle = '#fef08a';
+    ctx.fillText(dlg.speaker, spX + 14, spY + 18.5);
 
-    // Highlighted Chronicles+ Dialogue Text (automatic cyan-blue #38bdf8 keywords!)
+    // RPG-JS Dialogue Copy with Automatic Cyan Keyword Highlighting
+    const tx = bx + 22;
     ctx.font = '600 12.5px "Plus Jakarta Sans", sans-serif';
-    let lineY = by + 51;
+    let lineY = by + 34;
     for (const line of dlg.lines) {
-      lineY = this.drawHighlightedWrappedLine(ctx, line, tx, lineY, bw - 96, 18) + 4;
+      lineY = this.drawHighlightedWrappedLine(ctx, line, tx, lineY, bw - 160, 18.5) + 4;
     }
 
     if (dlg.shopKind) {
       const opts = this.getShopOptions(dlg.shopKind);
-      let oy = by + 98;
+      let oy = by + 92;
       opts.forEach((o, i) => {
         const sel = i === dlg.cursor;
         if (sel) {
-          ctx.fillStyle = 'rgba(250, 204, 21, 0.22)';
+          const selGrad = ctx.createLinearGradient(tx - 8, oy - 13, tx + bw - 150, oy - 13);
+          selGrad.addColorStop(0, 'rgba(56, 189, 248, 0.34)');
+          selGrad.addColorStop(1, 'rgba(59, 130, 246, 0.12)');
+          ctx.fillStyle = selGrad;
+          ctx.strokeStyle = 'rgba(125, 211, 252, 0.85)';
+          ctx.lineWidth = 1.2;
           ctx.beginPath();
-          ctx.roundRect(tx - 6, oy - 13, bw - 96, 22, 5);
+          ctx.roundRect(tx - 8, oy - 13, bw - 156, 22, 6);
           ctx.fill();
+          ctx.stroke();
         }
         ctx.font = sel ? '800 12px "JetBrains Mono", monospace' : '600 12px "JetBrains Mono", monospace';
-        ctx.fillStyle = sel ? '#fde047' : '#cbd5e1';
+        ctx.fillStyle = sel ? '#fef08a' : '#cbd5e1';
         ctx.fillText(`${sel ? '▶' : ' '} ${o.label}`, tx, oy + 2);
         oy += 25;
       });
     } else {
-      const bounce = Math.sin(this.time * 7) * 2;
-      ctx.font = '700 10.5px "JetBrains Mono", monospace';
-      ctx.fillStyle = '#38bdf8';
+      const bounce = Math.sin(this.time * 7) * 2.2;
+      ctx.font = '800 10.5px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#7dd3fc';
       ctx.textAlign = 'right';
-      ctx.fillText('PRESS [SPACE / ACTION] ▼', bx + bw - 48, by + bh - 12 + bounce * 0.5);
+      ctx.fillText('[SPACE] CONTINUE ▼', bx + bw - 22, by + bh - 12 + bounce * 0.5);
     }
     ctx.restore();
   }

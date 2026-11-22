@@ -103,7 +103,13 @@ export interface WorldInspectable {
     | 'campfire'
     | 'roda_altar'
     | 'cell_door'
-    | 'pedestal';
+    | 'pedestal'
+    | 'anvil'
+    | 'telescope'
+    | 'bookshelf'
+    | 'noticeboard'
+    | 'bell'
+    | 'dock_cargo';
   title: string;
   lines: string[];
   inspected: boolean;
@@ -503,6 +509,22 @@ export function createYs1World(): Record<string, ZoneDef> {
         tunicColor: '#a5b4fc',
         greeting: 'Walk behind tall trees & cottages to scout hidden paths, and jump right into rustling shrubs to uncover secrets!',
       },
+      {
+        id: 'minea_reah',
+        name: 'REAH THE POET',
+        role: 'quest',
+        tx: 25,
+        ty: 17,
+        portrait: 'feena',
+        cloakColor: '#dc2626',
+        hairColor: '#60a5fa',
+        tunicColor: '#fef2f2',
+        greeting: 'I am Reah, a poet and troubadour. My precious Silver Harmonica was stolen near the Shrine of Solomon—please help me recover it!',
+        followUpFlag: 'silver_harmonica',
+        followUpGreeting: 'My Silver Harmonica! Listen to its gentle melody, Adol... May the Twin Goddesses watch over your climb up Darm Tower! (+250 Gold!)',
+        grantFlag: 'reah_melody',
+        rewardGold: 250,
+      },
     ],
     chests: [
       { id: 'minea_starter', tx: 3, ty: 2, opened: false, rewardKind: 'gold', rewardName: '150 Gold', amount: 150 },
@@ -565,11 +587,110 @@ export function createYs1World(): Record<string, ZoneDef> {
         id: 'minea_tavern_board',
         tx: 19,
         ty: 29,
-        kind: 'sign',
-        title: 'BARBADO TAVERN RUMOR BOARD',
+        kind: 'noticeboard',
+        title: 'BARBADO TAVERN NOTICEBOARD',
         lines: [
           'RUMOR #1: A mysterious blue-haired girl named Feena was spotted near Zepik & the Shrine!',
           'RUMOR #2: Inspect ancient statues inside the Shrine of Solomon to reveal secret blessings.',
+        ],
+        inspected: false,
+      },
+      {
+        id: 'minea_forge_anvil',
+        tx: 42,
+        ty: 8,
+        kind: 'anvil',
+        title: "PIM'S CLERIA ANVIL",
+        lines: [
+          'A heavy iron anvil warmed by glowing charcoal embers from Pim’s outdoor forge.',
+          'Engraved on the hammer: "Strike enemies slightly off-center for clean half-bump victories!"',
+        ],
+        inspected: false,
+      },
+      {
+        id: 'minea_library_lectern',
+        tx: 14,
+        ty: 8,
+        kind: 'bookshelf',
+        title: 'ARCHIVE SCROLL LECTERN',
+        lines: [
+          'An open chronicle of Ancient Ys lies pinned beneath a brass reading lamp.',
+          '"Seven hundred years ago, the Six Priests sealed the Black Pearl and raised Ys into the heavens."',
+        ],
+        inspected: false,
+        rewardGold: 45,
+      },
+      {
+        id: 'minea_harbor_spyglass',
+        tx: 28,
+        ty: 37,
+        kind: 'telescope',
+        title: 'HARBOR PIER SPYGLASS',
+        lines: [
+          'You peer through the salt-polished brass spyglass across the turquoise waves of Esteria...',
+          'Dark stormclouds swirl far beyond the horizon, trapping every vessel in Minea Harbor.',
+        ],
+        inspected: false,
+      },
+      {
+        id: 'minea_harbor_bell',
+        tx: 24,
+        ty: 31,
+        kind: 'bell',
+        title: 'MINEA HARBOR WARNING BELL',
+        lines: [
+          'A gleaming bronze maritime bell mounted beneath a timber belfry overlooking the quay.',
+          'You strike it gently—a clear chime rings out across the terraces and lifts your spirits! (HP & MP restored!)',
+        ],
+        inspected: false,
+        healMp: true,
+      },
+      {
+        id: 'minea_east_anchor',
+        tx: 42,
+        ty: 35,
+        kind: 'dock_cargo',
+        title: 'FISHERMAN ANCHOR & NETS',
+        lines: [
+          'A weathered iron ship anchor rests beside drying kelp nets and banded spice casks.',
+          'Tucked inside a rope coil you discover 65 Gold left behind by a hurried merchant!',
+        ],
+        inspected: false,
+        rewardGold: 65,
+      },
+      {
+        id: 'minea_plaza_board',
+        tx: 22,
+        ty: 16,
+        kind: 'noticeboard',
+        title: 'MINEA GUILD BOUNTY BOARD',
+        lines: [
+          'NOTICE: Press V to switch 45° camera views (Evo / Wide / Full Map) and Q / E to orbit around terraces!',
+          'BOUNTY: Clear monsters in Esteria Plains & search every rustling shrub for hidden Roda Seeds.',
+        ],
+        inspected: false,
+      },
+      {
+        id: 'minea_goddess_shrine',
+        tx: 34,
+        ty: 16,
+        kind: 'statue',
+        title: 'TWIN GODDESS MEMORIAL',
+        lines: [
+          'A finely carved marble monument honoring Feena and Reah overlooking the central plaza.',
+          'Fresh wildflowers sit at its plinth, placed by Minea’s townsfolk each sunrise.',
+        ],
+        inspected: false,
+      },
+      {
+        id: 'minea_clinic_books',
+        tx: 39,
+        ty: 29,
+        kind: 'bookshelf',
+        title: 'HERBALIST APOTHECARY LEDGER',
+        lines: [
+          'Pressed emerald leaves and hand-drawn diagrams of Celceta medicinal blossoms fill the pages.',
+          'Tip: Standing completely still in town or Esteria Plains rapidly restores your HP!',
         ],
         inspected: false,
       },
@@ -821,6 +942,56 @@ export function createYs1World(): Record<string, ZoneDef> {
         ],
         inspected: false,
       },
+      {
+        id: 'plains_bridge_bell',
+        tx: 34,
+        ty: 25,
+        kind: 'bell',
+        title: 'RIVER CROSSING WAYFARER BELL',
+        lines: [
+          'Travelers ring this bronze roadside bell before crossing the Esteria River.',
+          'Its resonant note echoes across the emerald meadow! (HP & MP restored!)',
+        ],
+        inspected: false,
+        healMp: true,
+      },
+      {
+        id: 'plains_zepik_board',
+        tx: 47,
+        ty: 36,
+        kind: 'noticeboard',
+        title: 'ZEPIK VILLAGE DISPATCH',
+        lines: [
+          'MAYOR ROBES: "The Silver Bell was stolen by bandits near the western plains—reward awaits!"',
+          'SCOUT NOTE: "Watch for shimmering shrubs along the riverbanks; ancient coins wash ashore."',
+        ],
+        inspected: false,
+      },
+      {
+        id: 'plains_river_cargo',
+        tx: 15,
+        ty: 25,
+        kind: 'dock_cargo',
+        title: 'RIVER FERRYMAN SUPPLIES',
+        lines: [
+          'Waterproofed cargo barrels and an iron grappling anchor sit neatly stacked by the west bridge.',
+          'You salvage 90 Gold and spare flint from an abandoned supply crate!',
+        ],
+        inspected: false,
+        rewardGold: 90,
+      },
+      {
+        id: 'plains_hill_spyglass',
+        tx: 52,
+        ty: 20,
+        kind: 'telescope',
+        title: 'DARM LOOKOUT SPYGLASS',
+        lines: [
+          'A scout’s brass telescope points straight toward the ominous silhouette of Darm Tower to the northeast.',
+          'Its bronze bezel bears the crest of the Esterian Knights.',
+        ],
+        inspected: false,
+      },
     ],
     enemySpawns: [
       { tx: 16, ty: 33, kind: 'slime' },
@@ -925,6 +1096,8 @@ export function createYs1World(): Record<string, ZoneDef> {
       { id: 'shrine_book3', tx: 50, ty: 21, opened: false, rewardKind: 'book', rewardName: 'Book of Dabbie (3/6)' },
       { id: 'shrine_silver_armor', tx: 50, ty: 17, opened: false, rewardKind: 'silver_armor', rewardName: 'Silver Armor!' },
       { id: 'shrine_west_herb', tx: 5, ty: 17, opened: false, rewardKind: 'herb', rewardName: 'Heal Herb' },
+      { id: 'shrine_harmonica', tx: 13, ty: 26, opened: false, rewardKind: 'quest_item', rewardName: 'Silver Harmonica!', grantFlag: 'silver_harmonica' },
+      { id: 'shrine_timer_ring', tx: 43, ty: 17, opened: false, rewardKind: 'time_ring', rewardName: 'Timer Ring! (Slows Foes)' },
     ],
     shrubs: shrineShrubs,
     inspectables: [
@@ -1087,6 +1260,7 @@ export function createYs1World(): Record<string, ZoneDef> {
       { id: 'tower_silver_sword', tx: 6, ty: 24, opened: false, rewardKind: 'silver_sword', rewardName: 'Silver Sword!' },
       { id: 'tower_book4', tx: 49, ty: 20, opened: false, rewardKind: 'book', rewardName: 'Book of Mesa (4/6)' },
       { id: 'tower_book5', tx: 49, ty: 27, opened: false, rewardKind: 'book', rewardName: 'Book of Gemma (5/6)' },
+      { id: 'tower_shield_ring', tx: 14, ty: 20, opened: false, rewardKind: 'shield_ring', rewardName: 'Armor Ring! (+25% DEF)' },
       { id: 'tower_herb', tx: 6, ty: 29, opened: false, rewardKind: 'herb', rewardName: 'Heal Herb' },
     ],
     shrubs: towerShrubs,
@@ -1359,13 +1533,63 @@ export function createYs2World(): Record<string, ZoneDef> {
         id: 'lance_overlook_sign',
         tx: 26,
         ty: 35,
-        kind: 'statue',
-        title: 'SKY CLIFF OVERLOOK',
+        kind: 'telescope',
+        title: 'SKY CLIFF OBSERVATORY SPYGLASS',
         lines: [
-          'Far below the swirling clouds lies the distant island of Esteria.',
+          'Far below the swirling sunlit clouds lies the distant emerald island of Esteria.',
           'A gentle wind carries the melody of the twin Goddesses Feena & Reah.',
         ],
         inspected: false,
+      },
+      {
+        id: 'lance_forge_anvil',
+        tx: 42,
+        ty: 10,
+        kind: 'anvil',
+        title: 'ANCIENT CLERIA ANVIL',
+        lines: [
+          'A silver-inlaid forge anvil that hums faintly with residual Ys magic.',
+          'Forging notes: "Press Shift or X to unleash Fireball Magic once you claim the Fire Ring!"',
+        ],
+        inspected: false,
+      },
+      {
+        id: 'lance_village_board',
+        tx: 22,
+        ty: 17,
+        kind: 'noticeboard',
+        title: 'LANCE VILLAGE SQUARE BOARD',
+        lines: [
+          'DR. FLAIR: "Seeking fresh Celceta Blossoms from the western garden shrubs for Lilia’s remedy."',
+          'ELDER: "Every marble Goddess Statue in Moondoria responds to a brave traveler’s touch."',
+        ],
+        inspected: false,
+      },
+      {
+        id: 'lance_sky_bell',
+        tx: 34,
+        ty: 17,
+        kind: 'bell',
+        title: 'WINDCHIME SKY BELFRY',
+        lines: [
+          'A silver-bronze bell tuned to the drifting sky currents of Floating Ys.',
+          'Its pure chime refreshes your strength! (HP & MP restored!)',
+        ],
+        inspected: false,
+        healMp: true,
+      },
+      {
+        id: 'lance_elder_tome',
+        tx: 15,
+        ty: 10,
+        kind: 'bookshelf',
+        title: 'CHRONICLE OF FLOATING YS',
+        lines: [
+          'A bound parchment volume describing the six winged sanctuaries suspended above Esteria.',
+          'Tucked inside the bookmark you find 80 Gold in antique Cleria coinage!',
+        ],
+        inspected: false,
+        rewardGold: 80,
       },
     ],
     enemySpawns: [],
