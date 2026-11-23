@@ -13,11 +13,14 @@ import {
   spawnBurst,
   stepParticlesAndPopups,
 } from './classicArcadeInterface';
-import { arcadeAudio } from './audio';
 import { arcadeMusic } from './musicEngine';
+import { ysAcousticSfx } from './ysAcousticSfx';
 import {
+  ForageItemId,
   PortraitId,
   WorldChest,
+  WorldCraftStation,
+  WorldForageNode,
   WorldInspectable,
   WorldNpc,
   WorldShrub,
@@ -34,20 +37,26 @@ import {
   getYsPixelAtlas,
   themeToWallKind,
 } from './ysPixelAtlas';
-import { YsCameraZoomMode, YsThreeWorldRenderer } from './ysThreeWorldRenderer';
+import {
+  YsCameraZoomMode,
+  YsThreeNpcRuntimeView,
+  YsThreeWorldRenderer,
+  YsWeatherKind,
+} from './ysThreeWorldRenderer';
 
 export type { YsBookVariant } from './ysWorldBuilder';
 
 const sfx = {
-  playCoin: () => arcadeAudio.playCoin(),
-  playShoot: () => arcadeAudio.playLaser(),
-  playPellet: () => arcadeAudio.playWaka(),
-  playPowerup: () => arcadeAudio.playKeyUnlock(),
-  playBounce: () => arcadeAudio.playRockThud(),
-  playEnemyHit: () => arcadeAudio.playEatGhost(),
-  playExplosion: () => arcadeAudio.playExplosion(),
-  playStageClear: () => arcadeAudio.playStageClear(),
-  playGameOver: () => arcadeAudio.playDeath(),
+  playCoin: () => ysAcousticSfx.playHarpChime(),
+  playShoot: () => ysAcousticSfx.playAiryCast(),
+  playPellet: () => ysAcousticSfx.playSoftTap(),
+  playPowerup: () => ysAcousticSfx.playDiscoveryBloom(),
+  playBounce: () => ysAcousticSfx.playWoodKnock(),
+  playEnemyHit: () => ysAcousticSfx.playTactileHit(),
+  playExplosion: () => ysAcousticSfx.playResonantBloom(),
+  playStageClear: () => ysAcousticSfx.playPianoVictory(),
+  playGameOver: () => ysAcousticSfx.playPianoRetreat(),
+  playThunder: () => ysAcousticSfx.playDistantThunder(),
 };
 
 // ============================================================================
@@ -136,12 +145,16 @@ interface ArmorGib {
   maxLife: number;
 }
 
+type MenuShopKind = 'weapon' | 'armor' | 'inn' | 'bakery' | 'forge' | 'alchemy' | 'cooking' | 'satchel';
+
 interface DialogueOverlay {
   speaker: string;
   portrait: PortraitId;
   lines: string[];
-  shopKind?: 'weapon' | 'armor' | 'inn';
+  shopKind?: MenuShopKind;
   cursor: number;
+  speakerNpc?: WorldNpc;
+  focusPos?: { x: number; y: number };
 }
 
 interface ShopOption {
@@ -152,7 +165,7 @@ interface ShopOption {
 }
 
 interface InteractTarget {
-  kind: 'npc' | 'inspect' | 'shrub' | 'chest';
+  kind: 'npc' | 'inspect' | 'shrub' | 'chest' | 'forage' | 'station';
   x: number;
   y: number;
   label: string;
@@ -160,6 +173,43 @@ interface InteractTarget {
   inspectable?: WorldInspectable;
   shrub?: WorldShrub;
   chest?: WorldChest;
+  forage?: WorldForageNode;
+  station?: WorldCraftStation;
+}
+
+const FORAGE_META: Record<
+  ForageItemId,
+  { name: string; short: string; color: string; category: 'herb' | 'food' | 'ore' | 'wood' | 'relic' }
+> = {
+  sunleaf_herb: { name: 'Sunleaf Herb', short: 'Sunleaf', color: '#4ade80', category: 'herb' },
+  moonblossom: { name: 'Moonblossom', short: 'Blossom', color: '#c084fc', category: 'herb' },
+  celceta_mint: { name: 'Celceta Mint', short: 'Mint', color: '#2dd4bf', category: 'herb' },
+  wild_berries: { name: 'Wild Berries', short: 'Berries', color: '#f43f5e', category: 'food' },
+  chanterelle: { name: 'Golden Chanterelle', short: 'Mushroom', color: '#fb923c', category: 'food' },
+  orchard_apple: { name: 'Orchard Apple', short: 'Apple', color: '#ef4444', category: 'food' },
+  honeycomb: { name: 'Wild Honeycomb', short: 'Honey', color: '#facc15', category: 'food' },
+  iron_ore: { name: 'Iron Ore', short: 'Iron', color: '#cbd5e1', category: 'ore' },
+  silver_ore: { name: 'Silver Ore', short: 'Silver', color: '#38bdf8', category: 'ore' },
+  obsidian_shard: { name: 'Obsidian Shard', short: 'Obsidian', color: '#a855f7', category: 'ore' },
+  oak_timber: { name: 'Seasoned Oak', short: 'Timber', color: '#d97706', category: 'wood' },
+  ancient_gear: { name: 'Ancient Gear', short: 'Gear', color: '#fde047', category: 'relic' },
+};
+
+function createStarterForageBag(): Record<ForageItemId, number> {
+  return {
+    sunleaf_herb: 1,
+    moonblossom: 0,
+    celceta_mint: 0,
+    wild_berries: 1,
+    chanterelle: 0,
+    orchard_apple: 0,
+    honeycomb: 0,
+    iron_ore: 0,
+    silver_ore: 0,
+    obsidian_shard: 0,
+    oak_timber: 0,
+    ancient_gear: 0,
+  };
 }
 
 const TILE = 44;
@@ -212,6 +262,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   private bodyAngle = Math.PI * 0.5; // Continuous smooth 3D body yaw (radians)
   private moveSpeedFrac = 0;
   private walkAnim = 0;
+  private footstepTimer = 0;
   private standStillTimer = 0;
   private invulnTimer = 0;
   private lungeTimer = 0;
@@ -223,6 +274,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   // Portal transition stability (fixes map-bounce bug completely!)
   private portalCooldown = 0;
   private zoneFade = 0;
+  private activeMusicTrackId = '';
 
   private level = 1;
   private exp = 0;
@@ -247,9 +299,31 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   private magicCd = 0;
   private autoHealPulse = 0;
 
+  // Scavenging Satchel & Forge / Alchemy / Cooking Crafting Progression
+  private forageBag: Record<ForageItemId, number> = createStarterForageBag();
+  private craftedItems = { salve: 0, elixir: 0, tonic: 0, stew: 0, pie: 0 };
+  private forgedAtkBonus = 0;
+  private forgedDefBonus = 0;
+  private forgedRelics = new Set<string>();
+  private speedBuffTimer = 0;
+  private totalForaged = 0;
+  private totalCrafted = 0;
+
   private flags = new Set<string>();
   private openedChests = new Set<string>();
   private npcAngles = new Map<string, number>();
+  private npcStates = new Map<
+    string,
+    YsThreeNpcRuntimeView & {
+      wpIdx: number;
+      waitTimer: number;
+      fxCooldown: number;
+      behaviorTimer: number;
+      behaviorCooldown: number;
+      springVelY: number;
+      chatPartnerId?: string;
+    }
+  >();
 
   // World, Pixel Atlas & Camera
   private zones: Record<string, ZoneDef> = {};
@@ -266,11 +340,26 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   private atlas: YsPixelAtlas | null = null;
   private threeRenderer: YsThreeWorldRenderer | null = null;
   private threeInitFailed = false;
+  private cameraStep90 = 0; // 0=N (45° normal), 1=W (135°), 2=S (225°), 3=E (315°)
   private cameraYaw = Math.PI * 0.25; // True 45° Isometric 2.5D Evo Angle!
   private targetCameraYaw = Math.PI * 0.25;
   private cameraZoomMode: YsCameraZoomMode = 'evo45';
+  private cameraZoomScale = 1.0;
   private prevPointerActive = false;
   private cameraKeyHandler: ((e: KeyboardEvent) => void) | null = null;
+  private cameraWheelHandler: ((e: WheelEvent) => void) | null = null;
+
+  // Dynamic Calendar (Days of Week), Circadian Time-of-Day, Weather & Directional Wind Engine
+  private dayOfWeek = 1; // 0=SUN, 1=MON, ..., 6=SAT
+  private dayNumber = 1;
+  private timeOfDayHours = 9.5; // Starts crisp at 09:30 AM Monday
+  private weather: YsWeatherKind = 'clear';
+  private weatherTimer = 78;
+  private lightningFlash = 0;
+  private lightningTimer = 6.5;
+  private windCompassDeg = 60; // 0°=N (up-screen in 45° normal view), 90°=E, 180°=S, 270°=W
+  private targetWindCompassDeg = 60;
+  private windShiftTimer = 34;
 
   // PC Engine CD / Chronicles+ Dialogue & Combat VFX
   private dialogue: DialogueOverlay | null = null;
@@ -315,37 +404,308 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     this.highScore = readHighScore(this.highScoreKey);
     this.zones = variant === 'ys1' ? createYs1World() : createYs2World();
     this.resetHeroState();
-    this.enterZone(variant === 'ys1' ? 'minea' : 'lance', 28, 22, false);
+    this.enterZone(variant === 'ys1' ? 'minea' : 'lance', variant === 'ys1' ? 52 : 48, variant === 'ys1' ? 40 : 36, false);
     this.phase = 'TITLE';
 
     if (typeof window !== 'undefined') {
       this.cameraKeyHandler = (e: KeyboardEvent) => {
-        if (this.dialogue) return;
         const k = e.key.toLowerCase();
+        if (k === 'c' && this.phase === 'PLAYING') {
+          if (this.dialogue?.shopKind === 'satchel') {
+            this.dialogue = null;
+            sfx.playPellet();
+          } else if (!this.dialogue && !this.showFullMap) {
+            this.openSatchelMenu();
+            sfx.playPellet();
+          }
+          return;
+        }
+        if (k === 'escape' && this.dialogue) {
+          this.dialogue = null;
+          sfx.playPellet();
+          return;
+        }
+        if (this.dialogue) return;
         if (k === 'v') {
           this.cycleCameraZoomMode();
         } else if (k === 'q') {
-          this.targetCameraYaw -= Math.PI / 12; // Smooth -15° 3D orbit
+          this.rotateCamera90(-1); // Crisp -90° rotation from 45° isometric!
         } else if (k === 'e') {
-          this.targetCameraYaw += Math.PI / 12; // Smooth +15° 3D orbit
+          this.rotateCamera90(1); // Crisp +90° rotation from 45° isometric!
+        } else if (k === 't') {
+          this.advanceTimeOfDay(3);
+        } else if (k === 'g') {
+          this.cycleWeather();
+        } else if (k === 'b') {
+          this.shiftWindDirection(45);
+        } else if (k === '=' || k === '+') {
+          this.cameraZoomScale = Math.max(0.48, +(this.cameraZoomScale - 0.14).toFixed(2));
+          this.zoneBannerText = `ZOOM · ${Math.round((1 / this.cameraZoomScale) * 100)}%`;
+          this.zoneBannerTimer = 1.1;
+        } else if (k === '-' || k === '_') {
+          this.cameraZoomScale = Math.min(1.85, +(this.cameraZoomScale + 0.14).toFixed(2));
+          this.zoneBannerText = `ZOOM · ${Math.round((1 / this.cameraZoomScale) * 100)}%`;
+          this.zoneBannerTimer = 1.1;
         } else if (k === 'r') {
-          this.targetCameraYaw = Math.PI * 0.25; // Snap back to true 45° isometric
-          this.zoneBannerText = 'CAMERA · 45° ISOMETRIC';
+          this.cameraStep90 = 0;
+          this.targetCameraYaw = Math.PI * 0.25; // Snap back to North-facing 45° normal isometric view
+          this.cameraZoomScale = 1.0;
+          this.zoneBannerText = 'CAMERA · N (45° NORMAL VIEW)';
           this.zoneBannerTimer = 1.6;
         }
       };
+      this.cameraWheelHandler = (e: WheelEvent) => {
+        if (this.phase !== 'PLAYING' || this.dialogue) return;
+        const target = e.target as HTMLElement | null;
+        if (!target || target.tagName !== 'CANVAS') return;
+        e.preventDefault();
+        const step = Math.sign(e.deltaY) * 0.09;
+        this.cameraZoomScale = Math.max(0.48, Math.min(1.85, +(this.cameraZoomScale + step).toFixed(3)));
+      };
       window.addEventListener('keydown', this.cameraKeyHandler);
+      window.addEventListener('wheel', this.cameraWheelHandler, { passive: false });
     }
   }
 
+  private rotateCamera90(deltaStep: number): void {
+    this.cameraStep90 += deltaStep;
+    this.targetCameraYaw = Math.PI * 0.25 + this.cameraStep90 * (Math.PI * 0.5);
+    const compass = this.getCameraCompassInfo();
+    this.zoneBannerText = `FACING ${compass.dir} · ${compass.deg}° VIEW`;
+    this.zoneBannerTimer = 1.5;
+    sfx.playPellet();
+  }
+
+  private getCameraCompassInfo(): { dir: string; deg: number; compassDeg: number } {
+    // N/S/E/W aligned directly along the 45° normal view:
+    // step 0 (45°) looks N, step 1 (135°) looks W, step 2 (225°) looks S, step 3 (315°) looks E!
+    const idx = ((this.cameraStep90 % 4) + 4) % 4;
+    const dirs = ['N', 'W', 'S', 'E'];
+    const degs = [45, 135, 225, 315];
+    const compassDegs = [0, 270, 180, 90];
+    return { dir: dirs[idx], deg: degs[idx], compassDeg: compassDegs[idx] };
+  }
+
+  private getWindPhysics(): {
+    compassDeg: number;
+    compassRad: number;
+    dirX: number;
+    dirZ: number;
+    speed: number;
+    knots: number;
+    label: string;
+  } {
+    const normDeg = ((this.windCompassDeg % 360) + 360) % 360;
+    const compassRad = (normDeg * Math.PI) / 180;
+    // Align 0° (N) straight along the 45° normal camera forward vector (-0.7071, -0.7071),
+    // 90° (E) to (+0.7071, -0.7071), 180° (S) to (+0.7071, +0.7071), 270° (W) to (-0.7071, +0.7071)!
+    const worldAngle = Math.PI * 0.25 - compassRad;
+    const dirX = -Math.sin(worldAngle);
+    const dirZ = -Math.cos(worldAngle);
+    const baseSpeed =
+      this.weather === 'storm'
+        ? 4.05
+        : this.weather === 'breezy'
+          ? 2.85
+          : this.weather === 'rain'
+            ? 2.25
+            : this.weather === 'snow'
+              ? 1.75
+              : 1.55;
+    const gust = 1 + Math.sin(this.time * 0.65) * 0.14;
+    const speed = baseSpeed * gust;
+    const knots = Math.max(3, Math.round(speed * 5.2));
+    const labels = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const label = labels[Math.round(normDeg / 45) % 8];
+    return { compassDeg: normDeg, compassRad, dirX, dirZ, speed, knots, label };
+  }
+
+  private shiftWindDirection(deltaDeg = 45): void {
+    this.targetWindCompassDeg = (((this.targetWindCompassDeg + deltaDeg) % 360) + 360) % 360;
+    this.windShiftTimer = 36;
+    const labels = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const nextLbl = labels[Math.round(this.targetWindCompassDeg / 45) % 8];
+    const wind = this.getWindPhysics();
+    this.zoneBannerText = `WIND SHIFT · BLOWING ${nextLbl} (${wind.knots} KT)`;
+    this.zoneBannerTimer = 1.7;
+    sfx.playPellet();
+  }
+
+  private getDayTimeMeta(): {
+    dayShort: string;
+    dayFull: string;
+    timeStr: string;
+    period: 'DAWN' | 'MORNING' | 'AFTERNOON' | 'EVENING' | 'NIGHT';
+    isMarketDay: boolean;
+    weatherLabel: string;
+  } {
+    const shortDays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const fullDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const h24 = Math.floor(this.timeOfDayHours) % 24;
+    const mins = Math.floor((this.timeOfDayHours - Math.floor(this.timeOfDayHours)) * 60);
+    const ampm = h24 >= 12 ? 'PM' : 'AM';
+    const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+    const timeStr = `${String(h12).padStart(2, '0')}:${String(mins).padStart(2, '0')} ${ampm}`;
+    const period =
+      this.timeOfDayHours >= 5 && this.timeOfDayHours < 8
+        ? 'DAWN'
+        : this.timeOfDayHours >= 8 && this.timeOfDayHours < 12
+          ? 'MORNING'
+          : this.timeOfDayHours >= 12 && this.timeOfDayHours < 17
+            ? 'AFTERNOON'
+            : this.timeOfDayHours >= 17 && this.timeOfDayHours < 20.5
+              ? 'EVENING'
+              : 'NIGHT';
+    const weatherLabels: Record<YsWeatherKind, string> = {
+      clear: period === 'NIGHT' ? 'STARLIT' : 'SUNNY',
+      breezy: 'BREEZY',
+      rain: 'RAIN',
+      storm: 'STORM',
+      snow: 'SNOW',
+    };
+    const dIdx = ((this.dayOfWeek % 7) + 7) % 7;
+    return {
+      dayShort: shortDays[dIdx],
+      dayFull: fullDays[dIdx],
+      timeStr,
+      period,
+      isMarketDay: dIdx === 0 || dIdx === 3 || dIdx === 6,
+      weatherLabel: weatherLabels[this.weather],
+    };
+  }
+
+  private getDesiredPianoTrack(zone: ZoneDef): string {
+    const meta = this.getDayTimeMeta();
+    const outdoor =
+      zone.theme !== 'interior' &&
+      zone.theme !== 'shrine' &&
+      zone.theme !== 'tower' &&
+      zone.theme !== 'lava';
+    if (outdoor && meta.period === 'NIGHT') {
+      return 'ys_night_nocturne';
+    }
+    if (zone.theme === 'town' || zone.theme === 'village' || zone.theme === 'interior') {
+      return this.variant === 'ys2' ? 'ys_feena' : 'ys_town_fountain';
+    }
+    if (zone.theme === 'plains' || zone.theme === 'ruins') {
+      return 'ys_falcom_rock';
+    }
+    if (zone.theme === 'tower' || zone.theme === 'lava' || zone.theme === 'ice') {
+      return 'ys_tower_end';
+    }
+    return 'ys_shrine_palace';
+  }
+
+  private syncZonePianoScore(zone: ZoneDef): void {
+    if (typeof window === 'undefined') return;
+    const trackId = this.getDesiredPianoTrack(zone);
+    if (trackId !== this.activeMusicTrackId) {
+      this.activeMusicTrackId = trackId;
+      arcadeMusic.switchTrackById(trackId);
+    }
+  }
+
+  private advanceTimeOfDay(deltaHours: number): void {
+    this.timeOfDayHours += deltaHours;
+    while (this.timeOfDayHours >= 24) {
+      this.timeOfDayHours -= 24;
+      this.dayOfWeek = (this.dayOfWeek + 1) % 7;
+      this.dayNumber++;
+    }
+    const meta = this.getDayTimeMeta();
+    this.zoneBannerText = `${meta.dayShort} DAY ${this.dayNumber} · ${meta.timeStr} (${meta.period})`;
+    this.zoneBannerTimer = 2.0;
+    const activeZone = this.zones[this.currentZoneId];
+    if (activeZone && this.phase === 'PLAYING') {
+      this.syncZonePianoScore(activeZone);
+    }
+    sfx.playPellet();
+  }
+
+  private cycleWeather(): void {
+    const order: YsWeatherKind[] = ['clear', 'breezy', 'rain', 'storm', 'snow'];
+    const idx = order.indexOf(this.weather);
+    this.weather = order[(idx + 1) % order.length];
+    this.weatherTimer = 95;
+    if (this.weather === 'storm') {
+      this.lightningFlash = 0.85;
+      this.lightningTimer = 4.5;
+      sfx.playThunder();
+    }
+    const meta = this.getDayTimeMeta();
+    this.zoneBannerText = `WEATHER · ${meta.weatherLabel}`;
+    this.zoneBannerTimer = 1.8;
+    sfx.playPellet();
+  }
+
+  private stepTimeAndWeather(dt: number, zone: ZoneDef): void {
+    // 1 game hour every ~45 real seconds (24h cycle in ~18 minutes, always feels alive!)
+    this.timeOfDayHours += dt / 45;
+    if (this.timeOfDayHours >= 24) {
+      this.timeOfDayHours -= 24;
+      this.dayOfWeek = (this.dayOfWeek + 1) % 7;
+      this.dayNumber++;
+      const meta = this.getDayTimeMeta();
+      this.zoneBannerText = `DAWN OF ${meta.dayFull.toUpperCase()} · DAY ${this.dayNumber}`;
+      this.zoneBannerTimer = 2.4;
+    }
+
+    // Smoothly transition between daytime piano themes and the serene starlit night nocturne
+    this.syncZonePianoScore(zone);
+
+    if (this.lightningFlash > 0) {
+      this.lightningFlash = Math.max(0, this.lightningFlash - dt * 3.4);
+    }
+
+    const outdoor = zone.theme !== 'interior' && zone.theme !== 'shrine' && zone.theme !== 'tower' && zone.theme !== 'lava';
+    if (outdoor && this.weather === 'storm') {
+      this.lightningTimer -= dt;
+      if (this.lightningTimer <= 0) {
+        this.lightningFlash = 0.92;
+        this.lightningTimer = 5.5 + Math.random() * 7.5;
+        this.screenShake = Math.max(this.screenShake, 0.14);
+        sfx.playThunder();
+      }
+    }
+
+    this.weatherTimer -= dt;
+    if (this.weatherTimer <= 0) {
+      this.weatherTimer = 68 + Math.random() * 55;
+      if (zone.theme === 'ice') {
+        this.weather = Math.random() < 0.65 ? 'snow' : 'breezy';
+      } else {
+        const roll = Math.random();
+        if (roll < 0.42) this.weather = 'clear';
+        else if (roll < 0.66) this.weather = 'breezy';
+        else if (roll < 0.86) this.weather = 'rain';
+        else if (roll < 0.96) this.weather = 'storm';
+        else this.weather = 'snow';
+      }
+      this.targetWindCompassDeg = (((this.targetWindCompassDeg + (Math.random() - 0.5) * 90) % 360) + 360) % 360;
+    }
+
+    // Smoothly veer directional wind along the 45°-aligned N/S/E/W compass
+    this.windShiftTimer -= dt;
+    if (this.windShiftTimer <= 0) {
+      this.windShiftTimer = 28 + Math.random() * 24;
+      const veer = (Math.random() < 0.5 ? -1 : 1) * (25 + Math.random() * 35);
+      this.targetWindCompassDeg = (((this.targetWindCompassDeg + veer) % 360) + 360) % 360;
+    }
+    const windDiff = ((((this.targetWindCompassDeg - this.windCompassDeg) % 360) + 540) % 360) - 180;
+    this.windCompassDeg = (((this.windCompassDeg + windDiff * (1 - Math.exp(-2.2 * dt))) % 360) + 360) % 360;
+  }
+
   private cycleCameraZoomMode(): void {
-    const order: YsCameraZoomMode[] = ['evo45', 'wide45', 'fullmap45'];
+    const order: YsCameraZoomMode[] = ['close45', 'evo45', 'wide45', 'fullmap45'];
     const idx = order.indexOf(this.cameraZoomMode);
     this.cameraZoomMode = order[(idx + 1) % order.length];
+    this.cameraZoomScale = 1.0;
+    const compass = this.getCameraCompassInfo();
     const labels: Record<YsCameraZoomMode, string> = {
-      evo45: 'CAMERA · 45° EVO 2.5D',
-      wide45: 'CAMERA · 45° WIDE VISTA',
-      fullmap45: 'CAMERA · 45° FULL MAP DIORAMA',
+      close45: `CAMERA · ${compass.dir} ${compass.deg}° CLOSE-UP`,
+      evo45: `CAMERA · ${compass.dir} ${compass.deg}° EVO 2.5D`,
+      wide45: `CAMERA · ${compass.dir} ${compass.deg}° WIDE VISTA`,
+      fullmap45: `CAMERA · ${compass.dir} ${compass.deg}° FULL MAP`,
     };
     this.zoneBannerText = labels[this.cameraZoomMode];
     this.zoneBannerTimer = 2.0;
@@ -374,6 +734,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     this.flags.clear();
     this.openedChests.clear();
     this.npcAngles.clear();
+    this.npcStates.clear();
     this.unlockedMagic.clear();
     this.equippedRing = this.variant === 'ys2' ? 'power' : 'none';
     if (this.variant === 'ys2') {
@@ -385,8 +746,29 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     this.hitStopTimer = 0;
     this.portalCooldown = 0;
     this.zoneFade = 0;
+    this.forageBag = createStarterForageBag();
+    this.craftedItems = { salve: 0, elixir: 0, tonic: 0, stew: 0, pie: 0 };
+    this.forgedAtkBonus = 0;
+    this.forgedDefBonus = 0;
+    this.forgedRelics.clear();
+    this.speedBuffTimer = 0;
+    this.totalForaged = 0;
+    this.totalCrafted = 0;
     this.dialogue = null;
     this.showFullMap = false;
+    this.cameraStep90 = 0;
+    this.cameraYaw = Math.PI * 0.25;
+    this.targetCameraYaw = Math.PI * 0.25;
+    this.dayOfWeek = 1;
+    this.dayNumber = 1;
+    this.timeOfDayHours = 9.5;
+    this.weather = 'clear';
+    this.weatherTimer = 78;
+    this.lightningFlash = 0;
+    this.lightningTimer = 6.5;
+    this.windCompassDeg = 60;
+    this.targetWindCompassDeg = 60;
+    this.windShiftTimer = 34;
     this.particles = [];
     this.popups = [];
     this.combatBolts = [];
@@ -397,8 +779,12 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   public startNewGame(): void {
     this.zones = this.variant === 'ys1' ? createYs1World() : createYs2World();
     this.resetHeroState();
+    this.activeMusicTrackId = '';
+    if (typeof window !== 'undefined') {
+      arcadeMusic.startTrackForGame(this.variant);
+    }
     const startZone = this.variant === 'ys1' ? 'minea' : 'lance';
-    this.enterZone(startZone, 28, 22, true);
+    this.enterZone(startZone, this.variant === 'ys1' ? 52 : 48, this.variant === 'ys1' ? 40 : 36, true);
     this.phase = 'PLAYING';
     sfx.playCoin();
 
@@ -407,9 +793,9 @@ export class YsBookRpgGame implements ArcadeGameInstance {
         speaker: 'SARA THE FORTUNE TELLER',
         portrait: 'sara',
         lines: [
-          'Adol! Esteria is vast—investigate townsfolk, signs, statues, & rustling shrubs!',
-          'Walk right into bushes to search them, & slip behind tall trees to scout hidden lanes.',
-          'Walk through the wide North Gate to enter Esteria Plains & the Shrine of Solomon!',
+          'Adol! Welcome to the grand port of Minea—step through any glowing golden doorway to enter shops, smitheries, taverns, & parlors!',
+          'Visit me inside Sara’s Fortune Parlor (NW), Pim’s Weapon Smithery (NE), & inspect fountains, anvils, & rustling shrubs!',
+          'Walk through the North Gate to explore the vast Esteria Plains, Zepik Village houses, & the Shrine of Solomon!',
         ],
         cursor: 0,
       };
@@ -418,8 +804,8 @@ export class YsBookRpgGame implements ArcadeGameInstance {
         speaker: 'LILIA OF LANCE VILLAGE',
         portrait: 'lilia',
         lines: [
-          'Adol, you awakened atop the sprawling Floating Land of Ys!',
-          'Search our flower shrubs for the Celceta Blossom, & press [SHIFT/X] for Fire Magic!',
+          'Adol, you awakened atop the vast Floating Land of Ys! Step through golden doorways to visit cottages, Ys Forge, & Dr. Flair’s Clinic!',
+          'Search our flower shrubs for the Celceta Blossom, visit me inside my cottage (NW), & press [SHIFT/X] for Fire Magic!',
           'Head through the North Gate to explore Moondoria, Ice Ridge of Noltia, & Solomon Core!',
         ],
         cursor: 0,
@@ -442,7 +828,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     this.hp = this.maxHp;
     this.mp = this.maxMp;
     const town = this.variant === 'ys1' ? 'minea' : 'lance';
-    this.enterZone(town, 28, 22, true);
+    this.enterZone(town, this.variant === 'ys1' ? 52 : 48, this.variant === 'ys1' ? 40 : 36, true);
     this.phase = 'PLAYING';
   }
 
@@ -455,6 +841,10 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       window.removeEventListener('keydown', this.cameraKeyHandler);
       this.cameraKeyHandler = null;
     }
+    if (this.cameraWheelHandler && typeof window !== 'undefined') {
+      window.removeEventListener('wheel', this.cameraWheelHandler);
+      this.cameraWheelHandler = null;
+    }
     if (this.threeRenderer) {
       this.threeRenderer.dispose();
       this.threeRenderer = null;
@@ -466,15 +856,15 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   // ---------------------------------------------------------------------------
   private getActiveQuestHint(): string {
     if (this.variant === 'ys1') {
-      if (!this.flags.has('sara_crystal')) return 'Quest: Search Minea Plaza shrubs for Sara’s Crystal';
-      if (!this.flags.has('sara_blessing')) return 'Quest: Return Sapphire Crystal to Sara in Minea';
+      if (!this.flags.has('sara_crystal')) return 'Quest: Search Minea Plaza shrubs & enter Sara’s Parlor (NW)';
+      if (!this.flags.has('sara_blessing')) return 'Quest: Enter Sara’s Fortune Parlor (NW) with her Crystal';
       if (!this.flags.has('roda_blessing')) return 'Quest: Investigate the Ancient Roda Tree in Esteria Plains';
       if (!this.flags.has('shrine_boss')) return 'Quest: Explore Shrine of Solomon (NW) & defeat Jenocres';
       if (!this.flags.has('ys1_clear')) return 'Quest: Ascend Darm Tower (NE) & vanquish Dark Fact';
-      return 'Esteria Saved! Explore remaining secrets & Books of Ys!';
+      return 'Esteria Saved! Explore remaining buildings, secrets & Books of Ys!';
     } else {
-      if (!this.flags.has('celceta_blossom')) return 'Quest: Search western Lance shrubs for Celceta Blossom';
-      if (!this.flags.has('lilia_charm')) return 'Quest: Bring Celceta Blossom to Lilia in Lance Village';
+      if (!this.flags.has('celceta_blossom')) return 'Quest: Search western Lance shrubs & enter Lilia’s Cottage (NW)';
+      if (!this.flags.has('lilia_charm')) return 'Quest: Enter Lilia’s Cottage (NW) with the Celceta Blossom';
       if (!this.flags.has('velagunder')) return 'Quest: Investigate Ruins of Moondoria & defeat Velagunder';
       if (!this.flags.has('tyalmath')) return 'Quest: Cross Ice Ridge of Noltia & defeat Tyalmath';
       if (!this.flags.has('ys2_clear')) return 'Quest: Enter Solomon Core & vanquish Darm!';
@@ -500,6 +890,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     this.enemies = [];
     this.activeBoss = null;
     this.inShrubId = null;
+    this.initNpcStates(z);
 
     // Populate zone enemies
     for (const sp of z.enemySpawns) {
@@ -545,18 +936,15 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     this.camX = Math.max(halfW, Math.min(z.width * TILE - halfW, this.px));
     this.camY = Math.max(halfHWorld, Math.min(z.height * TILE - halfHWorld, this.py));
 
-    // Switch charming per-zone background soundtrack (Town Fountain / Esteria Field / Palace Shrine)
+    // Switch serene per-zone & circadian Concert Grand Piano soundtrack
     if (announce && typeof window !== 'undefined') {
-      const trackId =
-        z.theme === 'town' || z.theme === 'village'
-          ? 'ys_town_fountain'
-          : z.theme === 'plains' || z.theme === 'ruins'
-            ? 'ys_falcom_rock'
-            : 'ys_shrine_palace';
-      arcadeMusic.switchTrackById(trackId);
+      this.syncZonePianoScore(z);
     }
 
     if (announce) {
+      const burstCol = z.theme === 'interior' ? '#fde047' : '#38bdf8';
+      spawnBurst(this.particles, this.px, this.py, burstCol, 14, 115, 2.8);
+      this.threeRenderer?.spawnGpuBurst(this.px, this.py, burstCol, 18, 3.4);
       this.zoneBannerText = `${z.name} — ${z.subtitle}`;
       this.zoneBannerTimer = 2.8;
     }
@@ -601,13 +989,67 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   }
 
   private getEffectiveAtk(): number {
-    const base = 8 + this.level * 4 + this.WEAPONS[this.weaponTier].atk;
+    const tonicBonus = this.speedBuffTimer > 0 ? 6 : 0;
+    const base = 8 + this.level * 4 + this.WEAPONS[this.weaponTier].atk + this.forgedAtkBonus + tonicBonus;
     return this.equippedRing === 'power' ? Math.round(base * 1.25) : base;
   }
 
   private getEffectiveDef(): number {
-    const base = 4 + this.level * 3 + this.ARMORS[this.armorTier].def + this.SHIELDS[this.shieldTier].def;
+    const base = 4 + this.level * 3 + this.ARMORS[this.armorTier].def + this.SHIELDS[this.shieldTier].def + this.forgedDefBonus;
     return this.equippedRing === 'shield' ? Math.round(base * 1.25) : base;
+  }
+
+  private getTotalBagCount(): number {
+    let total = 0;
+    for (const v of Object.values(this.forageBag)) total += v;
+    total += this.craftedItems.salve + this.craftedItems.elixir + this.craftedItems.tonic + this.craftedItems.stew + this.craftedItems.pie;
+    return total;
+  }
+
+  private getBagSummaryLine(): string {
+    const b = this.forageBag;
+    const parts: string[] = [];
+    if (b.sunleaf_herb > 0) parts.push(`Sunleaf:${b.sunleaf_herb}`);
+    if (b.moonblossom > 0) parts.push(`Blossom:${b.moonblossom}`);
+    if (b.celceta_mint > 0) parts.push(`Mint:${b.celceta_mint}`);
+    if (b.wild_berries > 0) parts.push(`Berries:${b.wild_berries}`);
+    if (b.chanterelle > 0) parts.push(`Shroom:${b.chanterelle}`);
+    if (b.orchard_apple > 0) parts.push(`Apple:${b.orchard_apple}`);
+    if (b.honeycomb > 0) parts.push(`Honey:${b.honeycomb}`);
+    if (b.iron_ore > 0) parts.push(`Iron:${b.iron_ore}`);
+    if (b.silver_ore > 0) parts.push(`Silver:${b.silver_ore}`);
+    if (b.obsidian_shard > 0) parts.push(`Obsidian:${b.obsidian_shard}`);
+    if (b.oak_timber > 0) parts.push(`Oak:${b.oak_timber}`);
+    if (b.ancient_gear > 0) parts.push(`Gear:${b.ancient_gear}`);
+    return parts.length > 0
+      ? `Satchel: ${parts.join(' · ')}`
+      : 'Satchel empty — gather wild herbs, berries, mushrooms, ore & timber across fields and towns!';
+  }
+
+  private openSatchelMenu(): void {
+    this.dialogue = {
+      speaker: 'SCAVENGER SATCHEL [C]',
+      portrait: 'adol',
+      lines: [
+        this.getBagSummaryLine(),
+        `Crafted: Salve:${this.craftedItems.salve} · Elixir:${this.craftedItems.elixir} · Tonic:${this.craftedItems.tonic} · Stew:${this.craftedItems.stew} · Pie:${this.craftedItems.pie}`,
+      ],
+      shopKind: 'satchel',
+      cursor: 0,
+    };
+  }
+
+  private hasMaterials(reqs: Partial<Record<ForageItemId, number>>): boolean {
+    for (const [k, need] of Object.entries(reqs) as Array<[ForageItemId, number]>) {
+      if ((this.forageBag[k] ?? 0) < need) return false;
+    }
+    return true;
+  }
+
+  private consumeMaterials(reqs: Partial<Record<ForageItemId, number>>): void {
+    for (const [k, need] of Object.entries(reqs) as Array<[ForageItemId, number]>) {
+      this.forageBag[k] = Math.max(0, (this.forageBag[k] ?? 0) - need);
+    }
   }
 
   private addScore(pts: number): void {
@@ -636,7 +1078,423 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     }
   }
 
-  private getShopOptions(kind: 'weapon' | 'armor' | 'inn'): ShopOption[] {
+  private getShopOptions(kind: MenuShopKind): ShopOption[] {
+    if (kind === 'forge') {
+      const b = this.forageBag;
+      return [
+        {
+          label: this.forgedRelics.has('iron_blade') ? 'Tempered Iron Blade [FORGED]' : 'Forge Tempered Iron Blade',
+          cost: 0,
+          desc: `2 Iron (${b.iron_ore}) + 1 Oak (${b.oak_timber}) → +6 ATK`,
+          action: () => {
+            if (this.forgedRelics.has('iron_blade')) return 'Already forged Tempered Iron Blade!';
+            if (!this.hasMaterials({ iron_ore: 2, oak_timber: 1 })) {
+              return 'Need 2 Iron Ore & 1 Seasoned Oak! Scavenge ore outcrops & timber stacks.';
+            }
+            this.consumeMaterials({ iron_ore: 2, oak_timber: 1 });
+            this.forgedRelics.add('iron_blade');
+            this.forgedAtkBonus += 6;
+            this.weaponTier = Math.max(this.weaponTier, 1);
+            this.totalCrafted++;
+            this.addScore(280);
+            sfx.playStageClear();
+            spawnBurst(this.particles, this.px, this.py, '#fb923c', 22, 150, 3.4);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fb923c', 26, 4.0);
+            this.popups.push({ x: this.px, y: this.py - 28, text: 'FORGED IRON BLADE! +6 ATK', color: '#fb923c', life: 1.6, maxLife: 1.6 });
+            return 'Clang! Hammered a razor-sharp Tempered Iron Blade (+6 ATK)!';
+          },
+        },
+        {
+          label: this.forgedRelics.has('sun_buckler') ? 'Sunforged Buckler [FORGED]' : 'Forge Sunforged Buckler',
+          cost: 0,
+          desc: `2 Iron (${b.iron_ore}) + 1 Silver (${b.silver_ore}) → +5 DEF`,
+          action: () => {
+            if (this.forgedRelics.has('sun_buckler')) return 'Already forged Sunforged Buckler!';
+            if (!this.hasMaterials({ iron_ore: 2, silver_ore: 1 })) {
+              return 'Need 2 Iron Ore & 1 Silver Ore! Look along rocky hills & ruined walls.';
+            }
+            this.consumeMaterials({ iron_ore: 2, silver_ore: 1 });
+            this.forgedRelics.add('sun_buckler');
+            this.forgedDefBonus += 5;
+            this.shieldTier = Math.max(this.shieldTier, 1);
+            this.totalCrafted++;
+            this.addScore(320);
+            sfx.playStageClear();
+            spawnBurst(this.particles, this.px, this.py, '#38bdf8', 22, 150, 3.4);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#38bdf8', 24, 3.8);
+            this.popups.push({ x: this.px, y: this.py - 28, text: 'FORGED BUCKLER! +5 DEF', color: '#38bdf8', life: 1.6, maxLife: 1.6 });
+            return 'Quenched & gleaming! Sunforged Buckler equipped (+5 DEF)!';
+          },
+        },
+        {
+          label: this.forgedRelics.has('silver_longsword') ? 'Silver-Edged Longsword [FORGED]' : 'Forge Silver-Edged Longsword',
+          cost: 0,
+          desc: `3 Silver (${b.silver_ore}) + 2 Iron (${b.iron_ore}) → +12 ATK`,
+          action: () => {
+            if (this.forgedRelics.has('silver_longsword')) return 'Already forged Silver-Edged Longsword!';
+            if (!this.hasMaterials({ silver_ore: 3, iron_ore: 2 })) {
+              return 'Need 3 Silver Ore & 2 Iron Ore to smelt Silver-Edged steel!';
+            }
+            this.consumeMaterials({ silver_ore: 3, iron_ore: 2 });
+            this.forgedRelics.add('silver_longsword');
+            this.forgedAtkBonus += 12;
+            this.weaponTier = Math.max(this.weaponTier, 3);
+            this.totalCrafted++;
+            this.addScore(520);
+            sfx.playStageClear();
+            spawnBurst(this.particles, this.px, this.py, '#e0f2fe', 26, 170, 3.8);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#38bdf8', 28, 4.2);
+            this.popups.push({ x: this.px, y: this.py - 28, text: 'SILVER LONGSWORD! +12 ATK', color: '#bae6fd', life: 1.7, maxLife: 1.7 });
+            return 'Masterwork! Silver-Edged Longsword blazes with Esterian sheen (+12 ATK)!';
+          },
+        },
+        {
+          label: this.forgedRelics.has('silver_charm') ? 'Traveler Silver Charm [FORGED]' : 'Craft Traveler Silver Charm',
+          cost: 0,
+          desc: `1 Silver (${b.silver_ore}) + 1 Gear (${b.ancient_gear}) + 1 Blossom (${b.moonblossom}) → +25 HP/+3 DEF`,
+          action: () => {
+            if (this.forgedRelics.has('silver_charm')) return 'Already crafted Traveler Silver Charm!';
+            if (!this.hasMaterials({ silver_ore: 1, ancient_gear: 1, moonblossom: 1 })) {
+              return 'Need 1 Silver Ore, 1 Ancient Gear & 1 Moonblossom!';
+            }
+            this.consumeMaterials({ silver_ore: 1, ancient_gear: 1, moonblossom: 1 });
+            this.forgedRelics.add('silver_charm');
+            this.maxHp = Math.min(450, this.maxHp + 25);
+            this.hp = Math.min(this.maxHp, this.hp + 25);
+            this.forgedDefBonus += 3;
+            this.totalCrafted++;
+            this.addScore(420);
+            sfx.playStageClear();
+            spawnBurst(this.particles, this.px, this.py, '#fde047', 24, 155, 3.6);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fde047', 26, 4.0);
+            this.popups.push({ x: this.px, y: this.py - 28, text: '+25 MAX HP · +3 DEF!', color: '#fde047', life: 1.6, maxLife: 1.6 });
+            return 'Filigree silver charm crafted! +25 Max HP & +3 DEF!';
+          },
+        },
+        {
+          label: this.forgedRelics.has('obsidian_blade') ? 'Obsidian Runeblade [FORGED]' : 'Forge Obsidian Runeblade',
+          cost: 0,
+          desc: `2 Obsidian (${b.obsidian_shard}) + 2 Silver (${b.silver_ore}) + 1 Gear (${b.ancient_gear}) → +18 ATK`,
+          action: () => {
+            if (this.forgedRelics.has('obsidian_blade')) return 'Already forged the legendary Obsidian Runeblade!';
+            if (!this.hasMaterials({ obsidian_shard: 2, silver_ore: 2, ancient_gear: 1 })) {
+              return 'Need 2 Obsidian Shards, 2 Silver Ore & 1 Ancient Gear from ruins & shrines!';
+            }
+            this.consumeMaterials({ obsidian_shard: 2, silver_ore: 2, ancient_gear: 1 });
+            this.forgedRelics.add('obsidian_blade');
+            this.forgedAtkBonus += 18;
+            this.weaponTier = Math.max(this.weaponTier, 4);
+            this.totalCrafted++;
+            this.addScore(750);
+            sfx.playStageClear();
+            spawnBurst(this.particles, this.px, this.py, '#c084fc', 30, 185, 4.0);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#c084fc', 34, 4.8);
+            this.popups.push({ x: this.px, y: this.py - 30, text: 'OBSIDIAN RUNEBLADE! +18 ATK', color: '#e879f9', life: 1.9, maxLife: 1.9 });
+            return 'Legendary! The Obsidian Runeblade hums with ancient Ys resonance (+18 ATK)!';
+          },
+        },
+        { label: 'Step Away from Forge', cost: 0, desc: 'Return to world', action: () => 'CLOSE' },
+      ];
+    }
+    if (kind === 'alchemy') {
+      const b = this.forageBag;
+      return [
+        {
+          label: `Brew Celceta Healing Salve (Have ${this.craftedItems.salve})`,
+          cost: 0,
+          desc: `2 Sunleaf (${b.sunleaf_herb}) + 1 Berries (${b.wild_berries}) → +70 HP`,
+          action: () => {
+            if (!this.hasMaterials({ sunleaf_herb: 2, wild_berries: 1 })) {
+              return 'Need 2 Sunleaf Herbs & 1 Wild Berries from town gardens or meadows!';
+            }
+            this.consumeMaterials({ sunleaf_herb: 2, wild_berries: 1 });
+            this.craftedItems.salve++;
+            this.totalCrafted++;
+            this.addScore(140);
+            sfx.playPowerup();
+            spawnBurst(this.particles, this.px, this.py, '#4ade80', 18, 130, 3.2);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#4ade80', 22, 3.6);
+            return `Simmered emerald Celceta Salve! Press [C] Satchel anytime to heal +70 HP (x${this.craftedItems.salve}).`;
+          },
+        },
+        {
+          label: `Distill Moonlight Mana Elixir (Have ${this.craftedItems.elixir})`,
+          cost: 0,
+          desc: `2 Blossom (${b.moonblossom}) + 1 Honey (${b.honeycomb}) → Full MP +40 HP`,
+          action: () => {
+            if (!this.hasMaterials({ moonblossom: 2, honeycomb: 1 })) {
+              return 'Need 2 Moonblossoms & 1 Wild Honeycomb!';
+            }
+            this.consumeMaterials({ moonblossom: 2, honeycomb: 1 });
+            this.craftedItems.elixir++;
+            this.totalCrafted++;
+            this.addScore(180);
+            sfx.playPowerup();
+            spawnBurst(this.particles, this.px, this.py, '#38bdf8', 20, 140, 3.2);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#38bdf8', 22, 3.8);
+            return `Bottled shimmering Mana Elixir! Use from [C] Satchel (x${this.craftedItems.elixir}).`;
+          },
+        },
+        {
+          label: `Mix Hero Swiftness Tonic (Have ${this.craftedItems.tonic})`,
+          cost: 0,
+          desc: `2 Mint (${b.celceta_mint}) + 1 Shroom (${b.chanterelle}) → 25s Speed & +6 ATK`,
+          action: () => {
+            if (!this.hasMaterials({ celceta_mint: 2, chanterelle: 1 })) {
+              return 'Need 2 Celceta Mint & 1 Golden Chanterelle!';
+            }
+            this.consumeMaterials({ celceta_mint: 2, chanterelle: 1 });
+            this.craftedItems.tonic++;
+            this.totalCrafted++;
+            this.addScore(180);
+            sfx.playPowerup();
+            spawnBurst(this.particles, this.px, this.py, '#2dd4bf', 20, 140, 3.2);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#2dd4bf', 22, 3.8);
+            return `Zesty Swiftness Tonic bottled! Drink in [C] Satchel for 25s Speed & +6 ATK (x${this.craftedItems.tonic}).`;
+          },
+        },
+        {
+          label: `Bundle Auto-Revive Herb (Have ${this.herbs})`,
+          cost: 0,
+          desc: `2 Sunleaf (${b.sunleaf_herb}) + 1 Mint (${b.celceta_mint}) → +1 Emergency Herb`,
+          action: () => {
+            if (!this.hasMaterials({ sunleaf_herb: 2, celceta_mint: 1 })) {
+              return 'Need 2 Sunleaf Herbs & 1 Celceta Mint!';
+            }
+            this.consumeMaterials({ sunleaf_herb: 2, celceta_mint: 1 });
+            this.herbs++;
+            this.totalCrafted++;
+            this.addScore(150);
+            sfx.playStageClear();
+            spawnBurst(this.particles, this.px, this.py, '#86efac', 18, 130, 3.0);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#86efac', 20, 3.4);
+            return `Wove a fresh Auto-Revive Herb! Total Emergency Herbs: ${this.herbs}.`;
+          },
+        },
+        { label: 'Step Away from Cauldron', cost: 0, desc: 'Return to world', action: () => 'CLOSE' },
+      ];
+    }
+    if (kind === 'cooking') {
+      const b = this.forageBag;
+      return [
+        {
+          label: 'Roast Trail Berry Ration (Instant)',
+          cost: 0,
+          desc: `2 Berries (${b.wild_berries}) + 1 Apple (${b.orchard_apple}) → Instant +45 HP`,
+          action: () => {
+            if (!this.hasMaterials({ wild_berries: 2, orchard_apple: 1 })) {
+              return 'Need 2 Wild Berries & 1 Orchard Apple!';
+            }
+            this.consumeMaterials({ wild_berries: 2, orchard_apple: 1 });
+            this.hp = Math.min(this.maxHp, this.hp + 45);
+            this.totalCrafted++;
+            this.addScore(110);
+            sfx.playPowerup();
+            spawnBurst(this.particles, this.px, this.py, '#fb923c', 16, 125, 3.0);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fde047', 18, 3.4);
+            return 'Warm sweet berries & glazed apple! Restored +45 HP right away!';
+          },
+        },
+        {
+          label: `Simmer Hearty Mushroom Stew (Have ${this.craftedItems.stew})`,
+          cost: 0,
+          desc: `2 Shroom (${b.chanterelle}) + 2 Berries (${b.wild_berries}) → +85 HP`,
+          action: () => {
+            if (!this.hasMaterials({ chanterelle: 2, wild_berries: 2 })) {
+              return 'Need 2 Golden Chanterelles & 2 Wild Berries!';
+            }
+            this.consumeMaterials({ chanterelle: 2, wild_berries: 2 });
+            this.craftedItems.stew++;
+            this.totalCrafted++;
+            this.addScore(160);
+            sfx.playPowerup();
+            spawnBurst(this.particles, this.px, this.py, '#fb923c', 20, 140, 3.2);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fb923c', 22, 3.6);
+            return `Savory Woodland Stew ladled into your Satchel [C] (+85 HP, x${this.craftedItems.stew})!`;
+          },
+        },
+        {
+          label: `Bake Honey-Glazed Orchard Pie (Have ${this.craftedItems.pie})`,
+          cost: 0,
+          desc: `2 Apple (${b.orchard_apple}) + 1 Honey (${b.honeycomb}) → Full HP/MP & +5 Max HP`,
+          action: () => {
+            if (!this.hasMaterials({ orchard_apple: 2, honeycomb: 1 })) {
+              return 'Need 2 Orchard Apples & 1 Wild Honeycomb!';
+            }
+            this.consumeMaterials({ orchard_apple: 2, honeycomb: 1 });
+            this.craftedItems.pie++;
+            this.totalCrafted++;
+            this.addScore(240);
+            sfx.playStageClear();
+            spawnBurst(this.particles, this.px, this.py, '#fde047', 22, 145, 3.4);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fde047', 24, 3.8);
+            return `Golden Orchard Pie packed in your Satchel [C]! Eat for Full HP/MP & +5 Max HP (x${this.craftedItems.pie})!`;
+          },
+        },
+        { label: 'Step Away from Hearth', cost: 0, desc: 'Return to world', action: () => 'CLOSE' },
+      ];
+    }
+    if (kind === 'satchel') {
+      const b = this.forageBag;
+      const c = this.craftedItems;
+      return [
+        {
+          label: `Eat Wild Berries / Orchard Apple (${b.wild_berries}B · ${b.orchard_apple}A)`,
+          cost: 0,
+          desc: 'Restores +22 HP on the trail',
+          action: () => {
+            if (b.wild_berries > 0) {
+              b.wild_berries--;
+              this.hp = Math.min(this.maxHp, this.hp + 20);
+              sfx.playPellet();
+              spawnBurst(this.particles, this.px, this.py, '#f43f5e', 12, 110, 2.6);
+              return 'Ate fresh Wild Berries! Restored +20 HP.';
+            }
+            if (b.orchard_apple > 0) {
+              b.orchard_apple--;
+              this.hp = Math.min(this.maxHp, this.hp + 25);
+              sfx.playPellet();
+              spawnBurst(this.particles, this.px, this.py, '#ef4444', 12, 110, 2.6);
+              return 'Crisp Orchard Apple! Restored +25 HP.';
+            }
+            return 'No Berries or Apples! Gather berry bushes & apple crates outdoors.';
+          },
+        },
+        {
+          label: `Eat Wild Honeycomb (${b.honeycomb})`,
+          cost: 0,
+          desc: 'Restores +30 HP & +15 MP',
+          action: () => {
+            if (b.honeycomb <= 0) return 'No Wild Honeycomb! Check hollow trees & sunny meadows.';
+            b.honeycomb--;
+            this.hp = Math.min(this.maxHp, this.hp + 30);
+            this.mp = Math.min(this.maxMp, this.mp + 15);
+            sfx.playPowerup();
+            spawnBurst(this.particles, this.px, this.py, '#facc15', 14, 120, 2.8);
+            return 'Sweet Wild Honeycomb! Restored +30 HP & +15 MP!';
+          },
+        },
+        {
+          label: `Use Celceta Salve / Stew (${c.salve} Salve · ${c.stew} Stew)`,
+          cost: 0,
+          desc: 'Heals +70 to +85 HP',
+          action: () => {
+            if (c.stew > 0) {
+              c.stew--;
+              this.hp = Math.min(this.maxHp, this.hp + 85);
+              sfx.playStageClear();
+              spawnBurst(this.particles, this.px, this.py, '#fb923c', 18, 130, 3.2);
+              return 'Hearty Mushroom Stew! Restored +85 HP!';
+            }
+            if (c.salve > 0) {
+              c.salve--;
+              this.hp = Math.min(this.maxHp, this.hp + 70);
+              sfx.playStageClear();
+              spawnBurst(this.particles, this.px, this.py, '#4ade80', 18, 130, 3.2);
+              return 'Applied Celceta Salve! Restored +70 HP!';
+            }
+            return 'No Salve or Stew yet! Brew at an Alchemy Cauldron or Hearth Kettle.';
+          },
+        },
+        {
+          label: `Use Mana Elixir / Orchard Pie (${c.elixir} Elixir · ${c.pie} Pie)`,
+          cost: 0,
+          desc: 'Full MP + HP (Pie gives +5 Max HP!)',
+          action: () => {
+            if (c.pie > 0) {
+              c.pie--;
+              this.maxHp = Math.min(450, this.maxHp + 5);
+              this.hp = this.maxHp;
+              this.mp = this.maxMp;
+              sfx.playStageClear();
+              spawnBurst(this.particles, this.px, this.py, '#fde047', 22, 150, 3.6);
+              this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fde047', 24, 3.8);
+              return 'Honey-Glazed Orchard Pie! Full HP/MP & +5 Max HP!';
+            }
+            if (c.elixir > 0) {
+              c.elixir--;
+              this.mp = this.maxMp;
+              this.hp = Math.min(this.maxHp, this.hp + 40);
+              sfx.playStageClear();
+              spawnBurst(this.particles, this.px, this.py, '#38bdf8', 20, 140, 3.4);
+              this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#38bdf8', 22, 3.6);
+              return 'Moonlight Mana Elixir! Full MP & +40 HP!';
+            }
+            return 'No Elixir or Pie yet! Craft at a Cauldron or Cooking Hearth.';
+          },
+        },
+        {
+          label: `Drink Hero Swiftness Tonic (${c.tonic})`,
+          cost: 0,
+          desc: '25s +28% Move Speed & +6 ATK',
+          action: () => {
+            if (c.tonic <= 0) return 'No Swiftness Tonic! Brew 2 Celceta Mint + 1 Chanterelle at a Cauldron.';
+            c.tonic--;
+            this.speedBuffTimer = 25;
+            sfx.playStageClear();
+            spawnBurst(this.particles, this.px, this.py, '#2dd4bf', 22, 150, 3.4);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#2dd4bf', 24, 4.0);
+            this.popups.push({ x: this.px, y: this.py - 28, text: 'SWIFTNESS! +SPD & +6 ATK', color: '#2dd4bf', life: 1.6, maxLife: 1.6 });
+            return 'Surging energy! +28% Movement Speed & +6 ATK for 25 seconds!';
+          },
+        },
+        { label: 'Close Satchel', cost: 0, desc: 'Return to exploration', action: () => 'CLOSE' },
+      ];
+    }
+    if (kind === 'bakery') {
+      return [
+        {
+          label: 'Golden Hearth Loaf (35G)',
+          cost: 35,
+          desc: 'Restores +60 HP & +15 MP right away!',
+          action: () => {
+            if (this.gold < 35) return 'Need 35 Gold! Search shrubs or help townsfolk for Gold.';
+            this.gold -= 35;
+            this.hp = Math.min(this.maxHp, this.hp + 60);
+            this.mp = Math.min(this.maxMp, this.mp + 15);
+            this.addScore(100);
+            sfx.playPowerup();
+            spawnBurst(this.particles, this.px, this.py, '#fde047', 16, 125, 3.0);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fde047', 18, 3.4);
+            return 'Warm & crusty! Restored +60 HP & +15 MP!';
+          },
+        },
+        {
+          label: 'Esteria Honey Tart (65G)',
+          cost: 65,
+          desc: 'Full HP & MP + +5 Max HP vigor boost!',
+          action: () => {
+            if (this.gold < 65) return 'Need 65 Gold for a fresh Honey Tart!';
+            this.gold -= 65;
+            this.maxHp = Math.min(400, this.maxHp + 5);
+            this.hp = this.maxHp;
+            this.mp = this.maxMp;
+            this.addScore(180);
+            sfx.playStageClear();
+            spawnBurst(this.particles, this.px, this.py, '#4ade80', 18, 135, 3.2);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fde047', 22, 3.8);
+            return 'Delicious Honey Tart! Full HP/MP & +5 Max HP!';
+          },
+        },
+        {
+          label: 'Traveler Bread Pack (95G)',
+          cost: 95,
+          desc: '+1 Emergency Heal Herb & full HP!',
+          action: () => {
+            if (this.gold < 95) return 'Need 95 Gold for a Traveler Pack!';
+            this.gold -= 95;
+            this.herbs++;
+            this.hp = this.maxHp;
+            this.addScore(150);
+            sfx.playPellet();
+            spawnBurst(this.particles, this.px, this.py, '#4ade80', 14, 115, 2.8);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#4ade80', 18, 3.2);
+            return `Packed warm rations! Heal Herbs: ${this.herbs}`;
+          },
+        },
+        { label: 'Leave Bakery', cost: 0, desc: 'Return to Minea Square', action: () => 'CLOSE' },
+      ];
+    }
     if (kind === 'weapon') {
       const nextTier = Math.min(this.WEAPONS.length - 1, this.weaponTier + 1);
       const nextW = this.WEAPONS[nextTier];
@@ -651,6 +1509,9 @@ export class YsBookRpgGame implements ArcadeGameInstance {
             this.gold -= nextW.cost;
             this.weaponTier = nextTier;
             sfx.playPowerup();
+            spawnBurst(this.particles, this.px, this.py, '#fde047', 18, 135, 3.2);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fde047', 22, 3.8);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fb923c', 12, 3.1);
             return `Equipped ${nextW.name}!`;
           },
         },
@@ -663,6 +1524,8 @@ export class YsBookRpgGame implements ArcadeGameInstance {
             this.gold -= 90;
             this.herbs++;
             sfx.playPellet();
+            spawnBurst(this.particles, this.px, this.py, '#4ade80', 14, 110, 2.8);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#4ade80', 16, 3.2);
             return `Bought Heal Herb (Now carrying ${this.herbs}).`;
           },
         },
@@ -683,6 +1546,9 @@ export class YsBookRpgGame implements ArcadeGameInstance {
             this.gold -= nextA.cost;
             this.armorTier++;
             sfx.playPowerup();
+            spawnBurst(this.particles, this.px, this.py, '#38bdf8', 18, 135, 3.2);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#38bdf8', 22, 3.8);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fde047', 12, 3.0);
             return `Equipped ${nextA.name}!`;
           },
         },
@@ -696,6 +1562,8 @@ export class YsBookRpgGame implements ArcadeGameInstance {
             this.gold -= nextS.cost;
             this.shieldTier++;
             sfx.playPowerup();
+            spawnBurst(this.particles, this.px, this.py, '#38bdf8', 16, 125, 3.0);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#38bdf8', 18, 3.5);
             return `Equipped ${nextS.name}!`;
           },
         },
@@ -713,6 +1581,9 @@ export class YsBookRpgGame implements ArcadeGameInstance {
           this.hp = this.maxHp;
           this.mp = this.maxMp;
           sfx.playStageClear();
+          spawnBurst(this.particles, this.px, this.py, '#4ade80', 20, 140, 3.4);
+          this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#4ade80', 24, 3.8);
+          this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#fde047', 14, 3.0);
           return 'Rested soundly! HP & MP fully restored!';
         },
       },
@@ -725,6 +1596,8 @@ export class YsBookRpgGame implements ArcadeGameInstance {
           this.gold -= 90;
           this.herbs++;
           sfx.playPellet();
+          spawnBurst(this.particles, this.px, this.py, '#4ade80', 14, 110, 2.8);
+          this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#4ade80', 16, 3.2);
           return `Heal Herbs: ${this.herbs}`;
         },
       },
@@ -745,15 +1618,28 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     stepParticlesAndPopups(this.particles, this.popups, dt);
     this.stepCombatVfx(dt);
 
-    // Smoothly interpolate 3D 45° camera yaw + handle direct tap/click on top-right Camera Pill!
+    // Smoothly interpolate 90°-stepped 45° camera yaw + direct tap/click on top-right HUD pills!
     const camYawLerp = 1 - Math.exp(-8.5 * dt);
     this.cameraYaw += (this.targetCameraYaw - this.cameraYaw) * camYawLerp;
-    if (this.input.pointerActive && !this.prevPointerActive) {
+    if (this.input.pointerActive && !this.prevPointerActive && !this.dialogue) {
       const pxClick = this.input.pointerX;
       const pyClick = this.input.pointerY;
       const pillX = this.logicalWidth - 148;
-      if (pxClick >= pillX && pxClick <= this.logicalWidth - 8 && pyClick >= 126 && pyClick <= 158) {
-        this.cycleCameraZoomMode();
+      const midX = pillX + 70;
+      if (pxClick >= pillX && pxClick <= this.logicalWidth - 8 && pyClick >= 128 && pyClick <= 162) {
+        if (pxClick >= midX) {
+          this.rotateCamera90(1);
+        } else {
+          this.cycleCameraZoomMode();
+        }
+      } else if (pxClick >= pillX && pxClick <= this.logicalWidth - 8 && pyClick >= 166 && pyClick <= 204) {
+        if (pxClick >= midX) {
+          this.cycleWeather();
+        } else {
+          this.advanceTimeOfDay(3);
+        }
+      } else if (pxClick >= pillX && pxClick <= this.logicalWidth - 8 && pyClick >= 206 && pyClick <= 296) {
+        this.shiftWindDirection(45);
       }
     }
     this.prevPointerActive = this.input.pointerActive;
@@ -761,6 +1647,8 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     if (this.phase === 'TITLE') {
       this.walkAnim += dt * 3;
       this.bodyAngle = Math.sin(this.time * 0.7) * 0.9 + Math.PI * 0.5;
+      const titleZone = this.zones[this.currentZoneId];
+      if (titleZone) this.stepNpcFacing(dt, titleZone);
       return;
     }
     if (this.phase === 'PAUSED' || this.phase === 'GAME_OVER') return;
@@ -771,8 +1659,16 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       return;
     }
 
-    // Handle Chronicles+ Dialogue / Shop Window
+    const activeZoneNow = this.zones[this.currentZoneId];
+    if (activeZoneNow) {
+      this.stepTimeAndWeather(dt, activeZoneNow);
+    }
+
+    // Handle Chronicles+ Dialogue / Shop Window (keep living world & speakers animating during close-up!)
     if (this.dialogue) {
+      if (activeZoneNow) {
+        this.stepNpcFacing(dt, activeZoneNow);
+      }
       this.navRepeatCd = Math.max(0, this.navRepeatCd - dt);
       if (this.dialogue.shopKind) {
         const opts = this.getShopOptions(this.dialogue.shopKind);
@@ -791,6 +1687,13 @@ export class YsBookRpgGame implements ArcadeGameInstance {
           const result = opts[this.dialogue.cursor].action();
           if (result === 'CLOSE') {
             this.dialogue = null;
+          } else if (
+            this.dialogue.shopKind === 'forge' ||
+            this.dialogue.shopKind === 'alchemy' ||
+            this.dialogue.shopKind === 'cooking' ||
+            this.dialogue.shopKind === 'satchel'
+          ) {
+            this.dialogue.lines = [result, this.getBagSummaryLine()];
           } else {
             this.dialogue.lines = [result];
           }
@@ -827,10 +1730,12 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     if (this.magicCd > 0) this.magicCd -= dt;
     if (this.shieldAuraTimer > 0) this.shieldAuraTimer -= dt;
     if (this.timeFreezeTimer > 0) this.timeFreezeTimer -= dt;
+    if (this.speedBuffTimer > 0) this.speedBuffTimer = Math.max(0, this.speedBuffTimer - dt);
 
     const zone = this.zones[this.currentZoneId];
     this.stepPlayer(dt, zone);
     this.stepShrubs(dt, zone);
+    this.stepForageNodes(dt, zone);
     this.stepNpcFacing(dt, zone);
     this.stepProjectiles(dt, zone);
     this.stepEnemies(dt, zone);
@@ -898,26 +1803,64 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       return localY > TILE * 0.42;
     }
 
-    // Tall 2.5D Trees, Marble Pillars, Crystal Spires: ONLY block the compact trunk base!
+    // Tall 2.5D Trees, Multi-Tile Groves, Ancient Roda Tree & Marble Pillars:
+    // Large multi-tile groves & Roda Trees are SOLID (no walking through large trees!),
+    // preserving a tiny northern edge sliver so Adol can still tuck behind the back rim for X-Ray silhouette!
     if (c === 2 || c === 9) {
+      const hasNeighborTree =
+        (tx > 0 && (zone.tiles[ty][tx - 1] === 2 || zone.tiles[ty][tx - 1] === 9)) ||
+        (tx + 1 < zone.width && (zone.tiles[ty][tx + 1] === 2 || zone.tiles[ty][tx + 1] === 9)) ||
+        (ty > 0 && (zone.tiles[ty - 1][tx] === 2 || zone.tiles[ty - 1][tx] === 9)) ||
+        (ty + 1 < zone.height && (zone.tiles[ty + 1][tx] === 2 || zone.tiles[ty + 1][tx] === 9));
+      if (c === 9 || hasNeighborTree) {
+        const northIsTree = ty > 0 && (zone.tiles[ty - 1][tx] === 2 || zone.tiles[ty - 1][tx] === 9);
+        if (!northIsTree) {
+          const localY = wy - ty * TILE;
+          if (localY < TILE * 0.16) return false;
+        }
+        return true;
+      }
+      // Standalone 1x1 tree: solid trunk & flared root base!
       const cx = (tx + 0.5) * TILE;
-      const trunkY = (ty + 0.72) * TILE;
+      const trunkY = (ty + 0.64) * TILE;
       const dx = wx - cx;
       const dy = wy - trunkY;
-      const rad = c === 9 ? 16 : 11;
-      return dx * dx + dy * dy < rad * rad;
+      return dx * dx + dy * dy < 17 * 17;
     }
 
-    // Solid inspectables (fountains, statues, wells, crates) block their center pedestal only
+    // Solid Inspectables (Fountains, Wells, Statues, Crates, Campfires, Bookshelves, Anvils, Bells, Signs!)
     for (const obj of zone.inspectables) {
-      if (obj.kind === 'campfire') continue;
-      if (Math.abs(obj.tx - tx) <= 1 && Math.abs(obj.ty - ty) <= 1) {
+      if (Math.abs(obj.tx - tx) <= 2 && Math.abs(obj.ty - ty) <= 2) {
         const ox = (obj.tx + 0.5) * TILE;
-        const oy = (obj.ty + 0.58) * TILE;
-        const rad = obj.kind === 'fountain' ? 20 : 12;
+        const oy = (obj.ty + 0.56) * TILE;
+        const rad =
+          obj.kind === 'fountain'
+            ? 72
+            : obj.kind === 'well'
+              ? 22
+              : obj.kind === 'statue' ||
+                  obj.kind === 'pedestal' ||
+                  obj.kind === 'bookshelf' ||
+                  obj.kind === 'crates' ||
+                  obj.kind === 'campfire' ||
+                  obj.kind === 'dock_cargo'
+                ? 19
+                : 16;
         if (Math.hypot(wx - ox, wy - oy) < rad) return true;
       }
     }
+
+    // Solid Treasure Chests (auto-open smoothly when bumping the front rim!)
+    for (const ch of zone.chests) {
+      if (Math.abs(ch.tx - tx) <= 1 && Math.abs(ch.ty - ty) <= 1) {
+        const cx = (ch.tx + 0.5) * TILE;
+        const cy = (ch.ty + 0.56) * TILE;
+        if (Math.hypot(wx - cx, wy - cy) < 15) return true;
+      }
+    }
+
+    // Dynamic 3D Environment Obstacles (Ornate Streetlamps, Stalls, Wagons, Windmills, Waterwheels, Hedgerows, Tables, Bakery Oven, Craftworks & Pastures!)
+    if (this.threeRenderer?.isPointInDynamicObstacle(wx, wy)) return true;
 
     return false;
   }
@@ -964,8 +1907,9 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   private stepPlayer(dt: number, zone: ZoneDef): void {
     const mv = getPrecisionMoveVector(this.input);
     const dashBoost = this.lungeTimer > 0 ? 1.66 : 1.0;
+    const tonicBoost = this.speedBuffTimer > 0 ? 1.28 : 1.0;
     const inShrubSlow = this.inShrubId ? 0.84 : 1.0;
-    const spd = 208 * mv.scale * dashBoost * inShrubSlow;
+    const spd = 208 * mv.scale * dashBoost * tonicBoost * inShrubSlow;
 
     const mag = Math.hypot(mv.vx, mv.vy);
     const moving = mag > 0.08;
@@ -994,6 +1938,36 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       const ny = this.py + uy * spd * dt;
       if (this.canOccupy(zone, this.px, ny)) {
         this.py = ny;
+      }
+
+      // Subtle Rhythmic Footstep Dust / Pollen / Snow / Oak Sparkle Puffs while running!
+      this.footstepTimer += dt;
+      if (this.footstepTimer >= (this.lungeTimer > 0 ? 0.09 : 0.22) && this.moveSpeedFrac > 0.35) {
+        this.footstepTimer = 0;
+        const ftc = Math.max(0, Math.min(zone.width - 1, Math.floor(this.px / TILE)));
+        const ftr = Math.max(0, Math.min(zone.height - 1, Math.floor(this.py / TILE)));
+        const ft = zone.tiles[ftr]?.[ftc] ?? 0;
+        const stepCol =
+          zone.theme === 'ice'
+            ? '#e0f2fe'
+            : zone.theme === 'interior'
+              ? '#fde68a'
+              : zone.theme === 'lava' || zone.theme === 'tower'
+                ? '#fb923c'
+                : ft === 6 || ft === 4
+                  ? '#e7d5b2'
+                  : '#86efac';
+        this.particles.push({
+          x: this.px - ux * 6 + (Math.random() - 0.5) * 6,
+          y: this.py + 5,
+          vx: -ux * 16 + (Math.random() - 0.5) * 14,
+          vy: -uy * 10 - 12,
+          life: 0.3,
+          maxLife: 0.3,
+          color: stepCol,
+          radius: 2.3,
+        });
+        this.threeRenderer?.spawnGpuBurst(this.px - ux * 6, this.py - uy * 6, stepCol, 3, 1.5);
       }
 
       if (this.lungeTimer > 0 && Math.random() < 0.45) {
@@ -1034,6 +2008,8 @@ export class YsBookRpgGame implements ArcadeGameInstance {
           this.lungeCd = 0.42;
           this.slashArcTimer = 0.2;
           sfx.playShoot();
+          spawnBurst(this.particles, this.px + this.facingX * 12, this.py + this.facingY * 12, '#bae6fd', 10, 120, 2.6);
+          this.threeRenderer?.spawnGpuBurst(this.px + this.facingX * 12, this.py + this.facingY * 12, '#bae6fd', 12, 3.2);
         }
       }
     }
@@ -1048,17 +2024,17 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       }
     }
 
-    // Auto-open Treasure Chests on direct contact
+    // Auto-open Treasure Chests on direct contact with their solid rim
     for (const ch of zone.chests) {
       if (this.openedChests.has(ch.id)) continue;
       const cx = (ch.tx + 0.5) * TILE;
       const cy = (ch.ty + 0.5) * TILE;
-      if (Math.hypot(this.px - cx, this.py - cy) < 28) {
+      if (Math.hypot(this.px - cx, this.py - cy) < 34) {
         this.openChest(ch);
       }
     }
 
-    // Check Wide Zone Portals (with cooldown so you NEVER bounce back!)
+    // Check Wide Zone Portals & Building Doorways (with cooldown so you NEVER bounce back!)
     if (this.portalCooldown <= 0) {
       for (const p of zone.portals) {
         const minX = p.tx * TILE - 8;
@@ -1074,6 +2050,8 @@ export class YsBookRpgGame implements ArcadeGameInstance {
               cursor: 0,
             };
             this.portalCooldown = 0.65;
+            spawnBurst(this.particles, this.px, this.py, '#f43f5e', 12, 110, 2.8);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#f43f5e', 14, 3.0);
             // Gently step back away from the sealed gate
             if (p.direction === 'north') this.py += 38;
             else if (p.direction === 'south') this.py -= 38;
@@ -1158,33 +2136,43 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       const amt = sh.hiddenAmount ?? 45;
       this.gold += amt;
       sfx.playCoin();
+      spawnBurst(this.particles, sx, sy, '#fde047', 16, 130, 3.2);
+      this.threeRenderer?.spawnGpuBurst(sx, sy, '#fde047', 20, 3.8);
       this.popups.push({ x: sx, y: sy - 24, text: `+${amt} GOLD!`, color: '#fde047', life: 1.3, maxLife: 1.3 });
     } else if (sh.hiddenKind === 'herb') {
       this.herbs++;
       sfx.playPowerup();
+      spawnBurst(this.particles, sx, sy, '#4ade80', 16, 125, 3.1);
+      this.threeRenderer?.spawnGpuBurst(sx, sy, '#4ade80', 20, 3.6);
       this.popups.push({ x: sx, y: sy - 24, text: 'FOUND HEAL HERB!', color: '#4ade80', life: 1.4, maxLife: 1.4 });
     } else if (sh.hiddenKind === 'seed') {
       this.maxHp += 10;
       this.hp = Math.min(this.maxHp, this.hp + 20);
       sfx.playStageClear();
+      spawnBurst(this.particles, sx, sy, '#38bdf8', 20, 145, 3.4);
+      this.threeRenderer?.spawnGpuBurst(sx, sy, '#38bdf8', 24, 4.0);
       this.popups.push({ x: sx, y: sy - 26, text: sh.rewardName ?? '+10 MAX HP!', color: '#38bdf8', life: 1.6, maxLife: 1.6 });
     } else if (sh.hiddenKind === 'quest_item') {
       if (sh.grantFlag) this.flags.add(sh.grantFlag);
       sfx.playStageClear();
-      spawnBurst(this.particles, sx, sy, '#38bdf8', 22, 160, 3.6);
+      spawnBurst(this.particles, sx, sy, '#38bdf8', 24, 165, 3.6);
+      this.threeRenderer?.spawnGpuBurst(sx, sy, '#38bdf8', 26, 4.4);
+      this.threeRenderer?.spawnGpuBurst(sx, sy, '#fde047', 18, 3.6);
       this.dialogue = {
         speaker: 'DISCOVERY IN THE SHRUB!',
         portrait: 'adol',
         lines: [
           `You part the rustling foliage and discover: ${sh.rewardName ?? 'Mysterious Relic'}!`,
           this.variant === 'ys1'
-            ? 'Bring Sara’s Sapphire Crystal back to Sara in Minea Town!'
-            : 'Bring the rare Celceta Blossom to Lilia in Lance Village!',
+            ? 'Bring Sara’s Sapphire Crystal inside Sara’s Fortune Parlor (NW) in Minea Town!'
+            : 'Bring the rare Celceta Blossom inside Lilia’s Cottage (NW) in Lance Village!',
         ],
         cursor: 0,
       };
     } else if (sh.hiddenKind === 'clue' && sh.clueText) {
       sfx.playPowerup();
+      spawnBurst(this.particles, sx, sy, '#fde047', 14, 115, 2.8);
+      this.threeRenderer?.spawnGpuBurst(sx, sy, '#fde047', 16, 3.2);
       this.dialogue = {
         speaker: 'INVESTIGATION CLUE',
         portrait: 'adol',
@@ -1193,19 +2181,341 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       };
     } else if (sh.hiddenKind === 'slime' && !zone.safeZone) {
       sfx.playBounce();
+      spawnBurst(this.particles, sx, sy, '#f97316', 14, 125, 3.0);
+      this.threeRenderer?.spawnGpuBurst(sx, sy, '#f97316', 16, 3.5);
       this.enemies.push(this.createEnemy('slime', sx + 22, sy));
       this.popups.push({ x: sx, y: sy - 24, text: 'WILD SLIME LEAPED OUT!', color: '#f97316', life: 1.3, maxLife: 1.3 });
     }
   }
 
+  private initNpcStates(zone: ZoneDef): void {
+    this.npcStates.clear();
+    for (let i = 0; i < zone.npcs.length; i++) {
+      const npc = zone.npcs[i];
+      const firstWp = npc.waypoints?.[0];
+      const startX = (npc.tx + 0.5) * TILE;
+      const startY = (npc.ty + 0.5) * TILE;
+      this.npcStates.set(npc.id, {
+        x: startX,
+        y: startY,
+        angle: firstWp?.faceAngle ?? Math.PI * 0.5,
+        speedFrac: 0,
+        walkAnim: i * 1.37,
+        wpIdx: npc.waypoints && npc.waypoints.length > 1 ? 1 : 0,
+        waitTimer: firstWp?.waitSec ? Math.min(firstWp.waitSec, 0.8 + (i % 4) * 0.9) : 0,
+        working: Boolean(firstWp?.performTask),
+        workPhase: i * 1.1,
+        taskLabel: firstWp?.activityLabel ?? '',
+        fxCooldown: 0.6 + (i % 5) * 0.25,
+        behaviorMode: 'routine',
+        headLookYaw: 0,
+        springOffsetY: 0,
+        springVelY: 0,
+        talking: false,
+        behaviorTimer: 0,
+        behaviorCooldown: 2.5 + (i % 5) * 1.4,
+      });
+    }
+  }
+
+  private getNpcWorldPos(npc: WorldNpc): { x: number; y: number } {
+    const st = this.npcStates.get(npc.id);
+    if (st) return { x: st.x, y: st.y };
+    return { x: (npc.tx + 0.5) * TILE, y: (npc.ty + 0.5) * TILE };
+  }
+
   private stepNpcFacing(dt: number, zone: ZoneDef): void {
+    const dayMeta = this.getDayTimeMeta();
+    const isNight = dayMeta.period === 'NIGHT';
+    const isEvening = dayMeta.period === 'EVENING';
+    const isOutdoor = zone.theme !== 'interior' && zone.theme !== 'shrine' && zone.theme !== 'tower' && zone.theme !== 'lava';
+    const isRainyOutdoor = isOutdoor && (this.weather === 'rain' || this.weather === 'storm');
+    const activeSpeakerId = this.dialogue?.speakerNpc?.id ?? null;
+
     for (const npc of zone.npcs) {
-      const nx = (npc.tx + 0.5) * TILE;
-      const ny = (npc.ty + 0.5) * TILE;
-      const dist = Math.hypot(this.px - nx, this.py - ny);
-      const cur = this.npcAngles.get(npc.id) ?? Math.PI * 0.5;
-      const target = dist < 130 ? Math.atan2(this.py - ny, this.px - nx) : Math.PI * 0.5;
-      this.npcAngles.set(npc.id, lerpAngle(cur, target, dt * 7));
+      let st = this.npcStates.get(npc.id);
+      if (!st) {
+        st = {
+          x: (npc.tx + 0.5) * TILE,
+          y: (npc.ty + 0.5) * TILE,
+          angle: Math.PI * 0.5,
+          speedFrac: 0,
+          walkAnim: 0,
+          wpIdx: 0,
+          waitTimer: 0,
+          working: false,
+          workPhase: 0,
+          taskLabel: '',
+          fxCooldown: 0.8,
+          behaviorMode: 'routine',
+          headLookYaw: 0,
+          springOffsetY: 0,
+          talking: false,
+          behaviorTimer: 0,
+          behaviorCooldown: 3.0,
+          springVelY: 0,
+        };
+        this.npcStates.set(npc.id, st);
+      }
+
+      // Vertical Spring-Damper Bounce Physics for lively hops, reactions & greetings!
+      const curSpringY = st.springOffsetY ?? 0;
+      const springAccel = -92 * curSpringY - 10.5 * st.springVelY;
+      st.springVelY += springAccel * dt;
+      let nextSpringY = curSpringY + st.springVelY * dt;
+      if (nextSpringY < 0) {
+        nextSpringY = 0;
+        if (Math.abs(st.springVelY) > 0.35) st.springVelY = -st.springVelY * 0.28;
+        else st.springVelY = 0;
+      }
+      st.springOffsetY = nextSpringY;
+
+      const distToPlayer = Math.hypot(this.px - st.x, this.py - st.y);
+      const isDialogueSpeaker = activeSpeakerId === npc.id;
+      const talkingOrNear = this.phase === 'PLAYING' && (isDialogueSpeaker || distToPlayer < 64);
+      const isChild = npc.ageGroup === 'child' || npc.task === 'play';
+      const waypoints = npc.waypoints;
+
+      st.talking = isDialogueSpeaker;
+      if (st.behaviorCooldown > 0) st.behaviorCooldown = Math.max(0, st.behaviorCooldown - dt);
+
+      // Natural Head-Tracking toward Adol when passing nearby (< 3.6 tiles)!
+      const desiredHeadYaw =
+        this.phase === 'PLAYING' && distToPlayer < 160 && !isDialogueSpeaker
+          ? Math.max(-0.68, Math.min(0.68, normalizeAngle(Math.atan2(this.py - st.y, this.px - st.x) - st.angle)))
+          : 0;
+      st.headLookYaw = (st.headLookYaw ?? 0) + (desiredHeadYaw - (st.headLookYaw ?? 0)) * Math.min(1, dt * 6.5);
+
+      // Update active spontaneous social/physics behavior timers
+      if (st.behaviorTimer > 0) {
+        st.behaviorTimer = Math.max(0, st.behaviorTimer - dt);
+        if (st.behaviorTimer <= 0) {
+          st.behaviorMode = 'routine';
+          st.chatPartnerId = undefined;
+          st.behaviorCooldown = 5.0 + Math.random() * 6.5;
+        }
+      }
+
+      // Friendly wave when Adol walks within greeting distance!
+      if (
+        !isDialogueSpeaker &&
+        this.phase === 'PLAYING' &&
+        distToPlayer > 54 &&
+        distToPlayer < 138 &&
+        st.behaviorMode === 'routine' &&
+        st.behaviorCooldown <= 0 &&
+        Math.random() < dt * 0.75
+      ) {
+        st.behaviorMode = 'wave';
+        st.behaviorTimer = 1.9;
+        st.behaviorCooldown = 9.0;
+        st.springVelY = isChild ? 2.4 : 1.35;
+      }
+
+      // Spontaneous NPC-to-NPC Pair Chatting when two townsfolk pass within 2.5 tiles!
+      if (
+        !isDialogueSpeaker &&
+        st.behaviorMode === 'routine' &&
+        st.behaviorCooldown <= 0 &&
+        !isRainyOutdoor &&
+        distToPlayer > 72 &&
+        Math.random() < dt * (dayMeta.isMarketDay || isEvening ? 0.55 : 0.32)
+      ) {
+        for (const other of zone.npcs) {
+          if (other.id === npc.id || other.id === activeSpeakerId) continue;
+          const ost = this.npcStates.get(other.id);
+          if (!ost || ost.behaviorMode !== 'routine' || ost.behaviorCooldown > 0) continue;
+          if (Math.hypot(ost.x - st.x, ost.y - st.y) < 112) {
+            const dur = 3.2 + Math.random() * 2.4;
+            st.behaviorMode = 'chat_pair';
+            st.behaviorTimer = dur;
+            st.chatPartnerId = other.id;
+            st.springVelY = 1.1;
+            ost.behaviorMode = 'chat_pair';
+            ost.behaviorTimer = dur;
+            ost.chatPartnerId = npc.id;
+            ost.springVelY = 1.1;
+            break;
+          }
+        }
+      }
+
+      // Active dialogue speaker: face Adol cleanly & animate expressive conversation!
+      if (isDialogueSpeaker) {
+        st.speedFrac = Math.max(0, st.speedFrac - dt * 8);
+        st.working = false;
+        st.behaviorMode = 'routine';
+        const targetA = Math.atan2(this.py - st.y, this.px - st.x);
+        st.angle = lerpAngle(st.angle, targetA, dt * 10);
+        this.bodyAngle = lerpAngle(this.bodyAngle, Math.atan2(st.y - this.py, st.x - this.px), dt * 10);
+        this.npcAngles.set(npc.id, st.angle);
+        continue;
+      }
+
+      // Pair-Chatting Pause: turn toward partner & nod/gesture!
+      if (st.behaviorMode === 'chat_pair' && st.chatPartnerId) {
+        const partner = this.npcStates.get(st.chatPartnerId);
+        if (partner) {
+          st.speedFrac = Math.max(0, st.speedFrac - dt * 6);
+          st.working = false;
+          st.taskLabel = dayMeta.isMarketDay ? 'Market chat' : 'Chatting';
+          st.angle = lerpAngle(st.angle, Math.atan2(partner.y - st.y, partner.x - st.x), dt * 7);
+          this.npcAngles.set(npc.id, st.angle);
+          continue;
+        }
+      }
+
+      // Routine-Driven Speed & Rest Modifiers (Time of Day + Day of Week + Weather!)
+      let routineSpeedMult = 1.0;
+      if (isRainyOutdoor) {
+        routineSpeedMult = isChild ? 1.25 : 1.32;
+        if (st.behaviorMode === 'routine') {
+          st.behaviorMode = isChild ? 'hop' : 'shelter';
+          st.behaviorTimer = isChild ? 0.9 : 1.4;
+          if (isChild && (st.springOffsetY ?? 0) < 0.02) st.springVelY = 2.8;
+        }
+      } else if (isNight) {
+        routineSpeedMult = npc.task === 'patrol' ? 1.14 : isChild ? 0.55 : 0.7;
+      } else if (dayMeta.isMarketDay) {
+        routineSpeedMult = 1.12;
+      } else if (dayMeta.period === 'MORNING') {
+        routineSpeedMult = 1.08;
+      }
+
+      if (waypoints && waypoints.length > 0) {
+        const wp = waypoints[st.wpIdx % waypoints.length];
+        if (talkingOrNear) {
+          // Politely pause and turn toward Adol when the player approaches!
+          st.speedFrac = Math.max(0, st.speedFrac - dt * 6);
+          st.working = false;
+          const target = Math.atan2(this.py - st.y, this.px - st.x);
+          st.angle = lerpAngle(st.angle, target, dt * 8);
+        } else if (st.waitTimer > 0) {
+          st.waitTimer -= dt;
+          st.speedFrac = Math.max(0, st.speedFrac - dt * 6);
+          const prevIdx = (st.wpIdx - 1 + waypoints.length) % waypoints.length;
+          const stationWp = waypoints[prevIdx];
+          st.working = Boolean(stationWp.performTask) && !isNight;
+          st.taskLabel = isNight && npc.task !== 'patrol' ? 'Evening rest' : (stationWp.activityLabel ?? '');
+          if (stationWp.faceAngle !== undefined) {
+            const lookSweep = npc.task === 'patrol' ? Math.sin(st.workPhase * 0.55) * 0.65 : 0;
+            st.angle = lerpAngle(st.angle, stationWp.faceAngle + lookSweep, dt * 5);
+          }
+
+          // Random idle physical behaviors: stretch, look around, or joyful child hop!
+          if (st.behaviorMode === 'routine' && st.behaviorCooldown <= 0 && Math.random() < dt * 0.45) {
+            const roll = Math.random();
+            if (isChild && roll < 0.6) {
+              st.behaviorMode = 'hop';
+              st.behaviorTimer = 1.0;
+              st.springVelY = 3.1;
+            } else if (roll < 0.5) {
+              st.behaviorMode = 'stretch';
+              st.behaviorTimer = 2.1;
+            } else {
+              st.behaviorMode = 'look_around';
+              st.behaviorTimer = 2.4;
+            }
+          }
+
+          if (st.working) {
+            st.workPhase += dt * 4.4;
+            st.fxCooldown -= dt;
+            if (st.fxCooldown <= 0) {
+              if (npc.task === 'hammer') {
+                st.fxCooldown = 0.82;
+                this.threeRenderer?.spawnGpuBurst(
+                  st.x + Math.cos(st.angle) * 14,
+                  st.y + Math.sin(st.angle) * 14,
+                  '#facc15',
+                  7,
+                  2.4
+                );
+              } else if (npc.task === 'water_carry' || npc.task === 'garden') {
+                st.fxCooldown = 0.72;
+                this.threeRenderer?.spawnGpuBurst(
+                  st.x + Math.cos(st.angle) * 14,
+                  st.y + Math.sin(st.angle) * 14,
+                  '#7dd3fc',
+                  6,
+                  1.9
+                );
+              } else if (npc.task === 'sweep') {
+                st.fxCooldown = 0.95;
+                this.threeRenderer?.spawnGpuBurst(
+                  st.x + Math.cos(st.angle) * 12,
+                  st.y + Math.sin(st.angle) * 12,
+                  '#fde68a',
+                  4,
+                  1.4
+                );
+              } else if (npc.task === 'fish') {
+                st.fxCooldown = 1.85;
+                this.threeRenderer?.spawnGpuBurst(
+                  st.x + Math.cos(st.angle) * 44,
+                  st.y + Math.sin(st.angle) * 44,
+                  '#bae6fd',
+                  5,
+                  1.6
+                );
+              } else {
+                st.fxCooldown = 1.5;
+              }
+            }
+          }
+        } else {
+          // Walk smoothly toward next waypoint along the town route!
+          const tx = (wp.tx + 0.5) * TILE;
+          const ty = (wp.ty + 0.5) * TILE;
+          const dx = tx - st.x;
+          const dy = ty - st.y;
+          const d = Math.hypot(dx, dy);
+          const moveSpeed = (npc.walkSpeed ?? 1.45) * routineSpeedMult * TILE;
+          if (d <= Math.max(4, moveSpeed * dt)) {
+            st.x = tx;
+            st.y = ty;
+            const waitMult = isRainyOutdoor ? 0.6 : isNight ? 1.45 : 1.0;
+            st.waitTimer = (wp.waitSec ?? 2.2) * waitMult;
+            st.working = Boolean(wp.performTask) && !isNight;
+            st.taskLabel = isRainyOutdoor ? (isChild ? 'Puddle play!' : 'Seeking cover') : (wp.activityLabel ?? '');
+            st.wpIdx = (st.wpIdx + 1) % waypoints.length;
+          } else {
+            const step = moveSpeed * dt;
+            st.x += (dx / d) * step;
+            st.y += (dy / d) * step;
+            st.angle = lerpAngle(st.angle, Math.atan2(dy, dx), dt * 8);
+            st.speedFrac = Math.min(1, st.speedFrac + dt * 5);
+            st.walkAnim += dt * (npc.walkSpeed ?? 1.45) * routineSpeedMult * 4.4;
+            st.working = false;
+            st.taskLabel = isRainyOutdoor ? (isChild ? 'Splashing!' : 'Hurrying') : (wp.activityLabel ?? '');
+          }
+        }
+      } else {
+        const cur = this.npcAngles.get(npc.id) ?? Math.PI * 0.5;
+        const target = distToPlayer < 130 ? Math.atan2(this.py - st.y, this.px - st.x) : Math.PI * 0.5;
+        st.angle = lerpAngle(cur, target, dt * 7);
+        st.speedFrac = 0;
+        st.working = false;
+        if (st.behaviorMode === 'routine' && st.behaviorCooldown <= 0 && distToPlayer > 75 && Math.random() < dt * 0.28) {
+          st.behaviorMode = Math.random() < 0.5 ? 'stretch' : 'look_around';
+          st.behaviorTimer = 2.2;
+        }
+      }
+
+      this.npcAngles.set(npc.id, st.angle);
+    }
+  }
+
+  private stepForageNodes(dt: number, zone: ZoneDef): void {
+    const nodes = zone.forageNodes;
+    if (!nodes || nodes.length === 0) return;
+    for (const node of nodes) {
+      if (!node.gathered) continue;
+      node.respawnTimer = Math.max(0, (node.respawnTimer ?? 0) - dt);
+      if (node.respawnTimer <= 0) {
+        node.gathered = false;
+        this.threeRenderer?.syncForageNodeState(node.id, false);
+      }
     }
   }
 
@@ -1214,8 +2524,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     let bestDist = 56;
 
     for (const npc of zone.npcs) {
-      const x = (npc.tx + 0.5) * TILE;
-      const y = (npc.ty + 0.5) * TILE;
+      const { x, y } = this.getNpcWorldPos(npc);
       const d = Math.hypot(this.px - x, this.py - y);
       if (d < bestDist) {
         bestDist = d;
@@ -1223,12 +2532,37 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       }
     }
 
+    for (const st of zone.craftStations ?? []) {
+      const x = (st.tx + 0.5) * TILE;
+      const y = (st.ty + 0.5) * TILE;
+      const d = Math.hypot(this.px - x, this.py - y);
+      const reach = 74;
+      if (d < reach && d < bestDist + 18) {
+        bestDist = Math.min(bestDist, d);
+        const verb = st.stationKind === 'forge' ? 'FORGE' : st.stationKind === 'alchemy' ? 'BREW' : 'COOK';
+        best = { kind: 'station', x, y, label: `${verb} · ${st.title}`, station: st };
+      }
+    }
+
+    for (const fn of zone.forageNodes ?? []) {
+      if (fn.gathered) continue;
+      const x = (fn.tx + 0.5) * TILE;
+      const y = (fn.ty + 0.5) * TILE;
+      const d = Math.hypot(this.px - x, this.py - y);
+      if (d < Math.min(bestDist, 52)) {
+        bestDist = d;
+        const meta = FORAGE_META[fn.itemId];
+        best = { kind: 'forage', x, y, label: `GATHER · ${meta.name}`, forage: fn };
+      }
+    }
+
     for (const obj of zone.inspectables) {
       const x = (obj.tx + 0.5) * TILE;
       const y = (obj.ty + 0.5) * TILE;
       const d = Math.hypot(this.px - x, this.py - y);
-      if (d < bestDist) {
-        bestDist = d;
+      const reach = obj.kind === 'fountain' ? 114 : 58;
+      if (d < reach && (d < bestDist || obj.kind === 'fountain')) {
+        bestDist = Math.min(bestDist, d);
         const verb =
           obj.kind === 'sign' || obj.kind === 'tablet' || obj.kind === 'noticeboard' || obj.kind === 'bookshelf'
             ? 'READ'
@@ -1272,28 +2606,64 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     if (target.kind === 'npc' && target.npc) {
       const npc = target.npc;
       sfx.playPellet();
-      // Face the NPC smoothly
+      // Face the NPC smoothly & emit celebratory greeting sparkles!
       this.bodyAngle = Math.atan2(target.y - this.py, target.x - this.px);
+      const talkCol = npc.role === 'quest' ? '#fde047' : '#38bdf8';
+      spawnBurst(this.particles, target.x, target.y - 10, talkCol, 12, 95, 2.6);
+      this.threeRenderer?.spawnGpuBurst(target.x, target.y, talkCol, 14, 3.0);
 
       let text = npc.greeting;
       if (npc.followUpFlag && this.flags.has(npc.followUpFlag) && npc.followUpGreeting) {
         text = npc.followUpGreeting;
         if (npc.grantFlag && !this.flags.has(npc.grantFlag)) {
           this.flags.add(npc.grantFlag);
+          const pts = npc.rewardPoints ?? 500;
           if (npc.rewardGold) {
             this.gold += npc.rewardGold;
-            this.addScore(500);
+            this.addScore(pts);
             sfx.playStageClear();
+            spawnBurst(this.particles, target.x, target.y, '#fde047', 24, 155, 3.4);
+            this.threeRenderer?.spawnGpuBurst(target.x, target.y, '#fde047', 28, 4.2);
+            this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#38bdf8', 16, 3.4);
+            this.popups.push({
+              x: target.x,
+              y: target.y - 28,
+              text: `+${npc.rewardGold}G · +${pts} PTS!`,
+              color: '#fde047',
+              life: 1.8,
+              maxLife: 1.8,
+            });
           }
+        }
+      }
+
+      const stTalk = this.npcStates.get(npc.id);
+      if (stTalk) {
+        stTalk.talking = true;
+        stTalk.springVelY = 1.45;
+      }
+      const meta = this.getDayTimeMeta();
+      const lines: string[] = [text];
+      if (npc.role === 'villager' && zone.theme !== 'interior') {
+        if (this.weather === 'rain' || this.weather === 'storm') {
+          lines.push(`"Quite a ${this.weather} this ${meta.dayFull} ${meta.period.toLowerCase()}—stay warm under the eaves!"`);
+        } else if (this.weather === 'snow') {
+          lines.push(`"Watch the snowfall this ${meta.dayFull}! The streetlamps look magical tonight."`);
+        } else if (meta.period === 'NIGHT') {
+          lines.push(`"Good evening, traveler! The town lanterns keep the ${meta.dayFull} night bright."`);
+        } else if (meta.isMarketDay) {
+          lines.push(`"Happy ${meta.dayFull} Market Day! The plaza and bakery are bustling today!"`);
         }
       }
 
       this.dialogue = {
         speaker: npc.name,
         portrait: npc.portrait,
-        lines: [text],
+        lines,
         shopKind: npc.role === 'quest' || npc.role === 'villager' ? undefined : npc.role,
         cursor: 0,
+        speakerNpc: npc,
+        focusPos: { x: target.x, y: target.y },
       };
       return true;
     }
@@ -1303,14 +2673,44 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       this.bodyAngle = Math.atan2(target.y - this.py, target.x - this.px);
       sfx.playPowerup();
 
+      // Themed 3D GPU + 2D Particle Burst for EVERY Object Inspection!
+      const inspectCol =
+        obj.kind === 'anvil' || obj.kind === 'campfire'
+          ? '#fb923c'
+          : obj.kind === 'fountain' || obj.kind === 'well' || obj.kind === 'telescope' || obj.kind === 'statue'
+            ? '#38bdf8'
+            : '#fde047';
+      spawnBurst(this.particles, target.x, target.y - 8, inspectCol, 18, 125, 3.0);
+      this.threeRenderer?.spawnGpuBurst(target.x, target.y, inspectCol, 22, 3.6);
+
       if (!obj.inspected) {
         obj.inspected = true;
         this.secretsFound++;
-        this.addScore(200);
+        const pts = obj.rewardPoints ?? 200;
+        this.addScore(pts);
         if (obj.grantFlag) this.flags.add(obj.grantFlag);
         if (obj.rewardGold) {
           this.gold += obj.rewardGold;
           sfx.playCoin();
+          spawnBurst(this.particles, target.x, target.y, '#fde047', 16, 135, 3.2);
+          this.threeRenderer?.spawnGpuBurst(target.x, target.y, '#fde047', 20, 4.0);
+          this.popups.push({
+            x: target.x,
+            y: target.y - 24,
+            text: `+${obj.rewardGold}G · +${pts} PTS!`,
+            color: '#fde047',
+            life: 1.5,
+            maxLife: 1.5,
+          });
+        } else if (obj.rewardPoints) {
+          this.popups.push({
+            x: target.x,
+            y: target.y - 24,
+            text: `+${pts} QUEST PTS!`,
+            color: '#38bdf8',
+            life: 1.4,
+            maxLife: 1.4,
+          });
         }
       }
       if (obj.healMp) {
@@ -1318,6 +2718,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
         this.mp = this.maxMp;
         spawnBurst(this.particles, this.px, this.py, '#38bdf8', 18, 130, 3.2);
         this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#38bdf8', 22, 3.6);
+        this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#4ade80', 14, 3.0);
       }
 
       this.dialogue = {
@@ -1325,7 +2726,52 @@ export class YsBookRpgGame implements ArcadeGameInstance {
         portrait: 'adol',
         lines: obj.lines,
         cursor: 0,
+        focusPos: { x: target.x, y: target.y },
       };
+      return true;
+    }
+
+    if (target.kind === 'station' && target.station) {
+      const st = target.station;
+      this.bodyAngle = Math.atan2(target.y - this.py, target.x - this.px);
+      sfx.playPowerup();
+      const burstCol = st.stationKind === 'forge' ? '#fb923c' : st.stationKind === 'alchemy' ? '#34d399' : '#facc15';
+      spawnBurst(this.particles, target.x, target.y - 10, burstCol, 18, 125, 3.0);
+      this.threeRenderer?.spawnGpuBurst(target.x, target.y, burstCol, 22, 3.6);
+      this.dialogue = {
+        speaker: st.title,
+        portrait: 'adol',
+        lines: [st.subtitle, this.getBagSummaryLine()],
+        shopKind: st.stationKind,
+        cursor: 0,
+        focusPos: { x: target.x, y: target.y },
+      };
+      return true;
+    }
+
+    if (target.kind === 'forage' && target.forage) {
+      const fn = target.forage;
+      if (fn.gathered) return false;
+      this.bodyAngle = Math.atan2(target.y - this.py, target.x - this.px);
+      fn.gathered = true;
+      fn.respawnTimer = 45;
+      this.threeRenderer?.syncForageNodeState(fn.id, true);
+      const qty = Math.max(1, fn.amount);
+      this.forageBag[fn.itemId] = (this.forageBag[fn.itemId] ?? 0) + qty;
+      this.totalForaged += qty;
+      this.addScore(45 * qty);
+      const meta = FORAGE_META[fn.itemId];
+      sfx.playCoin();
+      spawnBurst(this.particles, target.x, target.y - 6, meta.color, 16, 120, 2.8);
+      this.threeRenderer?.spawnGpuBurst(target.x, target.y, meta.color, 18, 3.4);
+      this.popups.push({
+        x: target.x,
+        y: target.y - 22,
+        text: `+${qty} ${meta.name}!`,
+        color: meta.color,
+        life: 1.5,
+        maxLife: 1.5,
+      });
       return true;
     }
 
@@ -1347,8 +2793,9 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     ch.opened = true;
     const cx = (ch.tx + 0.5) * TILE;
     const cy = (ch.ty + 0.5) * TILE;
-    spawnBurst(this.particles, cx, cy, '#fde047', 22, 160, 3.6);
-    this.threeRenderer?.spawnGpuBurst(cx, cy, '#fde047', 24, 4.1);
+    spawnBurst(this.particles, cx, cy, '#fde047', 24, 165, 3.6);
+    this.threeRenderer?.spawnGpuBurst(cx, cy, '#fde047', 28, 4.3);
+    this.threeRenderer?.spawnGpuBurst(cx, cy, '#38bdf8', 16, 3.4);
     sfx.playPowerup();
 
     if (ch.rewardKind === 'gold') {
@@ -1405,8 +2852,11 @@ export class YsBookRpgGame implements ArcadeGameInstance {
         life: 1.35,
       });
     }
+    spawnBurst(this.particles, this.px + Math.cos(baseAngle) * 14, this.py + Math.sin(baseAngle) * 14, '#fb923c', 12, 110, 2.8);
+    this.threeRenderer?.spawnGpuBurst(this.px + Math.cos(baseAngle) * 14, this.py + Math.sin(baseAngle) * 14, '#fb923c', 16, 3.4);
     if (this.unlockedMagic.has('shield') && this.shieldAuraTimer <= 0) {
       this.shieldAuraTimer = 3.5;
+      this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#38bdf8', 14, 3.0);
     }
     sfx.playShoot();
   }
@@ -1419,7 +2869,8 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       p.life -= dt;
 
       if (p.life <= 0 || this.isPointBlocked(zone, p.x, p.y)) {
-        spawnBurst(this.particles, p.x, p.y, p.color, 6, 80, 2.2);
+        spawnBurst(this.particles, p.x, p.y, p.color, 8, 90, 2.4);
+        this.threeRenderer?.spawnGpuBurst(p.x, p.y, p.color, 10, 2.8);
         this.projectiles.splice(i, 1);
         continue;
       }
@@ -1431,6 +2882,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
           const r = e.kind === 'boss' ? 34 : 21;
           if (Math.hypot(p.x - e.x, p.y - e.y) < r) {
             this.damageEnemy(e, p.damage, p.vx, p.vy);
+            this.threeRenderer?.spawnGpuBurst(p.x, p.y, p.color, 14, 3.5);
             hit = true;
             break;
           }
@@ -1439,6 +2891,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       } else {
         if (Math.hypot(p.x - this.px, p.y - this.py) < 18) {
           this.damagePlayer(p.damage);
+          this.threeRenderer?.spawnGpuBurst(p.x, p.y, p.color, 12, 3.2);
           this.projectiles.splice(i, 1);
         }
       }
@@ -1663,12 +3116,16 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     this.invulnTimer = 0.55;
     this.screenShake = Math.max(this.screenShake, 0.25);
     sfx.playBounce();
+    spawnBurst(this.particles, this.px, this.py, '#ef4444', 14, 130, 3.0);
+    this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#ef4444', 18, 3.6);
     this.popups.push({ x: this.px, y: this.py - 22, text: `-${dmg}`, color: '#f87171', life: 0.7, maxLife: 0.7 });
 
     if (this.hp <= 0 && this.herbs > 0) {
       this.herbs--;
       this.hp = Math.round(this.maxHp * 0.7);
       sfx.playPowerup();
+      spawnBurst(this.particles, this.px, this.py, '#4ade80', 22, 150, 3.6);
+      this.threeRenderer?.spawnGpuBurst(this.px, this.py, '#4ade80', 28, 4.2);
       this.popups.push({ x: this.px, y: this.py - 36, text: 'HEAL HERB!', color: '#4ade80', life: 1.2, maxLife: 1.2 });
     } else if (this.hp <= 0) {
       sfx.playGameOver();
@@ -1724,6 +3181,15 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     if (this.threeRenderer) {
       const renderYaw =
         this.phase === 'TITLE' ? Math.PI * 0.25 + Math.sin(this.time * 0.32) * 0.16 : this.cameraYaw;
+      let dlgFocus: { active: boolean; x: number; y: number; npcId?: string } | null = null;
+      if (this.dialogue?.speakerNpc) {
+        const livePos = this.getNpcWorldPos(this.dialogue.speakerNpc);
+        dlgFocus = { active: true, x: livePos.x, y: livePos.y, npcId: this.dialogue.speakerNpc.id };
+      } else if (this.dialogue?.focusPos) {
+        dlgFocus = { active: true, x: this.dialogue.focusPos.x, y: this.dialogue.focusPos.y };
+      }
+
+      const wind = this.getWindPhysics();
       this.threeRenderer.renderFrame({
         zone,
         time: this.time,
@@ -1732,6 +3198,14 @@ export class YsBookRpgGame implements ArcadeGameInstance {
         screenShake: this.screenShake,
         cameraYaw: renderYaw,
         cameraZoomMode: this.phase === 'TITLE' ? 'wide45' : this.cameraZoomMode,
+        cameraZoomScale: this.phase === 'TITLE' ? 1.0 : this.cameraZoomScale,
+        timeOfDayHours: this.timeOfDayHours,
+        weather: this.weather,
+        windDirX: wind.dirX,
+        windDirZ: wind.dirZ,
+        windSpeed: wind.speed,
+        lightningFlash: this.lightningFlash,
+        dialogueFocus: dlgFocus,
         px: this.px,
         py: this.py,
         bodyAngle: this.bodyAngle,
@@ -1748,6 +3222,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
         openedChests: this.openedChests,
         flags: this.flags,
         npcAngles: this.npcAngles,
+        npcStates: this.npcStates,
         enemies: this.enemies,
         projectiles: this.projectiles,
         armorGibs: this.armorGibs,
@@ -1852,9 +3327,12 @@ export class YsBookRpgGame implements ArcadeGameInstance {
         drawList.push({ sortY: cy, draw: () => this.drawChest(ctx, atlas, cx, cy, this.openedChests.has(ch.id)) });
       }
       for (const npc of zone.npcs) {
-        if (npc.tx < cMin - 1 || npc.tx > cMax + 1 || npc.ty < rMin - 1 || npc.ty > rMax + 1) continue;
-        const nx = (npc.tx + 0.5) * TILE;
-        const ny = (npc.ty + 0.62) * TILE_H;
+        const pos = this.getNpcWorldPos(npc);
+        const ntx = pos.x / TILE;
+        const nty = pos.y / TILE;
+        if (ntx < cMin - 1 || ntx > cMax + 1 || nty < rMin - 1 || nty > rMax + 1) continue;
+        const nx = pos.x;
+        const ny = (nty + 0.12) * TILE_H;
         drawList.push({ sortY: ny, draw: () => this.drawNpc3D(ctx, atlas, npc, nx, ny) });
       }
       for (const e of this.enemies) {
@@ -1956,26 +3434,35 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       ctx.restore();
     }
 
-    // 2. RPG-JS Frosted Zone Portal Destination Banners
+    // 2. RPG-JS Frosted Zone Portal & Warm Golden Building Doorway Badges
     ctx.save();
     ctx.font = '800 9px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     for (const portal of zone.portals) {
       const px = (portal.tx + portal.widthTiles * 0.5) * TILE;
       const py = (portal.ty + portal.heightTiles * 0.5) * TILE;
-      const scr = tr.projectWorldToScreen(px, py, 2.25);
+      // Show outdoor building doorway hints cleanly when Adol approaches (~15 tiles), and always inside interiors!
+      if (portal.isDoorway && zone.theme !== 'interior') {
+        const distTiles = Math.hypot(this.px - px, this.py - py) / TILE;
+        if (distTiles > 15) continue;
+      }
+      const scr = tr.projectWorldToScreen(px, py, portal.isDoorway ? 1.55 : 2.25);
       if (!scr.visible || scr.x < -80 || scr.x > W + 80 || scr.y < -40 || scr.y > H + 40) continue;
       const locked = Boolean(portal.requiredFlag && !this.flags.has(portal.requiredFlag));
       const label = locked ? `LOCKED · ${portal.label}` : portal.label;
       const tw = ctx.measureText(label).width + 16;
-      ctx.fillStyle = 'rgba(17, 25, 56, 0.86)';
-      ctx.strokeStyle = locked ? 'rgba(251, 113, 133, 0.92)' : 'rgba(186, 230, 253, 0.9)';
+      ctx.fillStyle = portal.isDoorway ? 'rgba(38, 22, 10, 0.88)' : 'rgba(17, 25, 56, 0.86)';
+      ctx.strokeStyle = locked
+        ? 'rgba(251, 113, 133, 0.92)'
+        : portal.isDoorway
+          ? 'rgba(253, 224, 71, 0.92)'
+          : 'rgba(186, 230, 253, 0.9)';
       ctx.lineWidth = 1.4;
       ctx.beginPath();
       ctx.roundRect(scr.x - tw * 0.5, scr.y - 9, tw, 17, 5);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = locked ? '#fecdd3' : '#e0f2fe';
+      ctx.fillStyle = locked ? '#fecdd3' : portal.isDoorway ? '#fef08a' : '#e0f2fe';
       ctx.fillText(label, scr.x, scr.y + 3);
     }
 
@@ -2001,16 +3488,20 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       ctx.font = '800 9px "JetBrains Mono", monospace';
     }
 
-    // 3. RPG-JS Frosted NPC Nameplates + Floating Golden Quest (!) / Shop Badges
+    // 3. RPG-JS Frosted NPC Nameplates + Floating Golden Quest (!) / Shop Badges & Live Secondary Activity Tags
     for (const npc of zone.npcs) {
-      const nx = (npc.tx + 0.5) * TILE;
-      const ny = (npc.ty + 0.5) * TILE;
-      const scr = tr.projectWorldToScreen(nx, ny, 1.58);
+      const { x: nx, y: ny } = this.getNpcWorldPos(npc);
+      const distTiles = Math.hypot(nx - this.px, ny - this.py) / TILE;
+      // Keep distant secondary townsfolk visually clean until Adol strolls within 15 tiles
+      if (npc.secondary && distTiles > 15) continue;
+
+      const ageHeight = npc.ageGroup === 'child' ? 1.62 : npc.ageGroup === 'elder' ? 2.68 : 2.94;
+      const scr = tr.projectWorldToScreen(nx, ny, ageHeight);
       if (!scr.visible || scr.x < -60 || scr.x > W + 60 || scr.y < -40 || scr.y > H + 40) continue;
 
-      // Floating RPG-JS golden Quest "!" or Shop/Inn badge above nameplate
-      const isActiveQuest = npc.role === 'quest' && (!npc.grantFlag || !this.flags.has(npc.grantFlag));
-      const isShopOrInn = npc.role === 'weapon' || npc.role === 'armor' || npc.role === 'inn';
+      // Floating RPG-JS golden Quest "!" or Shop/Inn/Bakery badge above nameplate
+      const isActiveQuest = (npc.role === 'quest' || (npc.role === 'bakery' && Boolean(npc.followUpFlag))) && (!npc.grantFlag || !this.flags.has(npc.grantFlag));
+      const isShopOrInn = npc.role === 'weapon' || npc.role === 'armor' || npc.role === 'inn' || npc.role === 'bakery';
       if (isActiveQuest || isShopOrInn) {
         const bobY = scr.y - 21 + Math.sin(this.time * 5.2 + npc.tx) * 2.4;
         ctx.save();
@@ -2028,22 +3519,85 @@ export class YsBookRpgGame implements ArcadeGameInstance {
         ctx.font = '800 9px "JetBrains Mono", monospace';
       }
 
+      const st = this.npcStates.get(npc.id);
+      const showActivity = Boolean(npc.secondary && st?.working && st.taskLabel && distTiles < 10.5);
       const tw = ctx.measureText(npc.name).width + 12;
-      ctx.fillStyle = 'rgba(17, 25, 56, 0.84)';
-      ctx.strokeStyle = 'rgba(226, 232, 240, 0.72)';
+      ctx.fillStyle = npc.secondary ? 'rgba(15, 23, 42, 0.72)' : 'rgba(17, 25, 56, 0.84)';
+      ctx.strokeStyle = npc.secondary ? 'rgba(148, 163, 184, 0.55)' : 'rgba(226, 232, 240, 0.72)';
       ctx.lineWidth = 1.1;
       ctx.beginPath();
       ctx.roundRect(scr.x - tw * 0.5, scr.y - 8, tw, 14, 4);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = isActiveQuest ? '#fef08a' : '#f8fafc';
+      ctx.fillStyle = isActiveQuest ? '#fef08a' : npc.secondary ? '#e2e8f0' : '#f8fafc';
       ctx.fillText(npc.name, scr.x, scr.y + 2);
+
+      if (showActivity && st?.taskLabel) {
+        ctx.save();
+        ctx.font = '700 8px "JetBrains Mono", monospace';
+        const aw = ctx.measureText(st.taskLabel).width + 10;
+        ctx.fillStyle = 'rgba(15, 118, 110, 0.82)';
+        ctx.beginPath();
+        ctx.roundRect(scr.x - aw * 0.5, scr.y - 21, aw, 11, 3);
+        ctx.fill();
+        ctx.fillStyle = '#ccfbf1';
+        ctx.fillText(st.taskLabel, scr.x, scr.y - 13);
+        ctx.restore();
+        ctx.font = '800 9px "JetBrains Mono", monospace';
+      }
     }
 
-    // 4. Crisp RPG-JS Overhead HP Bars above Hurt Non-Boss Enemies
+    // 3b. Interactive Crafting Station Overhead Badges (Forge / Alchemy Cauldron / Hearth Cooking)
+    for (const st of zone.craftStations ?? []) {
+      const sx = (st.tx + 0.5) * TILE;
+      const sy = (st.ty + 0.5) * TILE;
+      if (Math.hypot(sx - this.px, sy - this.py) / TILE > 18) continue;
+      const scr = tr.projectWorldToScreen(sx, sy, st.stationKind === 'forge' ? 2.55 : 2.15);
+      if (!scr.visible || scr.x < -70 || scr.x > W + 70 || scr.y < -40 || scr.y > H + 40) continue;
+      const tag = st.stationKind === 'forge' ? 'FORGE' : st.stationKind === 'alchemy' ? 'ALCHEMY' : 'COOKING';
+      const accent = st.stationKind === 'forge' ? '#fb923c' : st.stationKind === 'alchemy' ? '#34d399' : '#facc15';
+      const label = `${tag} · ${st.title}`;
+      ctx.font = '800 8.5px "JetBrains Mono", monospace';
+      const tw = ctx.measureText(label).width + 14;
+      ctx.fillStyle = 'rgba(15, 23, 52, 0.88)';
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 1.25;
+      ctx.beginPath();
+      ctx.roundRect(scr.x - tw * 0.5, scr.y - 8, tw, 15, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = accent;
+      ctx.fillText(label, scr.x, scr.y + 2.5);
+    }
+
+    // 3c. Nearby Scavengeable Forage Node Sparkle Tags (within 7.5 tiles so flora & ores pop cleanly!)
+    ctx.font = '800 8px "JetBrains Mono", monospace';
+    for (const fn of zone.forageNodes ?? []) {
+      if (fn.gathered) continue;
+      const fx = (fn.tx + 0.5) * TILE;
+      const fy = (fn.ty + 0.5) * TILE;
+      if (Math.hypot(fx - this.px, fy - this.py) / TILE > 7.5) continue;
+      const scr = tr.projectWorldToScreen(fx, fy, 1.05);
+      if (!scr.visible || scr.x < -50 || scr.x > W + 50 || scr.y < -30 || scr.y > H + 30) continue;
+      const meta = FORAGE_META[fn.itemId];
+      const bob = Math.sin(this.time * 4.5 + fn.tx * 1.7) * 2;
+      const tw = ctx.measureText(meta.short).width + 10;
+      ctx.fillStyle = 'rgba(10, 18, 38, 0.8)';
+      ctx.strokeStyle = meta.color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(scr.x - tw * 0.5, scr.y - 7 + bob, tw, 12.5, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = meta.color;
+      ctx.fillText(meta.short, scr.x, scr.y + 2 + bob);
+    }
+
+    // 4. Crisp RPG-JS Overhead HP Bars above Hurt Non-Boss Enemies (matched to Short vs Tall enemy stature!)
     for (const e of this.enemies) {
       if (e.kind === 'boss' || e.hp >= e.maxHp) continue;
-      const scr = tr.projectWorldToScreen(e.x, e.y, 1.55);
+      const barH = e.kind === 'slime' ? 1.45 : e.kind === 'goblin' ? 2.05 : e.kind === 'wyvern' ? 3.3 : 3.05;
+      const scr = tr.projectWorldToScreen(e.x, e.y, barH);
       if (!scr.visible) continue;
       const bw = 34;
       const frac = Math.max(0, e.hp / e.maxHp);
@@ -2063,7 +3617,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     // 5. Floating Damage, Level-Up & Discovery Popups
     ctx.font = '900 13px "JetBrains Mono", monospace';
     for (const pop of this.popups) {
-      const scr = tr.projectWorldToScreen(pop.x, pop.y, 1.4 + (1 - pop.life / Math.max(0.01, pop.maxLife)) * 0.85);
+      const scr = tr.projectWorldToScreen(pop.x, pop.y, 1.85 + (1 - pop.life / Math.max(0.01, pop.maxLife)) * 0.95);
       if (!scr.visible) continue;
       const alpha = Math.max(0, pop.life / Math.max(0.01, pop.maxLife));
       ctx.globalAlpha = alpha;
@@ -2077,7 +3631,17 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     // 6. RPG-JS Contextual [SPACE] Interaction Prompt Badge projected cleanly over target
     if (this.nearestInteract && !this.dialogue && this.phase === 'PLAYING') {
       const t = this.nearestInteract;
-      const scr = tr.projectWorldToScreen(t.x, t.y, 1.9);
+      const promptH =
+        t.kind === 'npc'
+          ? t.npc?.ageGroup === 'child'
+            ? 2.05
+            : 3.38
+          : t.kind === 'station'
+            ? 2.85
+            : t.kind === 'forage'
+              ? 1.55
+              : 1.95;
+      const scr = tr.projectWorldToScreen(t.x, t.y, promptH);
       if (scr.visible) {
         const floatY = scr.y + Math.sin(this.time * 6) * 2.5;
         const text = `[SPACE] ${t.label}`;
@@ -3363,23 +4927,212 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     // Embedded Live Minimap
     this.drawMiniMap(ctx, zone, mx + 6, my + 27, mw - 12, 80);
 
-    // Sleek Interactive RPG-JS 45° Camera Mode & Orbit Badge right beneath Minimap!
+    // Interactive RPG-JS 90°-Stepped 45° Camera & Compass Strip right beneath Minimap!
     const badgeY = my + 118;
-    this.drawRpgJsWindow(ctx, mx, badgeY, mw, 28, 7, 'rgba(125, 211, 252, 0.78)');
-    const deg = Math.round((((this.cameraYaw * 180) / Math.PI) % 360 + 360) % 360);
+    this.drawRpgJsWindow(ctx, mx, badgeY, mw, 32, 7, 'rgba(125, 211, 252, 0.78)');
+    const compass = this.getCameraCompassInfo();
     const modeLabel =
-      this.cameraZoomMode === 'fullmap45'
-        ? 'FULL MAP'
-        : this.cameraZoomMode === 'wide45'
-          ? 'WIDE'
-          : 'EVO';
-    ctx.font = '800 8.5px "JetBrains Mono", monospace';
+      this.cameraZoomMode === 'close45'
+        ? 'CLOSE'
+        : this.cameraZoomMode === 'fullmap45'
+          ? 'FULL'
+          : this.cameraZoomMode === 'wide45'
+            ? 'WIDE'
+            : 'EVO';
+    const zoomPct = Math.round((1 / this.cameraZoomScale) * 100);
+    ctx.font = '800 8px "JetBrains Mono", monospace';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#fef08a';
-    ctx.fillText(`${deg}° ${modeLabel} · [V] VIEW`, mx + mw * 0.5, badgeY + 12);
-    ctx.font = '700 7.5px "JetBrains Mono", monospace';
+    ctx.fillText(`LOOK ${compass.dir} · ${modeLabel} ${zoomPct}%`, mx + mw * 0.5, badgeY + 13);
+    ctx.font = '700 7px "JetBrains Mono", monospace';
     ctx.fillStyle = '#93c5fd';
-    ctx.fillText('[Q/E] ORBIT · [R] 45°', mx + mw * 0.5, badgeY + 23);
+    ctx.fillText('[Q/E] ↺90° · [V] VIEW · [R] RESET', mx + mw * 0.5, badgeY + 25);
+
+    // Compact Live Calendar (Day of Week), Clock & Weather Widget!
+    const calY = badgeY + 36;
+    const meta = this.getDayTimeMeta();
+    const weatherCol =
+      this.weather === 'storm'
+        ? '#c084fc'
+        : this.weather === 'rain'
+          ? '#7dd3fc'
+          : this.weather === 'snow'
+            ? '#e2e8f0'
+            : this.weather === 'breezy'
+              ? '#86efac'
+              : meta.period === 'NIGHT'
+                ? '#a5b4fc'
+                : '#fde047';
+    this.drawRpgJsWindow(ctx, mx, calY, mw, 36, 7, 'rgba(186, 230, 253, 0.72)');
+    ctx.font = '800 8.5px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = meta.isMarketDay ? '#fde047' : '#f8fafc';
+    ctx.fillText(`${meta.dayShort} D${this.dayNumber}`, mx + 8, calY + 13.5);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#bae6fd';
+    ctx.fillText(meta.timeStr, mx + mw - 8, calY + 13.5);
+
+    ctx.font = '700 7.5px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = weatherCol;
+    ctx.fillText(meta.weatherLabel, mx + 8, calY + 27);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('[T]+3H · [G]SKY', mx + mw - 8, calY + 27);
+
+    // Directional Wind & 45°-Aligned N/S/E/W Looking Compass Rose Map!
+    const windY = calY + 40;
+    const windH = 84;
+    this.drawRpgJsWindow(ctx, mx, windY, mw, windH, 8, 'rgba(103, 232, 249, 0.76)');
+    const wind = this.getWindPhysics();
+    const cx = mx + 38;
+    const cy = windY + windH * 0.5;
+    const rad = 28;
+
+    // Dial Background & Concentric Compass Rings
+    const dialGrad = ctx.createRadialGradient(cx, cy - 4, 3, cx, cy, rad);
+    dialGrad.addColorStop(0, 'rgba(15, 38, 72, 0.92)');
+    dialGrad.addColorStop(1, 'rgba(7, 16, 36, 0.96)');
+    ctx.fillStyle = dialGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(125, 211, 252, 0.48)';
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad * 0.55, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 8-point compass ticks (N=up along 45° normal view!)
+    for (let ti = 0; ti < 8; ti++) {
+      const ta = (ti * Math.PI) / 4 - Math.PI * 0.5;
+      const inner = ti % 2 === 0 ? rad - 4.5 : rad - 3;
+      ctx.strokeStyle = ti === 0 ? 'rgba(251, 191, 36, 0.85)' : 'rgba(148, 163, 184, 0.45)';
+      ctx.lineWidth = ti % 2 === 0 ? 1.2 : 0.8;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(ta) * inner, cy + Math.sin(ta) * inner);
+      ctx.lineTo(cx + Math.cos(ta) * rad, cy + Math.sin(ta) * rad);
+      ctx.stroke();
+    }
+
+    // Live Looking Direction View Cone (aligned so 45° normal view points straight UP = North!)
+    const lookCompassRad = -(this.cameraYaw - Math.PI * 0.25);
+    const lookCanvasAng = lookCompassRad - Math.PI * 0.5;
+    const coneHalf = 0.42;
+    const coneGrad = ctx.createRadialGradient(cx, cy, 1, cx, cy, rad - 2);
+    coneGrad.addColorStop(0, 'rgba(251, 191, 36, 0.46)');
+    coneGrad.addColorStop(1, 'rgba(251, 191, 36, 0.04)');
+    ctx.fillStyle = coneGrad;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, rad - 2, lookCanvasAng - coneHalf, lookCanvasAng + coneHalf);
+    ctx.closePath();
+    ctx.fill();
+
+    // Bright Golden Looking Pointer Needle
+    const lookTipX = cx + Math.cos(lookCanvasAng) * (rad - 6.5);
+    const lookTipY = cy + Math.sin(lookCanvasAng) * (rad - 6.5);
+    ctx.strokeStyle = '#fde047';
+    ctx.lineWidth = 1.9;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(lookTipX, lookTipY);
+    ctx.stroke();
+    ctx.fillStyle = '#fef08a';
+    ctx.beginPath();
+    ctx.arc(lookTipX, lookTipY, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Animated Directional Wind Streamlines & Cyan Wind Vector Arrow!
+    const windCanvasAng = wind.compassRad - Math.PI * 0.5;
+    const wCos = Math.cos(windCanvasAng);
+    const wSin = Math.sin(windCanvasAng);
+    const pCos = -wSin;
+    const pSin = wCos;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad - 3, 0, Math.PI * 2);
+    ctx.clip();
+    for (let si = -1; si <= 1; si++) {
+      const flow = ((this.time * (0.45 + wind.speed * 0.18) + (si + 1) * 0.33) % 1) * 2 - 1;
+      const sx = cx + wCos * (flow * 20) + pCos * (si * 9);
+      const sy = cy + wSin * (flow * 20) + pSin * (si * 9);
+      ctx.strokeStyle = 'rgba(103, 232, 249, 0.42)';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(sx - wCos * 5.5, sy - wSin * 5.5);
+      ctx.lineTo(sx + wCos * 5.5, sy + wSin * 5.5);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    const wStartX = cx - wCos * 12;
+    const wStartY = cy - wSin * 12;
+    const wEndX = cx + wCos * 16.5;
+    const wEndY = cy + wSin * 16.5;
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2.0;
+    ctx.beginPath();
+    ctx.moveTo(wStartX, wStartY);
+    ctx.lineTo(wEndX, wEndY);
+    ctx.stroke();
+    // Crisp Wind Arrowhead
+    ctx.fillStyle = '#67e8f9';
+    ctx.beginPath();
+    ctx.moveTo(wEndX + wCos * 2.4, wEndY + wSin * 2.4);
+    ctx.lineTo(wEndX - wCos * 4.5 + pCos * 3.8, wEndY - wSin * 4.5 + pSin * 3.8);
+    ctx.lineTo(wEndX - wCos * 4.5 - pCos * 3.8, wEndY - wSin * 4.5 - pSin * 3.8);
+    ctx.closePath();
+    ctx.fill();
+
+    // Center Compass Pivot Pin
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cardinal Labels (N at top aligned to 45° normal view!)
+    ctx.font = '800 7.5px "JetBrains Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fde047';
+    ctx.fillText('N', cx, cy - rad + 7);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillText('S', cx, cy + rad - 6.5);
+    ctx.fillText('E', cx + rad - 6.5, cy);
+    ctx.fillText('W', cx - rad + 7, cy);
+    ctx.textBaseline = 'alphabetic';
+
+    // Right Column Telemetry Readouts (Looking Direction + Live Wind Heading & Speed)
+    const infoX = mx + 74;
+    ctx.textAlign = 'left';
+    ctx.font = '700 6.8px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('LOOKING', infoX, windY + 17);
+    ctx.font = '800 10.5px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#fde047';
+    ctx.fillText(`${compass.dir}`, infoX, windY + 29);
+    ctx.font = '700 7.2px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillText(`${compass.compassDeg}°`, infoX + 22, windY + 29);
+
+    ctx.font = '700 6.8px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('WIND', infoX, windY + 45);
+    ctx.font = '800 10px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#67e8f9';
+    ctx.fillText(`${wind.label}`, infoX, windY + 57);
+    ctx.font = '700 7.5px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#bae6fd';
+    ctx.fillText(`${wind.knots}KT`, infoX + 24, windY + 57);
+
+    ctx.font = '700 6.8px "JetBrains Mono", monospace';
+    ctx.fillStyle = '#7dd3fc';
+    ctx.fillText('[B] SHIFT', infoX, windY + 73);
     ctx.restore();
   }
 
@@ -3435,7 +5188,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       ctx.textAlign = 'center';
       const hintTxt = hint.length > 54 ? `${hint.slice(0, 52)}…` : hint;
       const hw = Math.min(W - 40, Math.max(210, ctx.measureText(hintTxt).width + 26));
-      const dockW = 368;
+      const dockW = 434;
       const dockH = 48;
       const dockX = Math.round(W * 0.5 - dockW * 0.5);
       const dockY = H - dockH - 10;
@@ -3451,10 +5204,10 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       ctx.fillStyle = '#fef08a';
       ctx.fillText(hintTxt, W * 0.5, dockY - 9.5);
 
-      // Main RPG-JS 5-Slot Hotbar Dock
+      // Main RPG-JS 6-Slot Hotbar Dock (including [C] Scavenger Satchel!)
       this.drawRpgJsWindow(ctx, dockX, dockY, dockW, dockH, 10);
 
-      const slots: Array<{ key: string; title: string; value: string; accent: string; kind: 'sword' | 'magic' | 'herb' | 'ring' | 'relic' }> = [
+      const slots: Array<{ key: string; title: string; value: string; accent: string; kind: 'sword' | 'magic' | 'herb' | 'bag' | 'ring' | 'relic' }> = [
         {
           key: 'SPC',
           title: 'ACTION',
@@ -3468,6 +5221,13 @@ export class YsBookRpgGame implements ArcadeGameInstance {
           value: this.variant === 'ys2' ? `${Math.ceil(this.mp)} MP` : 'CHART',
           accent: this.variant === 'ys2' ? '#fb923c' : '#a78bfa',
           kind: 'magic',
+        },
+        {
+          key: 'C',
+          title: 'BAG',
+          value: `x${this.getTotalBagCount()}`,
+          accent: this.speedBuffTimer > 0 ? '#2dd4bf' : '#34d399',
+          kind: 'bag',
         },
         {
           key: 'HRB',
@@ -3588,8 +5348,9 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       ctx.fillRect(x + 3 + chObj.tx * cw - 1, y + 3 + chObj.ty * ch - 1, 3, 3);
     }
     for (const npc of zone.npcs) {
-      ctx.fillStyle = npc.role === 'quest' ? '#fde047' : '#f472b6';
-      ctx.fillRect(x + 3 + npc.tx * cw - 1, y + 3 + npc.ty * ch - 1, 3, 3);
+      const pos = this.getNpcWorldPos(npc);
+      ctx.fillStyle = npc.role === 'quest' ? '#fde047' : npc.secondary ? '#5eead4' : '#f472b6';
+      ctx.fillRect(x + 3 + (pos.x / TILE) * cw - 1, y + 3 + (pos.y / TILE) * ch - 1, npc.secondary ? 2.2 : 3, npc.secondary ? 2.2 : 3);
     }
 
     const ax = x + 3 + (this.px / TILE) * cw;
@@ -3648,7 +5409,13 @@ export class YsBookRpgGame implements ArcadeGameInstance {
   // ---------------------------------------------------------------------------
   // CHRONICLES+ LARGE HALF-BODY RIGHT-SIDE ANIME BUST & TWIN-GODDESS DIALOGUE
   // ---------------------------------------------------------------------------
-  private drawLargeAnimeBust(ctx: CanvasRenderingContext2D, id: PortraitId, cx: number, bottomY: number): void {
+  private drawLargeAnimeBust(
+    ctx: CanvasRenderingContext2D,
+    id: PortraitId,
+    cx: number,
+    bottomY: number,
+    speakerNpc?: WorldNpc
+  ): void {
     ctx.save();
     ctx.translate(cx, bottomY);
 
@@ -3672,13 +5439,42 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       dalles: ['#450a0a', '#991b1b', '#f87171'],
       elder: ['#334155', '#1e293b', '#cbd5e1'],
     };
-    const [hairHi, hairMid, hairLo] = hairMap[id];
-    const [coatMain, coatSub, trimCol] = outfitMap[id];
-    const isFemale = id === 'feena' || id === 'lilia' || id === 'sara';
+
+    const isChildNpc = Boolean(speakerNpc && (speakerNpc.ageGroup === 'child' || speakerNpc.task === 'play'));
+    const isElderNpc = Boolean(speakerNpc && (speakerNpc.ageGroup === 'elder' || speakerNpc.portrait === 'elder'));
+    const isBakerNpc = Boolean(speakerNpc && (speakerNpc.role === 'bakery' || speakerNpc.task === 'baker'));
+    const isGuardNpc = Boolean(speakerNpc && speakerNpc.task === 'patrol');
+    const isSmithNpc = Boolean(speakerNpc && (speakerNpc.role === 'weapon' || speakerNpc.role === 'armor' || speakerNpc.task === 'hammer' || speakerNpc.task === 'craft'));
+
+    if (isChildNpc) {
+      ctx.scale(0.84, 0.84);
+    }
+
+    const [baseHi, baseMid, baseLo] = hairMap[id];
+    const hairHi = speakerNpc ? speakerNpc.hairColor : baseHi;
+    const hairMid = speakerNpc ? speakerNpc.hairColor : baseMid;
+    const hairLo = speakerNpc ? '#1e293b' : baseLo;
+
+    const [baseCoat, baseSub, baseTrim] = outfitMap[id];
+    const coatMain = speakerNpc ? speakerNpc.tunicColor : baseCoat;
+    const coatSub = speakerNpc ? speakerNpc.cloakColor : baseSub;
+    const trimCol = speakerNpc
+      ? isBakerNpc
+        ? '#fef3c7'
+        : isGuardNpc
+          ? '#e2e8f0'
+          : '#facc15'
+      : baseTrim;
+
+    const isFemale =
+      id === 'feena' ||
+      id === 'lilia' ||
+      id === 'sara' ||
+      Boolean(speakerNpc && (speakerNpc.task === 'garden' || speakerNpc.task === 'serve' || speakerNpc.task === 'water_carry'));
 
     // Soft anime rim glow behind character bust
     const aura = ctx.createRadialGradient(0, -110, 12, 0, -110, 118);
-    aura.addColorStop(0, 'rgba(255, 255, 255, 0.22)');
+    aura.addColorStop(0, 'rgba(255, 255, 255, 0.24)');
     aura.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = aura;
     ctx.beginPath();
@@ -3700,7 +5496,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       ctx.fill();
     }
 
-    // Half-Body Shoulders, Draped Cloak & Armor / Tunic
+    // Half-Body Shoulders, Draped Cloak & Armor / Tunic matching exact speaker colors!
     const bodyGrad = ctx.createLinearGradient(-56, -98, 56, 4);
     bodyGrad.addColorStop(0, coatMain);
     bodyGrad.addColorStop(1, coatSub);
@@ -3715,6 +5511,18 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     ctx.strokeStyle = 'rgba(15, 23, 42, 0.65)';
     ctx.lineWidth = 2;
     ctx.stroke();
+
+    // Guard / Smith armored pauldrons or apron detail
+    if (isGuardNpc || isSmithNpc) {
+      ctx.fillStyle = isGuardNpc ? '#94a3b8' : '#78350f';
+      ctx.beginPath();
+      ctx.ellipse(-44, -62, 18, 13, -0.35, 0, Math.PI * 2);
+      ctx.ellipse(44, -62, 18, 13, 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (isBakerNpc) {
+      ctx.fillStyle = '#fffbeb';
+      ctx.fillRect(-26, -78, 52, 82);
+    }
 
     // Decorative collar, brooch & lapel trim
     ctx.strokeStyle = trimCol;
@@ -3756,22 +5564,32 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     ctx.closePath();
     ctx.fill();
 
+    // Rosy cheeks for children
+    if (isChildNpc) {
+      ctx.fillStyle = 'rgba(251, 113, 133, 0.28)';
+      ctx.beginPath();
+      ctx.ellipse(-18, -126, 6.5, 3.6, 0, 0, Math.PI * 2);
+      ctx.ellipse(18, -126, 6.5, 3.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     // Expressive Large Chronicles+ Anime Eyes with Specular Highlights & Lashes
     const eyeY = -138;
+    const eyeR = isChildNpc ? 1.12 : 1.0;
     const irisCol = id === 'darkfact' || id === 'dalles' ? '#ef4444' : id === 'feena' ? '#2563eb' : id === 'lilia' ? '#059669' : '#1e3a8a';
     for (const side of [-1, 1]) {
       const ex = side * 13.5;
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.ellipse(ex, eyeY, 8.2, 6.8, 0, 0, Math.PI * 2);
+      ctx.ellipse(ex, eyeY, 8.2 * eyeR, 6.8 * eyeR, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = irisCol;
       ctx.beginPath();
-      ctx.ellipse(ex - side * 0.6, eyeY + 0.5, 5.4, 6.0, 0, 0, Math.PI * 2);
+      ctx.ellipse(ex - side * 0.6, eyeY + 0.5, 5.4 * eyeR, 6.0 * eyeR, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#0f172a';
       ctx.beginPath();
-      ctx.arc(ex - side * 0.6, eyeY + 0.8, 2.8, 0, Math.PI * 2);
+      ctx.arc(ex - side * 0.6, eyeY + 0.8, 2.8 * eyeR, 0, Math.PI * 2);
       ctx.fill();
       // Crisp double anime eye catchlights
       ctx.fillStyle = '#ffffff';
@@ -3783,18 +5601,28 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       ctx.strokeStyle = '#0f172a';
       ctx.lineWidth = 2.4;
       ctx.beginPath();
-      ctx.arc(ex, eyeY + 1, 8.5, Math.PI * 1.15, Math.PI * 1.85);
+      ctx.arc(ex, eyeY + 1, 8.5 * eyeR, Math.PI * 1.15, Math.PI * 1.85);
       ctx.stroke();
     }
 
-    // Subtle nose & gentle expression mouth
+    // Subtle nose, expression mouth & optional Elder Beard
     ctx.fillStyle = 'rgba(154, 52, 18, 0.35)';
     ctx.fillRect(-1, -126, 2, 4);
-    ctx.strokeStyle = '#9a3412';
-    ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    ctx.arc(0, -117, 6, 0.16 * Math.PI, 0.84 * Math.PI);
-    ctx.stroke();
+    if (isElderNpc && !isFemale) {
+      ctx.fillStyle = hairHi;
+      ctx.beginPath();
+      ctx.moveTo(-20, -118);
+      ctx.quadraticCurveTo(0, -82, 20, -118);
+      ctx.quadraticCurveTo(0, -108, -20, -118);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = '#9a3412';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(0, -117, 6, 0.16 * Math.PI, 0.84 * Math.PI);
+      ctx.stroke();
+    }
 
     // Layered Anime Hair Crown, Swept Bangs & Side Framing Locks
     const hGrad = ctx.createLinearGradient(0, -196, 0, -120);
@@ -3835,8 +5663,37 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     ctx.arc(0, -156, 26, Math.PI * 1.18, Math.PI * 1.78);
     ctx.stroke();
 
-    // Signature Hair Accessories (Adol windswept spikes, Feena/Lilia hair ornament)
-    if (id === 'adol') {
+    // Signature Character-Specific Headgear & Hair Accessories!
+    if (isBakerNpc) {
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, -196, 30, 18, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillRect(-24, -188, 48, 16);
+    } else if (isGuardNpc) {
+      ctx.fillStyle = '#94a3b8';
+      ctx.beginPath();
+      ctx.arc(0, -162, 39, Math.PI, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.ellipse(0, -206, 8, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (id === 'sara') {
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(0, -154, 34, Math.PI * 1.14, Math.PI * 1.86);
+      ctx.stroke();
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(0, -187, 5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (id === 'adol' && !speakerNpc) {
       ctx.fillStyle = hairHi;
       ctx.beginPath();
       ctx.moveTo(-18, -182);
@@ -3846,7 +5703,7 @@ export class YsBookRpgGame implements ArcadeGameInstance {
       ctx.lineTo(22, -180);
       ctx.closePath();
       ctx.fill();
-    } else if (id === 'feena' || id === 'lilia') {
+    } else if (id === 'feena' || id === 'lilia' || isFemale) {
       ctx.fillStyle = id === 'feena' ? '#fde047' : '#f472b6';
       ctx.beginPath();
       ctx.arc(27, -166, 8, 0, Math.PI * 2);
@@ -3864,18 +5721,19 @@ export class YsBookRpgGame implements ArcadeGameInstance {
     const dlg = this.dialogue;
     if (!dlg) return;
 
+    const opts = dlg.shopKind ? this.getShopOptions(dlg.shopKind) : [];
     const bx = 24;
     const bw = W - 48;
-    const bh = dlg.shopKind ? 184 : 134;
+    const bh = dlg.shopKind ? Math.min(viewH - 72, Math.max(188, 108 + opts.length * 24)) : 134;
     const by = viewH - bh - 18;
 
     ctx.save();
-    // Subtle scenic dim so the anime portrait & RPG-JS frosted dialogue window stand out cleanly
-    ctx.fillStyle = 'rgba(6, 10, 26, 0.36)';
+    // Light cinematic vignette so the zoomed-in 3D characters speaking stay bright & prominent!
+    ctx.fillStyle = 'rgba(6, 10, 26, 0.16)';
     ctx.fillRect(0, 0, W, viewH);
 
-    // Large Half-Body Right-Side Anime Bust Portrait rising cleanly behind the dialogue window
-    this.drawLargeAnimeBust(ctx, dlg.portrait, W - 104, by + 14);
+    // Character-Specific Half-Body Right-Side Anime Bust Portrait matching the exact NPC speaking!
+    this.drawLargeAnimeBust(ctx, dlg.portrait, W - 104, by + 14, dlg.speakerNpc);
 
     // Iconic RPG-JS Default-GUI Translucent Indigo-Slate Window with Crisp White-Silver Double Border
     this.drawRpgJsWindow(ctx, bx, by, bw, bh, 11, 'rgba(241, 245, 249, 0.92)');
@@ -3892,33 +5750,41 @@ export class YsBookRpgGame implements ArcadeGameInstance {
 
     // RPG-JS Dialogue Copy with Automatic Cyan Keyword Highlighting
     const tx = bx + 22;
-    ctx.font = '600 12.5px "Plus Jakarta Sans", sans-serif';
-    let lineY = by + 34;
+    ctx.font = '600 12px "Plus Jakarta Sans", sans-serif';
+    let lineY = by + 32;
     for (const line of dlg.lines) {
-      lineY = this.drawHighlightedWrappedLine(ctx, line, tx, lineY, bw - 160, 18.5) + 4;
+      lineY = this.drawHighlightedWrappedLine(ctx, line, tx, lineY, bw - 166, 17.5) + 3;
     }
 
     if (dlg.shopKind) {
-      const opts = this.getShopOptions(dlg.shopKind);
-      let oy = by + 92;
+      const rowW = bw - 156;
+      let oy = Math.max(by + 88, lineY + 12);
       opts.forEach((o, i) => {
         const sel = i === dlg.cursor;
         if (sel) {
-          const selGrad = ctx.createLinearGradient(tx - 8, oy - 13, tx + bw - 150, oy - 13);
+          const selGrad = ctx.createLinearGradient(tx - 8, oy - 13, tx - 8 + rowW, oy - 13);
           selGrad.addColorStop(0, 'rgba(56, 189, 248, 0.34)');
           selGrad.addColorStop(1, 'rgba(59, 130, 246, 0.12)');
           ctx.fillStyle = selGrad;
           ctx.strokeStyle = 'rgba(125, 211, 252, 0.85)';
           ctx.lineWidth = 1.2;
           ctx.beginPath();
-          ctx.roundRect(tx - 8, oy - 13, bw - 156, 22, 6);
+          ctx.roundRect(tx - 8, oy - 13, rowW, 21, 6);
           ctx.fill();
           ctx.stroke();
         }
-        ctx.font = sel ? '800 12px "JetBrains Mono", monospace' : '600 12px "JetBrains Mono", monospace';
-        ctx.fillStyle = sel ? '#fef08a' : '#cbd5e1';
-        ctx.fillText(`${sel ? '▶' : ' '} ${o.label}`, tx, oy + 2);
-        oy += 25;
+        ctx.textAlign = 'left';
+        ctx.font = sel ? '800 11.5px "JetBrains Mono", monospace' : '600 11.5px "JetBrains Mono", monospace';
+        ctx.fillStyle = sel ? '#fef08a' : '#e2e8f0';
+        ctx.fillText(`${sel ? '▶' : ' '} ${o.label}`, tx, oy + 1.5);
+
+        if (o.desc) {
+          ctx.textAlign = 'right';
+          ctx.font = '600 10px "JetBrains Mono", monospace';
+          ctx.fillStyle = sel ? '#bae6fd' : '#94a3b8';
+          ctx.fillText(o.desc, tx - 14 + rowW, oy + 1.5);
+        }
+        oy += 23.5;
       });
     } else {
       const bounce = Math.sin(this.time * 7) * 2.2;

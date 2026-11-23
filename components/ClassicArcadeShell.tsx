@@ -7,6 +7,8 @@ import {
   Gauge,
   Heart,
   LayoutGrid,
+  Maximize2,
+  Minimize2,
   Monitor,
   Mouse,
   Music,
@@ -97,6 +99,7 @@ export default function ClassicArcadeShell({
   const accentHex = cabinetMeta?.accentHex ?? '#38BDF8';
   const device = useDeviceProfile();
 
+  const shellContainerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameRef = useRef<ArcadeGameInstance | null>(null);
   const inputRef = useRef<ArcadeInputState>(createEmptyInput());
@@ -126,6 +129,7 @@ export default function ClassicArcadeShell({
   });
 
   const [visualMode, setVisualMode] = useState<'hd' | 'crt'>('hd');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [muted, setMuted] = useState(false);
   const [musicOn, setMusicOn] = useState(() => arcadeMusic.isMusicEnabled());
   const [mouseSteerEnabled, setMouseSteerEnabled] = useState(true);
@@ -153,6 +157,49 @@ export default function ClassicArcadeShell({
   useEffect(() => {
     visualModeRef.current = visualMode;
   }, [visualMode]);
+
+  const isFullscreenRef = useRef(false);
+
+  // Keep PC Full Screen state synchronized if the user exits native browser fullscreen via browser UI or Esc
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    let wasNativeFullscreen = Boolean(document.fullscreenElement);
+    const onFsChange = () => {
+      const nowNative = Boolean(document.fullscreenElement);
+      if (nowNative) {
+        isFullscreenRef.current = true;
+        setIsFullscreen(true);
+      } else if (wasNativeFullscreen) {
+        isFullscreenRef.current = false;
+        setIsFullscreen(false);
+      }
+      wasNativeFullscreen = nowNative;
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+    };
+  }, []);
+
+  const handleToggleFullscreen = useCallback(() => {
+    const next = !isFullscreenRef.current;
+    isFullscreenRef.current = next;
+    if (typeof document !== 'undefined') {
+      if (next) {
+        const el = shellContainerRef.current ?? document.documentElement;
+        if (el && typeof el.requestFullscreen === 'function' && !document.fullscreenElement) {
+          el.requestFullscreen().catch(() => {
+            // Gracefully stay in edge-to-edge viewport fullscreen when embedded in a restricted iframe
+          });
+        }
+      } else if (document.fullscreenElement && typeof document.exitFullscreen === 'function') {
+        document.exitFullscreen().catch(() => {
+          // ignore
+        });
+      }
+    }
+    setIsFullscreen(next);
+  }, []);
 
   useEffect(() => {
     const scale = SPEED_PRESET_SCALE[speedPreset];
@@ -407,6 +454,18 @@ export default function ClassicArcadeShell({
       const inst = gameRef.current;
       if (!inst) return;
 
+      if ((code === 'KeyF' && !e.ctrlKey && !e.metaKey && !e.altKey) || code === 'F11') {
+        e.preventDefault();
+        handleToggleFullscreen();
+        return;
+      }
+
+      if (code === 'Escape' && isFullscreen) {
+        e.preventDefault();
+        handleToggleFullscreen();
+        return;
+      }
+
       if (code === 'KeyP') {
         inst.togglePause();
         setHud(inst.getHudSnapshot());
@@ -511,7 +570,7 @@ export default function ClassicArcadeShell({
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
     };
-  }, [gameId]);
+  }, [gameId, handleToggleFullscreen, isFullscreen]);
 
   const handleStart = useCallback(() => {
     arcadeAudio.unlock();
@@ -728,8 +787,8 @@ export default function ClassicArcadeShell({
       : device.recommendedPadLayout;
 
   const padVisible = effectivePadLayout !== 'hidden';
-  const showDesktopRails = !padVisible && device.width >= 1024;
-  const isSideFlanks = effectivePadLayout === 'side-flanks';
+  const showDesktopRails = !isFullscreen && !padVisible && device.width >= 1024;
+  const isSideFlanks = !isFullscreen && effectivePadLayout === 'side-flanks';
   const isFlipCover = device.formFactor === 'flip-cover';
   const isFlexFold = device.formFactor === 'fold-flex';
 
@@ -805,8 +864,65 @@ export default function ClassicArcadeShell({
   }, []);
 
   return (
-    <div className="min-h-[100dvh] w-full bg-[#060811] text-slate-100 flex flex-col overflow-x-clip">
+    <div
+      ref={shellContainerRef}
+      className={
+        isFullscreen
+          ? 'fixed inset-0 z-50 w-screen h-[100dvh] bg-[#04060B] text-slate-100 flex flex-col overflow-hidden'
+          : 'min-h-[100dvh] w-full bg-[#060811] text-slate-100 flex flex-col overflow-x-clip'
+      }
+    >
+      {/* Floating Minimal Full-Screen PC Controls Pill */}
+      {isFullscreen && (
+        <div className="fixed top-3 left-3 z-[60] flex items-center gap-1.5 rounded-xl border border-white/15 bg-[#080B16]/80 backdrop-blur-md px-2 py-1.5 shadow-xl opacity-35 hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <button
+            type="button"
+            onClick={handleToggleMusic}
+            className={`inline-flex items-center justify-center w-7 h-7 rounded-lg border text-xs transition-colors cursor-pointer ${
+              musicOn && !muted
+                ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25'
+                : 'border-white/10 bg-white/[0.05] text-slate-400 hover:bg-white/[0.12]'
+            }`}
+            title={musicOn ? 'Turn Music Off' : 'Turn Music On'}
+            aria-label={musicOn ? 'Disable background music' : 'Enable background music'}
+          >
+            <Music className="w-3.5 h-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={handleToggleMute}
+            className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-white/10 bg-white/[0.05] hover:bg-white/[0.12] text-slate-200 transition-colors cursor-pointer"
+            title={muted ? 'Unmute Audio' : 'Mute Audio'}
+            aria-label={muted ? 'Unmute audio' : 'Mute audio'}
+          >
+            {muted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5" />}
+          </button>
+          {(hud.phase === 'PLAYING' || hud.phase === 'PAUSED') && (
+            <button
+              type="button"
+              onClick={handleTogglePause}
+              className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-white/10 bg-white/[0.05] hover:bg-white/[0.12] text-slate-200 transition-colors cursor-pointer"
+              title={hud.phase === 'PAUSED' ? 'Resume (P)' : 'Pause (P)'}
+              aria-label={hud.phase === 'PAUSED' ? 'Resume game' : 'Pause game'}
+            >
+              {hud.phase === 'PAUSED' ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleToggleFullscreen}
+            className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-lg border border-cyan-400/40 bg-cyan-500/15 hover:bg-cyan-500/25 text-xs font-semibold text-cyan-100 transition-colors whitespace-nowrap cursor-pointer"
+            title="Exit Full Screen (F or Esc)"
+            aria-label="Exit full screen"
+          >
+            <Minimize2 className="w-3.5 h-3.5" />
+            <span>Exit (Esc)</span>
+          </button>
+        </div>
+      )}
+
       {/* Adaptive Compact Top Bar */}
+      {!isFullscreen && (
       <header className="w-full border-b border-white/[0.07] bg-[#080B16]/90 backdrop-blur-md safe-top-pad shrink-0">
         <div
           className={`mx-auto max-w-[1440px] px-2.5 sm:px-6 flex items-center justify-between gap-2 sm:gap-4 ${
@@ -950,6 +1066,17 @@ export default function ClassicArcadeShell({
               {muted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
             </button>
 
+            <button
+              type="button"
+              onClick={handleToggleFullscreen}
+              className="inline-flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg border border-cyan-400/35 bg-cyan-500/12 hover:bg-cyan-500/22 text-xs font-medium text-cyan-200 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              title="Toggle PC Full Screen Mode (F)"
+              aria-label="Enter full screen mode"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Full Screen</span>
+            </button>
+
             {(hud.phase === 'PLAYING' || hud.phase === 'PAUSED') && (
               <button
                 type="button"
@@ -963,16 +1090,21 @@ export default function ClassicArcadeShell({
           </div>
         </div>
       </header>
+      )}
 
       {/* Main Adaptive Workspace */}
       <main
-        className={`flex-1 w-full mx-auto max-w-[1440px] flex ${
-          showDesktopRails
-            ? 'px-4 sm:px-6 py-4 sm:py-6 flex-row items-start justify-center gap-5'
-            : isSideFlanks
-            ? 'px-2 sm:px-4 py-1.5 sm:py-3 flex-row items-center justify-between gap-2 sm:gap-4'
-            : 'px-2.5 sm:px-5 py-2 sm:py-4 flex-col items-center justify-between gap-2 sm:gap-4 safe-bottom-pad'
-        }`}
+        className={
+          isFullscreen
+            ? 'flex-1 w-full h-full flex items-center justify-center p-0 overflow-hidden'
+            : `flex-1 w-full mx-auto max-w-[1440px] flex ${
+                showDesktopRails
+                  ? 'px-4 sm:px-6 py-4 sm:py-6 flex-row items-start justify-center gap-5'
+                  : isSideFlanks
+                  ? 'px-2 sm:px-4 py-1.5 sm:py-3 flex-row items-center justify-between gap-2 sm:gap-4'
+                  : 'px-2.5 sm:px-5 py-2 sm:py-4 flex-col items-center justify-between gap-2 sm:gap-4 safe-bottom-pad'
+              }`
+        }
       >
         {/* Desktop Left Rail: Full 87-Cabinet Switcher */}
         {showDesktopRails && (
@@ -1060,11 +1192,11 @@ export default function ClassicArcadeShell({
         {/* Center Arcade Monitor Stage */}
         <section
           className={`flex-1 flex flex-col items-center justify-center w-full min-w-0 ${
-            isFlexFold ? 'fold-flex-stage' : ''
+            isFullscreen ? 'h-full' : isFlexFold ? 'fold-flex-stage' : ''
           }`}
         >
           {/* Compact Score Strip on Portrait / Fold / Non-Desktop */}
-          {!showDesktopRails && !isSideFlanks && (
+          {!isFullscreen && !showDesktopRails && !isSideFlanks && (
             <div className="flex w-full max-w-[640px] items-center justify-between px-3 py-1.5 mb-1.5 rounded-xl bg-[#0B0F1D] border border-white/[0.08] text-xs">
               <div>
                 <span className="text-slate-400 mr-1.5">Score</span>
@@ -1088,14 +1220,26 @@ export default function ClassicArcadeShell({
 
           {/* HiDPI Game Canvas Container */}
           <div
-            className="relative rounded-2xl overflow-hidden bg-[#04060B] border border-white/[0.1] shadow-2xl select-none touch-none"
-            style={{
-              width: isSideFlanks ? 'auto' : '100%',
-              height: isSideFlanks ? canvasMaxHeight : 'auto',
-              maxWidth: isSideFlanks ? '100%' : isWide ? '840px' : '640px',
-              maxHeight: canvasMaxHeight,
-              aspectRatio: `${canvasDims.w} / ${canvasDims.h}`,
-            }}
+            className={
+              isFullscreen
+                ? 'relative overflow-hidden bg-[#04060B] select-none touch-none'
+                : 'relative rounded-2xl overflow-hidden bg-[#04060B] border border-white/[0.1] shadow-2xl select-none touch-none'
+            }
+            style={
+              isFullscreen
+                ? {
+                    width: `min(100vw, calc(100dvh * ${canvasDims.w} / ${canvasDims.h}))`,
+                    height: `min(100dvh, calc(100vw * ${canvasDims.h} / ${canvasDims.w}))`,
+                    aspectRatio: `${canvasDims.w} / ${canvasDims.h}`,
+                  }
+                : {
+                    width: isSideFlanks ? 'auto' : '100%',
+                    height: isSideFlanks ? canvasMaxHeight : 'auto',
+                    maxWidth: isSideFlanks ? '100%' : isWide ? '840px' : '640px',
+                    maxHeight: canvasMaxHeight,
+                    aspectRatio: `${canvasDims.w} / ${canvasDims.h}`,
+                  }
+            }
           >
             <canvas
               ref={canvasRef}
@@ -1220,7 +1364,7 @@ export default function ClassicArcadeShell({
           </div>
 
           {/* Portrait / Flip / Unfolded Square / Flex Mode BOTTOM DECK: Virtual Joystick + Action Buttons */}
-          {effectivePadLayout === 'bottom-deck' && (
+          {!isFullscreen && effectivePadLayout === 'bottom-deck' && (
             <div
               className={`w-full max-w-[540px] flex items-center justify-between gap-3 px-2 pt-2 pb-1 select-none touch-none ${
                 isFlexFold ? 'fold-flex-deck' : ''
@@ -1350,6 +1494,10 @@ export default function ClassicArcadeShell({
             <div className="space-y-2 pt-4 border-t border-white/[0.07]">
               <h3 className="text-xs font-semibold text-slate-300">Controls</h3>
               <ul className="space-y-1.5 text-xs">
+                <li className="flex items-start justify-between gap-2">
+                  <span className="font-mono text-[11px] text-cyan-300 shrink-0">F / F11</span>
+                  <span className="text-slate-400 text-right">PC Full Screen (Esc exits)</span>
+                </li>
                 <li className="flex items-start justify-between gap-2">
                   <span className="font-mono text-[11px] text-sky-300 shrink-0">Mouse Move</span>
                   <span className="text-slate-400 text-right">Steer / Aim + L/R Click</span>

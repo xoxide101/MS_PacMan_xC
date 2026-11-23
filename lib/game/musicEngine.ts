@@ -38,6 +38,10 @@ interface TrackPattern {
   drums: number[];
   /** Subtle master volume scale */
   volume?: number;
+  /** Render this track through the multi-harmonic acoustic Concert Grand Piano & hall reverb engine */
+  pianoMode?: boolean;
+  /** Reverb wet balance for pianoMode (default 0.36) */
+  reverbWet?: number;
 }
 
 const midiToFreq = (midi: number): number => 440 * Math.pow(2, (midi - 69) / 12);
@@ -540,264 +544,413 @@ const TRACKS: Record<string, TrackPattern> = {
     ],
   },
 
-  // 10a. Ys Book I Overworld — "First Step Towards Wars" (Charming Uplifting Pastoral Adventure, Gentle BG)
+  // 10a. Ys Overworld — "Esteria Meadow (Pastoral Grand Piano Etude)" — C Major / A Minor, 90 BPM, 128-step lyrical piece
   ys_falcom_rock: {
     id: 'ys_falcom_rock',
-    title: 'First Step Towards Wars (Esteria Plains)',
-    bpm: 118,
-    stepsPerBeat: 4,
-    leadWave: 'triangle',
-    leadGain: 0.044,
-    leadDecay: 0.24,
+    title: 'Esteria Meadow — Pastoral Piano Etude',
+    bpm: 90,
+    stepsPerBeat: 2,
+    pianoMode: true,
+    reverbWet: 0.36,
+    leadWave: 'sine',
+    leadGain: 0.068,
+    leadDecay: 1.85,
     harmonyWave: 'sine',
-    harmonyGain: 0.024,
-    harmonyDecay: 0.28,
+    harmonyGain: 0.038,
+    harmonyDecay: 1.65,
     arpWave: 'sine',
-    arpGain: 0.025,
-    arpDecay: 0.16,
-    bassWave: 'triangle',
-    bassGain: 0.046,
-    bassDecay: 0.22,
-    detuneCents: 4,
-    volume: 0.5,
+    arpGain: 0.036,
+    arpDecay: 1.35,
+    bassWave: 'sine',
+    bassGain: 0.064,
+    bassDecay: 2.8,
+    volume: 0.92,
     lead: [
-      76, 0, 79, 81, 83, 0, 81, 79, 76, 0, 74, 76, 79, 0, 0, 0,
-      74, 0, 76, 79, 81, 0, 79, 76, 74, 0, 71, 74, 76, 0, 0, 0,
-      79, 0, 81, 83, 86, 0, 83, 81, 79, 0, 81, 83, 84, 0, 83, 0,
-      81, 0, 79, 76, 74, 0, 76, 79, 76, 0, 0, 0, 0, 0, 0, 0,
+      // Bars 1-4: Cmaj7 -> G/B -> Am7 -> Em7 (Breezy opening theme)
+      76, 0, 79, 81, 79, 0, 76, 74,   74, 0, 71, 74, 76, 0, 0, 0,
+      72, 0, 74, 76, 79, 0, 76, 74,   71, 0, 74, 0, 76, 0, 0, 0,
+      // Bars 5-8: Fmaj7 -> C/E -> Dm7 -> G7sus4 (Warm answer)
+      77, 0, 76, 74, 72, 0, 74, 76,   76, 0, 72, 0, 79, 0, 0, 0,
+      74, 0, 76, 77, 79, 0, 77, 74,   74, 0, 0, 72, 74, 0, 0, 0,
+      // Bars 9-12: Fmaj7 -> G6 -> Em7 -> Am7 (Soaring melodic bridge)
+      81, 0, 79, 77, 76, 0, 79, 0,    83, 0, 81, 79, 76, 0, 0, 0,
+      79, 0, 81, 83, 84, 0, 83, 81,   79, 0, 76, 0, 72, 0, 0, 0,
+      // Bars 13-16: Dm9 -> G13 -> Cmaj9 -> Cmaj9 (Peaceful pastoral resolution)
+      74, 0, 76, 77, 79, 0, 76, 74,   72, 0, 74, 76, 74, 0, 71, 0,
+      72, 0, 0, 74, 76, 0, 79, 0,     72, 0, 0, 0, 0, 0, 0, 0,
     ],
     harmony: [
-      71, 0, 74, 76, 79, 0, 76, 74, 71, 0, 69, 71, 74, 0, 0, 0,
-      69, 0, 71, 74, 76, 0, 74, 71, 69, 0, 67, 69, 71, 0, 0, 0,
-      74, 0, 76, 79, 81, 0, 79, 76, 74, 0, 76, 79, 79, 0, 79, 0,
-      76, 0, 74, 71, 69, 0, 71, 74, 71, 0, 0, 0, 0, 0, 0, 0,
+      72, 0, 0, 0, 71, 0, 0, 0,       71, 0, 0, 0, 71, 0, 0, 0,
+      69, 0, 0, 0, 72, 0, 0, 0,       67, 0, 0, 0, 71, 0, 0, 0,
+      72, 0, 0, 0, 69, 0, 0, 0,       72, 0, 0, 0, 72, 0, 0, 0,
+      69, 0, 0, 0, 72, 0, 0, 0,       71, 0, 0, 0, 67, 0, 0, 0,
+      76, 0, 0, 0, 72, 0, 0, 0,       76, 0, 0, 0, 74, 0, 0, 0,
+      74, 0, 0, 0, 76, 0, 0, 0,       72, 0, 0, 0, 69, 0, 0, 0,
+      69, 0, 0, 0, 72, 0, 0, 0,       67, 0, 0, 0, 67, 0, 0, 0,
+      67, 0, 0, 0, 71, 0, 0, 0,       67, 0, 0, 0, 0, 0, 0, 0,
     ],
     arp: [
-      60, 64, 67, 72, 60, 64, 67, 72, 59, 62, 67, 71, 59, 62, 67, 71,
-      57, 60, 64, 69, 57, 60, 64, 69, 55, 59, 62, 67, 55, 59, 62, 67,
-      60, 64, 67, 72, 62, 67, 71, 74, 57, 60, 64, 69, 60, 64, 67, 72,
-      53, 57, 60, 65, 55, 59, 62, 67, 60, 64, 67, 72, 67, 64, 60, 0,
+      // Flowing pianist left-hand broken chords
+      60, 64, 67, 71, 64, 67, 71, 67,  59, 62, 67, 71, 62, 67, 71, 67,
+      57, 60, 64, 67, 60, 64, 67, 64,  55, 59, 64, 67, 59, 64, 67, 64,
+      53, 57, 60, 64, 57, 60, 64, 60,  55, 60, 64, 67, 60, 64, 67, 64,
+      53, 57, 62, 65, 57, 62, 65, 62,  55, 60, 62, 67, 59, 62, 67, 62,
+      53, 57, 60, 64, 60, 64, 69, 64,  55, 59, 62, 67, 59, 64, 67, 64,
+      52, 55, 59, 64, 55, 59, 64, 59,  57, 60, 64, 67, 60, 64, 69, 64,
+      53, 57, 60, 64, 57, 60, 64, 60,  55, 59, 62, 65, 59, 62, 67, 62,
+      60, 64, 67, 71, 64, 67, 74, 67,  60, 64, 67, 72, 67, 64, 60, 0,
     ],
     bass: [
-      48, 0, 0, 48, 52, 0, 55, 0, 47, 0, 0, 47, 50, 0, 55, 0,
-      45, 0, 0, 45, 48, 0, 52, 0, 43, 0, 0, 43, 47, 0, 50, 0,
-      48, 0, 0, 48, 50, 0, 55, 0, 45, 0, 0, 45, 48, 0, 52, 0,
-      41, 0, 0, 41, 43, 0, 47, 0, 48, 0, 55, 0, 48, 0, 0, 0,
+      48, 0, 0, 0, 0, 0, 0, 0,        47, 0, 0, 0, 0, 0, 0, 0,
+      45, 0, 0, 0, 0, 0, 0, 0,        40, 0, 0, 0, 0, 0, 0, 0,
+      41, 0, 0, 0, 0, 0, 0, 0,        40, 0, 0, 0, 0, 0, 0, 0,
+      50, 0, 0, 0, 0, 0, 0, 0,        43, 0, 0, 0, 43, 0, 0, 0,
+      41, 0, 0, 0, 0, 0, 0, 0,        43, 0, 0, 0, 0, 0, 0, 0,
+      40, 0, 0, 0, 0, 0, 0, 0,        45, 0, 0, 0, 0, 0, 0, 0,
+      50, 0, 0, 0, 0, 0, 0, 0,        43, 0, 0, 0, 0, 0, 0, 0,
+      48, 0, 0, 0, 0, 0, 0, 0,        48, 0, 0, 0, 36, 0, 0, 0,
     ],
-    drums: [
-      0, 0, 3, 0, 0, 0, 3, 0, 1, 0, 3, 0, 0, 0, 3, 0,
-      0, 0, 3, 0, 0, 0, 3, 0, 1, 0, 3, 0, 0, 0, 3, 0,
-      0, 0, 3, 0, 0, 0, 3, 0, 1, 0, 3, 0, 0, 0, 3, 0,
-      0, 0, 3, 0, 1, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    ],
+    drums: [],
   },
 
-  // 10b. Ys Book I Town — "Fountain of Love" (Charming Serene Flute & Harp Background)
+  // 10b. Ys Book I Town — "Minea Harbor (Grand Piano Morning Waltz)" — D Major, 84 BPM, warm & relaxing
   ys_town_fountain: {
     id: 'ys_town_fountain',
-    title: 'Fountain of Love (Minea Town)',
-    bpm: 98,
-    stepsPerBeat: 4,
+    title: 'Minea Harbor — Grand Piano Morning Theme',
+    bpm: 84,
+    stepsPerBeat: 2,
+    pianoMode: true,
+    reverbWet: 0.38,
     leadWave: 'sine',
-    leadGain: 0.042,
-    leadDecay: 0.36,
-    harmonyWave: 'triangle',
-    harmonyGain: 0.022,
-    harmonyDecay: 0.38,
+    leadGain: 0.068,
+    leadDecay: 2.05,
+    harmonyWave: 'sine',
+    harmonyGain: 0.036,
+    harmonyDecay: 1.8,
     arpWave: 'sine',
-    arpGain: 0.026,
-    arpDecay: 0.24,
-    bassWave: 'triangle',
-    bassGain: 0.04,
-    bassDecay: 0.32,
-    detuneCents: 3,
-    volume: 0.45,
+    arpGain: 0.034,
+    arpDecay: 1.5,
+    bassWave: 'sine',
+    bassGain: 0.062,
+    bassDecay: 3.1,
+    volume: 0.92,
     lead: [
-      74, 0, 0, 76, 78, 0, 81, 0, 79, 0, 78, 0, 76, 0, 0, 0,
-      71, 0, 0, 74, 76, 0, 79, 0, 78, 0, 76, 0, 74, 0, 0, 0,
-      81, 0, 0, 83, 86, 0, 83, 81, 79, 0, 78, 0, 76, 0, 74, 0,
-      76, 0, 78, 0, 79, 0, 78, 76, 74, 0, 0, 0, 0, 0, 0, 0,
+      // Bars 1-4: Dmaj7 -> A/C# -> Bm7 -> F#m7 (Sunlit fountain melody)
+      74, 0, 76, 78, 81, 0, 78, 0,    76, 0, 78, 76, 73, 0, 0, 0,
+      71, 0, 74, 76, 78, 0, 74, 0,    73, 0, 74, 73, 69, 0, 0, 0,
+      // Bars 5-8: Gmaj7 -> D/F# -> Em7 -> A9sus4
+      71, 0, 74, 79, 78, 0, 74, 0,    76, 0, 74, 71, 74, 0, 0, 0,
+      76, 0, 78, 79, 78, 0, 76, 74,   76, 0, 0, 74, 73, 0, 0, 0,
+      // Bars 9-12: Dmaj9 -> Gmaj7 -> Bm7 -> A6 (Tender singing second section)
+      81, 0, 83, 86, 85, 0, 81, 0,    79, 0, 81, 79, 78, 0, 74, 0,
+      74, 0, 76, 78, 81, 0, 78, 76,   76, 0, 74, 73, 76, 0, 0, 0,
+      // Bars 13-16: Gmaj7 -> Em7 -> A7sus4 -> Dmaj9 (Gentle closing sigh)
+      79, 0, 78, 76, 74, 0, 71, 0,    74, 0, 76, 78, 76, 0, 74, 0,
+      76, 0, 74, 73, 71, 0, 73, 0,    74, 0, 0, 0, 0, 0, 0, 0,
     ],
     harmony: [
-      69, 0, 0, 71, 74, 0, 76, 0, 74, 0, 74, 0, 71, 0, 0, 0,
-      67, 0, 0, 71, 71, 0, 74, 0, 74, 0, 73, 0, 69, 0, 0, 0,
-      74, 0, 0, 79, 81, 0, 79, 78, 74, 0, 74, 0, 71, 0, 69, 0,
-      71, 0, 74, 0, 74, 0, 73, 71, 69, 0, 0, 0, 0, 0, 0, 0,
+      69, 0, 0, 0, 74, 0, 0, 0,       73, 0, 0, 0, 69, 0, 0, 0,
+      66, 0, 0, 0, 71, 0, 0, 0,       69, 0, 0, 0, 66, 0, 0, 0,
+      67, 0, 0, 0, 71, 0, 0, 0,       69, 0, 0, 0, 69, 0, 0, 0,
+      71, 0, 0, 0, 71, 0, 0, 0,       71, 0, 0, 0, 69, 0, 0, 0,
+      74, 0, 0, 0, 78, 0, 0, 0,       74, 0, 0, 0, 71, 0, 0, 0,
+      71, 0, 0, 0, 74, 0, 0, 0,       73, 0, 0, 0, 69, 0, 0, 0,
+      74, 0, 0, 0, 67, 0, 0, 0,       71, 0, 0, 0, 71, 0, 0, 0,
+      69, 0, 0, 0, 69, 0, 0, 0,       69, 0, 0, 0, 0, 0, 0, 0,
     ],
     arp: [
-      62, 66, 69, 74, 62, 66, 69, 74, 59, 62, 67, 71, 61, 64, 69, 73,
-      55, 59, 62, 67, 57, 61, 64, 69, 62, 66, 69, 74, 62, 66, 69, 74,
-      62, 66, 69, 74, 59, 62, 67, 71, 55, 59, 62, 67, 57, 61, 64, 69,
-      55, 59, 62, 67, 57, 61, 64, 69, 62, 66, 69, 74, 69, 66, 62, 0,
+      62, 66, 69, 73, 66, 69, 73, 69,  61, 64, 69, 73, 64, 69, 73, 69,
+      59, 62, 66, 69, 62, 66, 69, 66,  57, 61, 66, 69, 61, 66, 69, 66,
+      55, 59, 62, 66, 59, 62, 66, 62,  54, 57, 62, 66, 57, 62, 66, 62,
+      55, 59, 64, 67, 59, 64, 67, 64,  57, 62, 64, 69, 61, 64, 69, 64,
+      62, 66, 69, 76, 66, 69, 74, 69,  55, 59, 62, 66, 59, 62, 67, 62,
+      59, 62, 66, 69, 62, 66, 71, 66,  57, 61, 66, 69, 61, 64, 69, 64,
+      55, 59, 62, 66, 59, 62, 66, 62,  55, 59, 64, 67, 59, 64, 67, 64,
+      57, 62, 64, 69, 61, 64, 67, 64,  62, 66, 69, 73, 69, 66, 62, 0,
     ],
     bass: [
-      50, 0, 0, 0, 0, 0, 57, 0, 47, 0, 0, 0, 49, 0, 0, 0,
-      43, 0, 0, 0, 45, 0, 0, 0, 50, 0, 0, 0, 50, 0, 49, 0,
-      50, 0, 0, 0, 47, 0, 0, 0, 43, 0, 0, 0, 45, 0, 0, 0,
-      43, 0, 0, 0, 45, 0, 49, 0, 50, 0, 0, 0, 50, 0, 0, 0,
+      50, 0, 0, 0, 0, 0, 0, 0,        49, 0, 0, 0, 0, 0, 0, 0,
+      47, 0, 0, 0, 0, 0, 0, 0,        42, 0, 0, 0, 0, 0, 0, 0,
+      43, 0, 0, 0, 0, 0, 0, 0,        42, 0, 0, 0, 0, 0, 0, 0,
+      40, 0, 0, 0, 0, 0, 0, 0,        45, 0, 0, 0, 45, 0, 0, 0,
+      50, 0, 0, 0, 0, 0, 0, 0,        43, 0, 0, 0, 0, 0, 0, 0,
+      47, 0, 0, 0, 0, 0, 0, 0,        45, 0, 0, 0, 0, 0, 0, 0,
+      43, 0, 0, 0, 0, 0, 0, 0,        40, 0, 0, 0, 0, 0, 0, 0,
+      45, 0, 0, 0, 0, 0, 0, 0,        38, 0, 0, 0, 50, 0, 0, 0,
     ],
-    drums: [
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    ],
+    drums: [],
   },
 
-  // 10c. Ys Book I & II — "Feena's Melody" (Tender Music-Box Celesta & Flute Ballad for Lance Village)
+  // 10c. Ys Book II Village — "Feena's Lullaby (Solo Felt Piano)" — E Minor / G Major, 78 BPM, tender & lyrical
   ys_feena: {
     id: 'ys_feena',
-    title: "Feena's Melody (Lance Village)",
-    bpm: 94,
-    stepsPerBeat: 4,
+    title: "Feena's Lullaby — Solo Felt Piano",
+    bpm: 78,
+    stepsPerBeat: 2,
+    pianoMode: true,
+    reverbWet: 0.42,
     leadWave: 'sine',
-    leadGain: 0.044,
-    leadDecay: 0.42,
+    leadGain: 0.068,
+    leadDecay: 2.25,
     harmonyWave: 'sine',
-    harmonyGain: 0.022,
-    harmonyDecay: 0.4,
-    arpWave: 'triangle',
-    arpGain: 0.022,
-    arpDecay: 0.24,
-    bassWave: 'triangle',
-    bassGain: 0.038,
-    bassDecay: 0.34,
-    detuneCents: 3,
-    volume: 0.45,
+    harmonyGain: 0.036,
+    harmonyDecay: 2.0,
+    arpWave: 'sine',
+    arpGain: 0.032,
+    arpDecay: 1.65,
+    bassWave: 'sine',
+    bassGain: 0.06,
+    bassDecay: 3.3,
+    volume: 0.92,
     lead: [
-      79, 0, 0, 78, 76, 0, 74, 0, 71, 0, 0, 74, 76, 0, 0, 0,
-      79, 0, 0, 81, 83, 0, 81, 79, 78, 0, 0, 76, 74, 0, 0, 0,
-      83, 0, 0, 84, 86, 0, 83, 0, 81, 0, 79, 0, 76, 0, 79, 0,
-      78, 0, 76, 0, 74, 0, 71, 74, 76, 0, 0, 0, 0, 0, 0, 0,
+      // Bars 1-4: Em9 -> Dadd9 -> Cmaj7 -> G/B (Tender Feena motif)
+      79, 0, 78, 76, 74, 0, 71, 0,    74, 0, 76, 74, 71, 0, 0, 0,
+      72, 0, 74, 76, 79, 0, 76, 0,    74, 0, 0, 71, 74, 0, 0, 0,
+      // Bars 5-8: Am7 -> Em7 -> Dsus4 -> D (Warm breath)
+      76, 0, 79, 81, 83, 0, 81, 79,   79, 0, 76, 0, 74, 0, 0, 0,
+      74, 0, 76, 78, 79, 0, 78, 76,   74, 0, 0, 0, 0, 0, 0, 0,
+      // Bars 9-12: Cmaj7 -> Gmaj7 -> Am9 -> Em7 (Dreamy high singing phrase)
+      83, 0, 84, 86, 83, 0, 79, 0,    81, 0, 79, 78, 74, 0, 0, 0,
+      76, 0, 79, 81, 79, 0, 76, 74,   71, 0, 74, 0, 76, 0, 0, 0,
+      // Bars 13-16: Cmaj7 -> Dadd9 -> Bm7 -> Em9 (Soft lullaby cadence)
+      79, 0, 78, 76, 74, 0, 72, 0,    74, 0, 76, 78, 74, 0, 71, 0,
+      74, 0, 71, 69, 71, 0, 74, 0,    76, 0, 0, 0, 0, 0, 0, 0,
     ],
     harmony: [
-      74, 0, 0, 74, 71, 0, 71, 0, 67, 0, 0, 71, 71, 0, 0, 0,
-      74, 0, 0, 76, 79, 0, 76, 74, 74, 0, 0, 72, 69, 0, 0, 0,
-      79, 0, 0, 79, 81, 0, 79, 0, 76, 0, 74, 0, 71, 0, 74, 0,
-      74, 0, 72, 0, 69, 0, 67, 69, 71, 0, 0, 0, 0, 0, 0, 0,
+      71, 0, 0, 0, 67, 0, 0, 0,       69, 0, 0, 0, 66, 0, 0, 0,
+      67, 0, 0, 0, 71, 0, 0, 0,       67, 0, 0, 0, 67, 0, 0, 0,
+      72, 0, 0, 0, 76, 0, 0, 0,       71, 0, 0, 0, 67, 0, 0, 0,
+      69, 0, 0, 0, 72, 0, 0, 0,       69, 0, 0, 0, 66, 0, 0, 0,
+      76, 0, 0, 0, 72, 0, 0, 0,       74, 0, 0, 0, 71, 0, 0, 0,
+      71, 0, 0, 0, 72, 0, 0, 0,       67, 0, 0, 0, 71, 0, 0, 0,
+      71, 0, 0, 0, 67, 0, 0, 0,       69, 0, 0, 0, 66, 0, 0, 0,
+      66, 0, 0, 0, 67, 0, 0, 0,       71, 0, 0, 0, 0, 0, 0, 0,
     ],
     arp: [
-      64, 67, 71, 76, 62, 67, 71, 74, 60, 64, 67, 72, 64, 67, 71, 76,
-      67, 71, 74, 79, 64, 67, 71, 76, 62, 66, 69, 74, 62, 66, 69, 74,
-      60, 64, 67, 72, 67, 71, 74, 79, 57, 60, 64, 69, 64, 67, 71, 76,
-      62, 66, 69, 74, 59, 62, 66, 71, 64, 67, 71, 76, 71, 67, 64, 0,
+      59, 64, 66, 67, 64, 66, 71, 67,  57, 62, 64, 66, 62, 64, 69, 66,
+      55, 60, 64, 67, 60, 64, 71, 67,  55, 59, 62, 67, 59, 62, 67, 62,
+      57, 60, 64, 67, 60, 64, 69, 64,  55, 59, 64, 67, 59, 64, 67, 64,
+      57, 62, 67, 69, 62, 66, 69, 66,  57, 62, 66, 69, 66, 62, 57, 0,
+      60, 64, 67, 71, 64, 67, 71, 67,  59, 62, 66, 67, 62, 66, 71, 67,
+      57, 60, 64, 71, 60, 64, 69, 64,  55, 59, 64, 67, 59, 64, 67, 64,
+      60, 64, 67, 71, 64, 67, 71, 67,  57, 62, 64, 66, 62, 66, 69, 66,
+      59, 62, 66, 69, 62, 66, 69, 66,  59, 64, 66, 67, 71, 67, 64, 0,
     ],
     bass: [
-      52, 0, 0, 0, 50, 0, 0, 0, 48, 0, 0, 0, 52, 0, 0, 0,
-      55, 0, 0, 0, 52, 0, 0, 0, 50, 0, 0, 0, 50, 0, 47, 0,
-      48, 0, 0, 0, 55, 0, 0, 0, 45, 0, 0, 0, 52, 0, 0, 0,
-      50, 0, 0, 0, 47, 0, 0, 0, 52, 0, 0, 0, 52, 0, 0, 0,
+      40, 0, 0, 0, 0, 0, 0, 0,        50, 0, 0, 0, 0, 0, 0, 0,
+      48, 0, 0, 0, 0, 0, 0, 0,        47, 0, 0, 0, 0, 0, 0, 0,
+      45, 0, 0, 0, 0, 0, 0, 0,        40, 0, 0, 0, 0, 0, 0, 0,
+      50, 0, 0, 0, 0, 0, 0, 0,        50, 0, 0, 0, 38, 0, 0, 0,
+      48, 0, 0, 0, 0, 0, 0, 0,        43, 0, 0, 0, 0, 0, 0, 0,
+      45, 0, 0, 0, 0, 0, 0, 0,        40, 0, 0, 0, 0, 0, 0, 0,
+      48, 0, 0, 0, 0, 0, 0, 0,        50, 0, 0, 0, 0, 0, 0, 0,
+      47, 0, 0, 0, 0, 0, 0, 0,        40, 0, 0, 0, 52, 0, 0, 0,
     ],
-    drums: [
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    ],
+    drums: [],
   },
 
-  // 10d. Ys Shrine / Ruins — "Palace of Destruction" (Baroque Harpsichord & Sweeping Strings)
+  // 10d. Ys Shrine / Ruins — "Solomon Sanctuary (Moonlit Piano Prelude)" — E Minor / Dorian, 80 BPM
   ys_shrine_palace: {
     id: 'ys_shrine_palace',
-    title: 'Palace of Destruction (Shrine of Solomon)',
-    bpm: 118,
-    stepsPerBeat: 4,
-    leadWave: 'triangle',
-    leadGain: 0.044,
-    leadDecay: 0.21,
+    title: 'Solomon Sanctuary — Moonlit Piano Prelude',
+    bpm: 80,
+    stepsPerBeat: 2,
+    pianoMode: true,
+    reverbWet: 0.45,
+    leadWave: 'sine',
+    leadGain: 0.066,
+    leadDecay: 2.2,
     harmonyWave: 'sine',
-    harmonyGain: 0.024,
-    harmonyDecay: 0.26,
-    arpWave: 'triangle',
-    arpGain: 0.024,
-    arpDecay: 0.14,
-    bassWave: 'triangle',
-    bassGain: 0.05,
-    bassDecay: 0.22,
-    detuneCents: 4,
-    volume: 0.48,
+    harmonyGain: 0.036,
+    harmonyDecay: 1.9,
+    arpWave: 'sine',
+    arpGain: 0.035,
+    arpDecay: 1.55,
+    bassWave: 'sine',
+    bassGain: 0.062,
+    bassDecay: 3.2,
+    volume: 0.9,
     lead: [
-      76, 0, 79, 0, 81, 0, 79, 76, 75, 0, 76, 0, 79, 0, 0, 0,
-      83, 0, 81, 0, 79, 0, 76, 74, 76, 0, 0, 0, 71, 0, 0, 0,
-      79, 0, 81, 0, 83, 0, 86, 83, 81, 0, 79, 0, 78, 0, 76, 0,
-      79, 0, 78, 76, 75, 0, 78, 0, 76, 0, 0, 0, 0, 0, 0, 0,
+      // Bars 1-4: Em9 -> Cmaj7 -> Am9 -> Bsus4 -> B7
+      76, 0, 79, 81, 79, 0, 76, 0,    74, 0, 76, 79, 76, 0, 0, 0,
+      72, 0, 76, 79, 78, 0, 76, 74,   75, 0, 0, 76, 78, 0, 0, 0,
+      // Bars 5-8: Em9 -> D6 -> Cmaj7 -> Bm7
+      83, 0, 81, 79, 78, 0, 76, 0,    78, 0, 76, 74, 71, 0, 0, 0,
+      72, 0, 74, 76, 79, 0, 76, 74,   71, 0, 0, 0, 0, 0, 0, 0,
+      // Bars 9-12: Cmaj7 -> Dadd9 -> Em9 -> Gmaj7
+      79, 0, 81, 83, 86, 0, 83, 0,    81, 0, 79, 78, 76, 0, 78, 0,
+      79, 0, 78, 76, 74, 0, 76, 0,    79, 0, 0, 78, 76, 0, 0, 0,
+      // Bars 13-16: Am7 -> F#m7b5 -> B7sus4 -> Em9
+      76, 0, 74, 72, 71, 0, 72, 0,    74, 0, 72, 71, 69, 0, 71, 0,
+      71, 0, 74, 76, 75, 0, 78, 0,    76, 0, 0, 0, 0, 0, 0, 0,
     ],
     harmony: [
-      71, 0, 74, 0, 76, 0, 74, 71, 71, 0, 71, 0, 74, 0, 0, 0,
-      79, 0, 76, 0, 74, 0, 71, 69, 71, 0, 0, 0, 67, 0, 0, 0,
-      74, 0, 76, 0, 79, 0, 81, 79, 76, 0, 74, 0, 74, 0, 71, 0,
-      74, 0, 74, 71, 71, 0, 74, 0, 71, 0, 0, 0, 0, 0, 0, 0,
+      71, 0, 0, 0, 71, 0, 0, 0,       71, 0, 0, 0, 67, 0, 0, 0,
+      69, 0, 0, 0, 71, 0, 0, 0,       71, 0, 0, 0, 71, 0, 0, 0,
+      76, 0, 0, 0, 74, 0, 0, 0,       71, 0, 0, 0, 69, 0, 0, 0,
+      67, 0, 0, 0, 71, 0, 0, 0,       66, 0, 0, 0, 67, 0, 0, 0,
+      72, 0, 0, 0, 76, 0, 0, 0,       74, 0, 0, 0, 71, 0, 0, 0,
+      71, 0, 0, 0, 71, 0, 0, 0,       74, 0, 0, 0, 71, 0, 0, 0,
+      69, 0, 0, 0, 67, 0, 0, 0,       69, 0, 0, 0, 66, 0, 0, 0,
+      66, 0, 0, 0, 71, 0, 0, 0,       71, 0, 0, 0, 0, 0, 0, 0,
     ],
     arp: [
-      64, 67, 71, 76, 64, 67, 71, 76, 63, 66, 71, 75, 64, 67, 71, 76,
-      60, 64, 67, 72, 62, 66, 69, 74, 64, 67, 71, 76, 59, 63, 66, 71,
-      67, 71, 74, 79, 60, 64, 67, 72, 57, 60, 64, 69, 62, 66, 69, 74,
-      60, 64, 67, 72, 59, 63, 66, 71, 64, 67, 71, 76, 71, 67, 64, 0,
+      59, 64, 66, 67, 64, 67, 71, 67,  60, 64, 67, 71, 64, 67, 71, 67,
+      57, 60, 64, 71, 60, 64, 69, 64,  59, 64, 66, 71, 59, 63, 66, 71,
+      59, 64, 67, 71, 64, 67, 74, 67,  57, 62, 66, 71, 62, 66, 69, 66,
+      60, 64, 67, 71, 64, 67, 71, 67,  59, 62, 66, 69, 62, 66, 69, 66,
+      60, 64, 67, 71, 64, 67, 72, 67,  57, 62, 64, 66, 62, 66, 69, 66,
+      59, 64, 66, 67, 64, 67, 71, 67,  59, 62, 66, 67, 62, 66, 71, 67,
+      57, 60, 64, 67, 60, 64, 67, 64,  54, 57, 60, 64, 57, 60, 64, 60,
+      59, 64, 66, 69, 59, 63, 66, 69,  59, 64, 66, 67, 71, 67, 64, 0,
     ],
     bass: [
-      52, 0, 0, 52, 55, 0, 52, 0, 51, 0, 0, 51, 52, 0, 55, 0,
-      48, 0, 0, 48, 50, 0, 54, 0, 52, 0, 0, 47, 52, 0, 47, 0,
-      55, 0, 0, 55, 48, 0, 52, 0, 45, 0, 0, 45, 50, 0, 54, 0,
-      48, 0, 0, 48, 47, 0, 51, 0, 52, 0, 55, 0, 52, 0, 0, 0,
+      40, 0, 0, 0, 0, 0, 0, 0,        48, 0, 0, 0, 0, 0, 0, 0,
+      45, 0, 0, 0, 0, 0, 0, 0,        47, 0, 0, 0, 47, 0, 0, 0,
+      40, 0, 0, 0, 0, 0, 0, 0,        50, 0, 0, 0, 0, 0, 0, 0,
+      48, 0, 0, 0, 0, 0, 0, 0,        47, 0, 0, 0, 0, 0, 0, 0,
+      48, 0, 0, 0, 0, 0, 0, 0,        50, 0, 0, 0, 0, 0, 0, 0,
+      40, 0, 0, 0, 0, 0, 0, 0,        43, 0, 0, 0, 0, 0, 0, 0,
+      45, 0, 0, 0, 0, 0, 0, 0,        42, 0, 0, 0, 0, 0, 0, 0,
+      47, 0, 0, 0, 47, 0, 0, 0,       40, 0, 0, 0, 52, 0, 0, 0,
     ],
-    drums: [
-      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 0, 0, 3, 0,
-      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 6, 0, 3, 0,
-      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 0, 0, 3, 0,
-      6, 0, 3, 0, 6, 0, 3, 0, 6, 0, 0, 0, 0, 0, 0, 0,
-    ],
+    drums: [],
   },
 
-  // 10e. Ys Darm Tower / Ice Ridge / Solomon Core — "Tower of the Shadow of Death"
+  // 10e. Ys Darm Tower / Ice Ridge — "Starlight Citadel (Grand Piano Ballad)" — D Minor, 84 BPM
   ys_tower_end: {
     id: 'ys_tower_end',
-    title: 'Tower of the Shadow of Death (Darm Citadel)',
-    bpm: 124,
-    stepsPerBeat: 4,
-    leadWave: 'triangle',
-    leadGain: 0.046,
-    leadDecay: 0.2,
+    title: 'Starlight Citadel — Grand Piano Ballad',
+    bpm: 84,
+    stepsPerBeat: 2,
+    pianoMode: true,
+    reverbWet: 0.42,
+    leadWave: 'sine',
+    leadGain: 0.068,
+    leadDecay: 2.1,
     harmonyWave: 'sine',
-    harmonyGain: 0.026,
-    harmonyDecay: 0.24,
-    arpWave: 'triangle',
-    arpGain: 0.024,
-    arpDecay: 0.13,
-    bassWave: 'triangle',
-    bassGain: 0.052,
-    bassDecay: 0.2,
-    detuneCents: 5,
-    volume: 0.5,
+    harmonyGain: 0.036,
+    harmonyDecay: 1.85,
+    arpWave: 'sine',
+    arpGain: 0.035,
+    arpDecay: 1.45,
+    bassWave: 'sine',
+    bassGain: 0.066,
+    bassDecay: 3.1,
+    volume: 0.92,
     lead: [
-      74, 0, 77, 0, 81, 0, 82, 81, 79, 0, 77, 0, 76, 0, 74, 0,
-      77, 0, 81, 0, 86, 0, 84, 81, 79, 0, 76, 0, 73, 0, 0, 0,
-      81, 0, 82, 0, 86, 0, 84, 82, 81, 0, 79, 77, 76, 0, 79, 0,
-      81, 0, 77, 76, 74, 0, 73, 0, 74, 0, 0, 0, 0, 0, 0, 0,
+      // Bars 1-4: Dm9 -> Bbmaj7 -> Gm7 -> Asus4 -> A7
+      74, 0, 77, 79, 81, 0, 79, 77,   77, 0, 74, 0, 72, 0, 0, 0,
+      74, 0, 77, 79, 82, 0, 79, 77,   76, 0, 0, 74, 73, 0, 0, 0,
+      // Bars 5-8: Dm9 -> Fmaj7 -> C6 -> A7
+      77, 0, 81, 84, 86, 0, 84, 81,   81, 0, 77, 0, 76, 0, 0, 0,
+      79, 0, 77, 76, 74, 0, 76, 0,    73, 0, 0, 0, 0, 0, 0, 0,
+      // Bars 9-12: Bbmaj7 -> Cadd9 -> Dm9 -> Fmaj7
+      81, 0, 82, 86, 84, 0, 82, 81,   79, 0, 81, 82, 79, 0, 76, 0,
+      77, 0, 79, 81, 84, 0, 81, 77,   76, 0, 77, 79, 77, 0, 0, 0,
+      // Bars 13-16: Gm7 -> Em7b5 -> A7sus4 -> Dm9
+      79, 0, 77, 74, 72, 0, 74, 0,    76, 0, 74, 72, 70, 0, 72, 0,
+      74, 0, 76, 77, 76, 0, 73, 0,    74, 0, 0, 0, 0, 0, 0, 0,
     ],
     harmony: [
-      69, 0, 74, 0, 77, 0, 79, 77, 74, 0, 74, 0, 73, 0, 69, 0,
-      74, 0, 77, 0, 81, 0, 79, 77, 76, 0, 73, 0, 69, 0, 0, 0,
-      77, 0, 79, 0, 82, 0, 81, 79, 77, 0, 76, 74, 73, 0, 76, 0,
-      77, 0, 74, 73, 69, 0, 69, 0, 69, 0, 0, 0, 0, 0, 0, 0,
+      69, 0, 0, 0, 74, 0, 0, 0,       70, 0, 0, 0, 69, 0, 0, 0,
+      70, 0, 0, 0, 74, 0, 0, 0,       69, 0, 0, 0, 69, 0, 0, 0,
+      74, 0, 0, 0, 77, 0, 0, 0,       72, 0, 0, 0, 72, 0, 0, 0,
+      72, 0, 0, 0, 70, 0, 0, 0,       69, 0, 0, 0, 67, 0, 0, 0,
+      74, 0, 0, 0, 77, 0, 0, 0,       74, 0, 0, 0, 72, 0, 0, 0,
+      72, 0, 0, 0, 76, 0, 0, 0,       72, 0, 0, 0, 72, 0, 0, 0,
+      70, 0, 0, 0, 67, 0, 0, 0,       70, 0, 0, 0, 67, 0, 0, 0,
+      69, 0, 0, 0, 69, 0, 0, 0,       69, 0, 0, 0, 0, 0, 0, 0,
     ],
     arp: [
-      62, 65, 69, 74, 62, 65, 69, 74, 67, 70, 74, 79, 64, 69, 73, 76,
-      62, 65, 69, 74, 65, 69, 72, 77, 64, 67, 70, 76, 61, 64, 69, 73,
-      65, 69, 72, 77, 67, 70, 74, 79, 62, 65, 69, 74, 64, 67, 70, 76,
-      62, 65, 69, 74, 61, 64, 69, 73, 62, 65, 69, 74, 69, 65, 62, 0,
+      57, 62, 64, 65, 62, 65, 69, 65,  58, 62, 65, 69, 62, 65, 69, 65,
+      55, 58, 62, 65, 58, 62, 67, 62,  57, 62, 64, 69, 57, 61, 64, 67,
+      57, 62, 64, 65, 62, 65, 69, 65,  60, 65, 69, 72, 65, 69, 72, 69,
+      60, 64, 67, 69, 64, 67, 69, 67,  57, 61, 64, 67, 64, 61, 57, 0,
+      58, 62, 65, 69, 62, 65, 70, 65,  60, 64, 67, 74, 64, 67, 72, 67,
+      57, 62, 64, 65, 62, 65, 69, 65,  60, 65, 69, 72, 65, 69, 72, 69,
+      55, 58, 62, 65, 58, 62, 65, 62,  55, 58, 62, 64, 58, 62, 64, 62,
+      57, 62, 64, 67, 57, 61, 64, 67,  57, 62, 64, 65, 69, 65, 62, 0,
     ],
     bass: [
-      50, 0, 0, 50, 53, 0, 50, 0, 55, 0, 0, 55, 52, 0, 45, 0,
-      50, 0, 0, 50, 53, 0, 57, 0, 52, 0, 0, 49, 45, 0, 52, 0,
-      53, 0, 0, 53, 55, 0, 58, 0, 50, 0, 0, 50, 52, 0, 55, 0,
-      50, 0, 0, 45, 49, 0, 52, 0, 50, 0, 57, 0, 50, 0, 0, 0,
+      50, 0, 0, 0, 0, 0, 0, 0,        46, 0, 0, 0, 0, 0, 0, 0,
+      43, 0, 0, 0, 0, 0, 0, 0,        45, 0, 0, 0, 45, 0, 0, 0,
+      50, 0, 0, 0, 0, 0, 0, 0,        41, 0, 0, 0, 0, 0, 0, 0,
+      48, 0, 0, 0, 0, 0, 0, 0,        45, 0, 0, 0, 0, 0, 0, 0,
+      46, 0, 0, 0, 0, 0, 0, 0,        48, 0, 0, 0, 0, 0, 0, 0,
+      50, 0, 0, 0, 0, 0, 0, 0,        41, 0, 0, 0, 0, 0, 0, 0,
+      43, 0, 0, 0, 0, 0, 0, 0,        40, 0, 0, 0, 0, 0, 0, 0,
+      45, 0, 0, 0, 45, 0, 0, 0,       38, 0, 0, 0, 50, 0, 0, 0,
     ],
-    drums: [
-      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 0, 0, 3, 0,
-      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 6, 0, 3, 0,
-      6, 0, 3, 0, 0, 0, 3, 0, 6, 0, 3, 0, 0, 0, 3, 0,
-      6, 0, 3, 0, 6, 0, 3, 0, 6, 0, 0, 0, 0, 0, 0, 0,
+    drums: [],
+  },
+
+  // 10f. Ys Nighttime — "Esteria Nocturne (Late Evening Solo Felt Piano)" — F Major / D Minor, 72 BPM
+  ys_night_nocturne: {
+    id: 'ys_night_nocturne',
+    title: 'Esteria Nocturne — Starlit Felt Piano',
+    bpm: 72,
+    stepsPerBeat: 2,
+    pianoMode: true,
+    reverbWet: 0.46,
+    leadWave: 'sine',
+    leadGain: 0.064,
+    leadDecay: 2.55,
+    harmonyWave: 'sine',
+    harmonyGain: 0.032,
+    harmonyDecay: 2.2,
+    arpWave: 'sine',
+    arpGain: 0.03,
+    arpDecay: 1.85,
+    bassWave: 'sine',
+    bassGain: 0.058,
+    bassDecay: 3.6,
+    volume: 0.88,
+    lead: [
+      // Bars 1-4: Fmaj9 -> Am7 -> Bbmaj7 -> C6 (Whisper-soft starlit nocturne)
+      77, 0, 0, 79, 81, 0, 77, 0,     76, 0, 0, 74, 72, 0, 0, 0,
+      74, 0, 76, 77, 79, 0, 77, 74,   72, 0, 0, 0, 0, 0, 0, 0,
+      // Bars 5-8: Dm9 -> Bbmaj7 -> Gm7 -> C9sus4
+      77, 0, 79, 81, 84, 0, 81, 0,    79, 0, 77, 74, 77, 0, 0, 0,
+      74, 0, 77, 79, 77, 0, 76, 74,   76, 0, 0, 74, 72, 0, 0, 0,
+      // Bars 9-12: Bbmaj7 -> F/A -> Gm9 -> Dm7 (Warm moonlight lift)
+      81, 0, 82, 84, 81, 0, 77, 0,    79, 0, 77, 76, 77, 0, 0, 0,
+      74, 0, 77, 79, 81, 0, 79, 77,   74, 0, 0, 72, 74, 0, 0, 0,
+      // Bars 13-16: Bbmaj7 -> Gm7 -> C7sus4 -> Fmaj9 (Deep peaceful rest)
+      77, 0, 76, 74, 72, 0, 74, 0,    76, 0, 74, 72, 70, 0, 72, 0,
+      74, 0, 72, 70, 69, 0, 72, 0,    69, 0, 0, 0, 0, 0, 0, 0,
     ],
+    harmony: [
+      72, 0, 0, 0, 76, 0, 0, 0,       72, 0, 0, 0, 69, 0, 0, 0,
+      69, 0, 0, 0, 74, 0, 0, 0,       67, 0, 0, 0, 69, 0, 0, 0,
+      72, 0, 0, 0, 76, 0, 0, 0,       74, 0, 0, 0, 70, 0, 0, 0,
+      70, 0, 0, 0, 72, 0, 0, 0,       70, 0, 0, 0, 67, 0, 0, 0,
+      74, 0, 0, 0, 77, 0, 0, 0,       72, 0, 0, 0, 72, 0, 0, 0,
+      70, 0, 0, 0, 74, 0, 0, 0,       69, 0, 0, 0, 69, 0, 0, 0,
+      70, 0, 0, 0, 69, 0, 0, 0,       67, 0, 0, 0, 67, 0, 0, 0,
+      67, 0, 0, 0, 65, 0, 0, 0,       65, 0, 0, 0, 0, 0, 0, 0,
+    ],
+    arp: [
+      60, 64, 65, 69, 64, 67, 69, 65,  57, 60, 64, 67, 60, 64, 67, 64,
+      58, 62, 65, 69, 62, 65, 69, 65,  60, 64, 67, 69, 64, 67, 69, 64,
+      57, 62, 64, 65, 62, 65, 69, 65,  58, 62, 65, 69, 62, 65, 69, 65,
+      55, 58, 62, 65, 58, 62, 65, 62,  60, 65, 67, 70, 64, 67, 70, 67,
+      58, 62, 65, 69, 62, 65, 69, 65,  57, 60, 65, 69, 60, 65, 69, 65,
+      55, 58, 62, 69, 58, 62, 67, 62,  57, 62, 65, 69, 62, 65, 69, 65,
+      58, 62, 65, 69, 62, 65, 69, 65,  55, 58, 62, 65, 58, 62, 65, 62,
+      60, 65, 67, 70, 64, 67, 70, 64,  60, 64, 65, 69, 65, 64, 60, 0,
+    ],
+    bass: [
+      41, 0, 0, 0, 0, 0, 0, 0,        45, 0, 0, 0, 0, 0, 0, 0,
+      46, 0, 0, 0, 0, 0, 0, 0,        48, 0, 0, 0, 0, 0, 0, 0,
+      50, 0, 0, 0, 0, 0, 0, 0,        46, 0, 0, 0, 0, 0, 0, 0,
+      43, 0, 0, 0, 0, 0, 0, 0,        48, 0, 0, 0, 48, 0, 0, 0,
+      46, 0, 0, 0, 0, 0, 0, 0,        45, 0, 0, 0, 0, 0, 0, 0,
+      43, 0, 0, 0, 0, 0, 0, 0,        50, 0, 0, 0, 0, 0, 0, 0,
+      46, 0, 0, 0, 0, 0, 0, 0,        43, 0, 0, 0, 0, 0, 0, 0,
+      48, 0, 0, 0, 0, 0, 0, 0,        41, 0, 0, 0, 53, 0, 0, 0,
+    ],
+    drums: [],
   },
 
   // 11. 1942 / 1943 / Time Pilot Heroic Military Sky March
@@ -2350,6 +2503,10 @@ class ArcadeMusicEngine {
   private ctx: AudioContext | null = null;
   private masterBus: GainNode | null = null;
   private compressor: DynamicsCompressorNode | null = null;
+  private pianoWarmFilter: BiquadFilterNode | null = null;
+  private pianoDryBus: GainNode | null = null;
+  private pianoWetBus: GainNode | null = null;
+  private pianoReverb: ConvolverNode | null = null;
   private noiseBuf: AudioBuffer | null = null;
   private timer: number | null = null;
   private playing = false;
@@ -2360,6 +2517,8 @@ class ArcadeMusicEngine {
   private stepIdx = 0;
   private nextStepTime = 0;
 
+  private masterVolume = 0.52;
+
   private ensureContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
     const AudioCtx =
@@ -2368,9 +2527,9 @@ class ArcadeMusicEngine {
     if (!AudioCtx) return null;
     if (!this.ctx) {
       this.ctx = new AudioCtx();
-      // Studio-balanced master bus so 4+ pitched voices + percussion stay rich, warm, and never clip
+      // Mild, relaxing default music level (~50% of previous level) so BGM sits comfortably beneath gameplay
       this.masterBus = this.ctx.createGain();
-      this.masterBus.gain.value = 1.05;
+      this.masterBus.gain.value = this.masterVolume;
       if (typeof this.ctx.createDynamicsCompressor === 'function') {
         this.compressor = this.ctx.createDynamicsCompressor();
         this.compressor.threshold.value = -16;
@@ -2382,6 +2541,46 @@ class ArcadeMusicEngine {
         this.compressor.connect(this.ctx.destination);
       } else {
         this.masterBus.connect(this.ctx.destination);
+      }
+
+      // Dedicated Concert Hall Acoustic Grand Piano Bus (warm wood lowpass + silky stereo hall reverb)
+      this.pianoWarmFilter = this.ctx.createBiquadFilter();
+      this.pianoWarmFilter.type = 'lowpass';
+      this.pianoWarmFilter.frequency.value = 3900;
+      this.pianoWarmFilter.Q.value = 0.55;
+      this.pianoWarmFilter.connect(this.masterBus);
+
+      this.pianoDryBus = this.ctx.createGain();
+      this.pianoDryBus.gain.value = 0.8;
+      this.pianoDryBus.connect(this.pianoWarmFilter);
+
+      if (typeof this.ctx.createConvolver === 'function') {
+        const sr = this.ctx.sampleRate;
+        const irLen = Math.floor(sr * 2.35);
+        const ir = this.ctx.createBuffer(2, irLen, sr);
+        for (let ch = 0; ch < 2; ch++) {
+          const data = ir.getChannelData(ch);
+          let lp1 = 0;
+          let lp2 = 0;
+          let lp3 = 0;
+          for (let i = 0; i < irLen; i++) {
+            const t = i / irLen;
+            // Smooth concert-hall envelope with gentle pre-delay bloom & 3-pole lowpass (zero fizz/static)
+            const pre = Math.min(1, i / (sr * 0.022));
+            const env = pre * Math.pow(1 - t, 2.65);
+            const raw = (Math.random() * 2 - 1) * env;
+            lp1 += 0.16 * (raw - lp1);
+            lp2 += 0.13 * (lp1 - lp2);
+            lp3 += 0.11 * (lp2 - lp3);
+            data[i] = lp3 * 0.72;
+          }
+        }
+        this.pianoReverb = this.ctx.createConvolver();
+        this.pianoReverb.buffer = ir;
+        this.pianoWetBus = this.ctx.createGain();
+        this.pianoWetBus.gain.value = 0.42;
+        this.pianoReverb.connect(this.pianoWetBus);
+        this.pianoWetBus.connect(this.pianoWarmFilter);
       }
     }
     if (this.ctx.state === 'suspended') {
@@ -2406,6 +2605,17 @@ class ArcadeMusicEngine {
 
   public isMusicEnabled(): boolean {
     return this.musicEnabled;
+  }
+
+  public getMasterVolume(): number {
+    return this.masterVolume;
+  }
+
+  public setMasterVolume(vol: number): void {
+    this.masterVolume = Math.max(0, Math.min(1, vol));
+    if (this.masterBus && this.ctx) {
+      this.masterBus.gain.setTargetAtTime(this.masterVolume, this.ctx.currentTime, 0.04);
+    }
   }
 
   public setMusicEnabled(enabled: boolean): void {
@@ -2650,12 +2860,507 @@ class ArcadeMusicEngine {
     }
   }
 
+  /**
+   * Physical-modeled Concert Grand / Felt Piano voice:
+   * - Detuned unison fundamental string pair (warm wooden chorus)
+   * - Slightly inharmonic 2nd, 3rd & soft 4th overtones with faster upper-partial damping
+   * - Soft felt hammer transient (brief warm low-passed triangle — zero white-noise static)
+   * - Dynamic brightness filter gliding from felt-strike warmth into mellow sustain
+   * - Concert hall stereo reverb send + subtle velvet cello pad on low bass pedals
+   */
+  private scheduleGrandPianoNote(
+    ctx: AudioContext,
+    midi: number,
+    time: number,
+    dur: number,
+    velocity: number,
+    role: 'melody' | 'harmony' | 'arp' | 'bass',
+    reverbWet = 0.38
+  ): void {
+    const f = midiToFreq(midi);
+    const outDry = this.pianoDryBus ?? this.getOutputNode(ctx);
+
+    // Lower strings ring naturally longer on a real concert grand
+    const regScale = Math.max(0.75, Math.min(1.55, 64 / Math.max(36, midi)));
+    const ringDur = dur * regScale;
+    const attack = role === 'melody' ? 0.011 : role === 'bass' ? 0.018 : 0.015;
+
+    // Dynamic felt-hammer lowpass filter envelope
+    const voiceFilter = ctx.createBiquadFilter();
+    voiceFilter.type = 'lowpass';
+    const openHz =
+      role === 'bass'
+        ? Math.min(1150, f * 5.2 + 240)
+        : role === 'melody'
+          ? Math.min(3400, f * 4.8 + 850)
+          : Math.min(2500, f * 4.0 + 620);
+    const closedHz = Math.max(320, f * (role === 'melody' ? 2.15 : 1.75));
+    voiceFilter.frequency.setValueAtTime(openHz, time);
+    voiceFilter.frequency.exponentialRampToValueAtTime(closedHz, time + Math.min(0.55, ringDur * 0.42));
+
+    const voiceGain = ctx.createGain();
+    voiceGain.gain.setValueAtTime(0.0001, time);
+    voiceGain.gain.linearRampToValueAtTime(velocity, time + attack);
+    voiceGain.gain.exponentialRampToValueAtTime(Math.max(0.0001, velocity * 0.38), time + ringDur * 0.34);
+    voiceGain.gain.exponentialRampToValueAtTime(0.0001, time + ringDur);
+
+    voiceFilter.connect(voiceGain);
+    voiceGain.connect(outDry);
+    if (this.pianoReverb) {
+      const send = ctx.createGain();
+      send.gain.value = reverbWet * (role === 'melody' ? 1.1 : role === 'arp' ? 0.92 : 0.85);
+      voiceGain.connect(send);
+      send.connect(this.pianoReverb);
+    }
+
+    // 1. Unison fundamental string pair (±1.4 cents warm acoustic piano chorus)
+    const oscA = ctx.createOscillator();
+    oscA.type = 'sine';
+    oscA.frequency.setValueAtTime(f, time);
+    oscA.detune.setValueAtTime(-1.4, time);
+    oscA.connect(voiceFilter);
+    oscA.start(time);
+    oscA.stop(time + ringDur + 0.04);
+
+    const oscB = ctx.createOscillator();
+    const gB = ctx.createGain();
+    oscB.type = 'sine';
+    oscB.frequency.setValueAtTime(f, time);
+    oscB.detune.setValueAtTime(1.5, time);
+    gB.gain.value = 0.52;
+    oscB.connect(gB);
+    gB.connect(voiceFilter);
+    oscB.start(time);
+    oscB.stop(time + ringDur + 0.04);
+
+    // 2. 2nd Harmonic (slight grand-piano string stiffness inharmonicity, decays faster than fundamental)
+    const h2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    h2.type = 'sine';
+    h2.frequency.setValueAtTime(f * 2.0009, time);
+    const h2Level = role === 'bass' ? 0.44 : role === 'melody' ? 0.34 : 0.24;
+    g2.gain.setValueAtTime(h2Level, time);
+    g2.gain.exponentialRampToValueAtTime(0.001, time + ringDur * 0.56);
+    h2.connect(g2);
+    g2.connect(voiceFilter);
+    h2.start(time);
+    h2.stop(time + ringDur * 0.6 + 0.03);
+
+    // 3. 3rd Harmonic (wooden piano shimmer)
+    if (f < 1100) {
+      const h3 = ctx.createOscillator();
+      const g3 = ctx.createGain();
+      h3.type = 'sine';
+      h3.frequency.setValueAtTime(f * 3.0028, time);
+      const h3Level = role === 'melody' ? 0.15 : role === 'bass' ? 0.19 : 0.1;
+      g3.gain.setValueAtTime(h3Level, time);
+      g3.gain.exponentialRampToValueAtTime(0.001, time + ringDur * 0.34);
+      h3.connect(g3);
+      g3.connect(voiceFilter);
+      h3.start(time);
+      h3.stop(time + ringDur * 0.38 + 0.03);
+    }
+
+    // 4. Delicate 4th Harmonic (soft sparkle on melody & bass resonance)
+    if (f < 720 && (role === 'melody' || role === 'bass')) {
+      const h4 = ctx.createOscillator();
+      const g4 = ctx.createGain();
+      h4.type = 'sine';
+      h4.frequency.setValueAtTime(f * 4.0065, time);
+      g4.gain.setValueAtTime(0.065, time);
+      g4.gain.exponentialRampToValueAtTime(0.001, time + ringDur * 0.2);
+      h4.connect(g4);
+      g4.connect(voiceFilter);
+      h4.start(time);
+      h4.stop(time + ringDur * 0.24 + 0.02);
+    }
+
+    // 5. Soft felt hammer body transient (brief warm triangle, zero white-noise static)
+    const hammer = ctx.createOscillator();
+    const hg = ctx.createGain();
+    hammer.type = 'triangle';
+    hammer.frequency.setValueAtTime(f, time);
+    hg.gain.setValueAtTime(role === 'melody' ? 0.18 : 0.11, time);
+    hg.gain.exponentialRampToValueAtTime(0.001, time + 0.055);
+    hammer.connect(hg);
+    hg.connect(voiceFilter);
+    hammer.start(time);
+    hammer.stop(time + 0.068);
+
+    // 6. Subtle warm cello/string pad bed beneath deep bass pedals for cinematic warmth
+    if (role === 'bass') {
+      const padOsc = ctx.createOscillator();
+      const padFlt = ctx.createBiquadFilter();
+      const padGain = ctx.createGain();
+      padOsc.type = 'triangle';
+      padOsc.frequency.setValueAtTime(f * 2, time);
+      padFlt.type = 'lowpass';
+      padFlt.frequency.setValueAtTime(640, time);
+      padGain.gain.setValueAtTime(0.0001, time);
+      padGain.gain.linearRampToValueAtTime(velocity * 0.22, time + 0.55);
+      padGain.gain.exponentialRampToValueAtTime(0.0001, time + ringDur * 1.05);
+      padOsc.connect(padFlt);
+      padFlt.connect(padGain);
+      padGain.connect(outDry);
+      if (this.pianoReverb) {
+        padGain.connect(this.pianoReverb);
+      }
+      padOsc.start(time);
+      padOsc.stop(time + ringDur * 1.08 + 0.04);
+    }
+  }
+
+  /**
+   * Subtle acoustic wooden Concert Flute voice:
+   * Pure warm fundamental + delicate 2nd/3rd harmonics, gentle delayed vibrato,
+   * slow breathy attack, low-passed wood warmth, tucked softly behind the piano in hall reverb.
+   */
+  private scheduleChamberFluteNote(
+    ctx: AudioContext,
+    midi: number,
+    time: number,
+    dur: number,
+    velocity: number,
+    reverbWet = 0.42
+  ): void {
+    const f = midiToFreq(midi);
+    const outDry = this.pianoDryBus ?? this.getOutputNode(ctx);
+    const atk = Math.min(0.24, Math.max(0.11, dur * 0.28));
+    const rel = Math.min(0.52, Math.max(0.22, dur * 0.34));
+    const totalDur = Math.max(atk + rel + 0.08, dur);
+
+    const flt = ctx.createBiquadFilter();
+    flt.type = 'lowpass';
+    flt.frequency.setValueAtTime(Math.min(2350, f * 2.8 + 420), time);
+    flt.Q.value = 0.65;
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, time);
+    env.gain.linearRampToValueAtTime(velocity, time + atk);
+    env.gain.setValueAtTime(velocity * 0.88, time + Math.max(atk + 0.02, totalDur - rel));
+    env.gain.exponentialRampToValueAtTime(0.0001, time + totalDur);
+
+    flt.connect(env);
+    // Keep flute slightly recessed behind the piano (softer dry, lush wet hall bloom)
+    const drySend = ctx.createGain();
+    drySend.gain.value = 0.62;
+    env.connect(drySend);
+    drySend.connect(outDry);
+    if (this.pianoReverb) {
+      const wetSend = ctx.createGain();
+      wetSend.gain.value = reverbWet * 1.45;
+      env.connect(wetSend);
+      wetSend.connect(this.pianoReverb);
+    }
+
+    // Gentle delayed musical vibrato (blooms softly like a real flutist)
+    const lfo = ctx.createOscillator();
+    const lfoDepth = ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(4.9, time);
+    lfoDepth.gain.setValueAtTime(0.01, time);
+    lfoDepth.gain.linearRampToValueAtTime(5.5, time + Math.min(0.45, totalDur * 0.5));
+    lfo.connect(lfoDepth);
+    lfo.start(time);
+    lfo.stop(time + totalDur + 0.05);
+
+    const osc1 = ctx.createOscillator();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(f, time);
+    lfoDepth.connect(osc1.detune);
+    osc1.connect(flt);
+    osc1.start(time);
+    osc1.stop(time + totalDur + 0.05);
+
+    // Whisper-soft 2nd harmonic for airy wooden flute tone
+    const osc2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(f * 2, time);
+    g2.gain.value = 0.13;
+    lfoDepth.connect(osc2.detune);
+    osc2.connect(g2);
+    g2.connect(flt);
+    osc2.start(time);
+    osc2.stop(time + totalDur + 0.05);
+
+    // Tiny woody 3rd harmonic warmth
+    if (f < 900) {
+      const osc3 = ctx.createOscillator();
+      const g3 = ctx.createGain();
+      osc3.type = 'sine';
+      osc3.frequency.setValueAtTime(f * 3, time);
+      g3.gain.value = 0.028;
+      osc3.connect(g3);
+      g3.connect(flt);
+      osc3.start(time);
+      osc3.stop(time + totalDur + 0.05);
+    }
+  }
+
+  /**
+   * Subtle acoustic Chamber Violin / Strings voice:
+   * Softly detuned bowed pair through a warm wood-body lowpass formant, slow legato bow swell,
+   * expressive subtle vibrato, recessed warmly behind the grand piano in concert-hall reverb.
+   */
+  private scheduleChamberViolinNote(
+    ctx: AudioContext,
+    midi: number,
+    time: number,
+    dur: number,
+    velocity: number,
+    reverbWet = 0.44
+  ): void {
+    const f = midiToFreq(midi);
+    const outDry = this.pianoDryBus ?? this.getOutputNode(ctx);
+    const atk = Math.min(0.42, Math.max(0.2, dur * 0.34));
+    const rel = Math.min(0.68, Math.max(0.28, dur * 0.38));
+    const totalDur = Math.max(atk + rel + 0.12, dur);
+
+    // Warm spruce wood-body resonance + gentle lowpass so bowed strings sound silky (zero synth buzz)
+    const bodyPeak = ctx.createBiquadFilter();
+    bodyPeak.type = 'peaking';
+    bodyPeak.frequency.setValueAtTime(520, time);
+    bodyPeak.Q.value = 1.1;
+    bodyPeak.gain.value = 2.4;
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(Math.min(1650, f * 2.6 + 480), time);
+    lp.frequency.exponentialRampToValueAtTime(Math.max(620, f * 1.65 + 240), time + totalDur);
+    lp.Q.value = 0.7;
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, time);
+    env.gain.linearRampToValueAtTime(velocity, time + atk);
+    env.gain.setValueAtTime(velocity * 0.85, time + Math.max(atk + 0.03, totalDur - rel));
+    env.gain.exponentialRampToValueAtTime(0.0001, time + totalDur);
+
+    bodyPeak.connect(lp);
+    lp.connect(env);
+
+    const drySend = ctx.createGain();
+    drySend.gain.value = 0.56;
+    env.connect(drySend);
+    drySend.connect(outDry);
+    if (this.pianoReverb) {
+      const wetSend = ctx.createGain();
+      wetSend.gain.value = reverbWet * 1.6;
+      env.connect(wetSend);
+      wetSend.connect(this.pianoReverb);
+    }
+
+    // Smooth expressive violinist vibrato
+    const lfo = ctx.createOscillator();
+    const lfoDepth = ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(5.35, time);
+    lfoDepth.gain.setValueAtTime(0.01, time);
+    lfoDepth.gain.linearRampToValueAtTime(6.8, time + Math.min(0.55, totalDur * 0.45));
+    lfo.connect(lfoDepth);
+    lfo.start(time);
+    lfo.stop(time + totalDur + 0.05);
+
+    // Bowed string pair: soft low-passed sawtooth (rosin harmonic richness) + warm triangle body
+    const bowA = ctx.createOscillator();
+    const gA = ctx.createGain();
+    bowA.type = 'sawtooth';
+    bowA.frequency.setValueAtTime(f, time);
+    bowA.detune.setValueAtTime(-3.4, time);
+    gA.gain.value = 0.42;
+    lfoDepth.connect(bowA.detune);
+    bowA.connect(gA);
+    gA.connect(bodyPeak);
+    bowA.start(time);
+    bowA.stop(time + totalDur + 0.05);
+
+    const bowB = ctx.createOscillator();
+    const gB = ctx.createGain();
+    bowB.type = 'triangle';
+    bowB.frequency.setValueAtTime(f, time);
+    bowB.detune.setValueAtTime(3.6, time);
+    gB.gain.value = 0.68;
+    lfoDepth.connect(bowB.detune);
+    bowB.connect(gB);
+    gB.connect(bodyPeak);
+    bowB.start(time);
+    bowB.stop(time + totalDur + 0.05);
+  }
+
+  private schedulePianoStep(ctx: AudioContext, track: TrackPattern, idx: number, time: number): void {
+    const vol = track.volume ?? 0.9;
+    const wet = track.reverbWet ?? 0.38;
+    const stepDur = 60 / track.bpm / track.stepsPerBeat;
+    const len = track.lead.length;
+    const curIdx = idx % len;
+    const leadNote = track.lead[curIdx];
+    const nextLead = track.lead[(curIdx + 1) % len];
+    const nextLead2 = track.lead[(curIdx + 2) % len];
+    const harmonyNote = track.harmony && track.harmony.length > 0 ? track.harmony[idx % track.harmony.length] : 0;
+    const arpNote = track.arp[idx % track.arp.length];
+    const bassNote = track.bass[idx % track.bass.length];
+
+    // Musical phrasing contour (gentle pianist swell across each 8-step bar)
+    const barPos = idx % 8;
+    const barIdx = Math.floor(curIdx / 8); // 0..15 across the 16-bar piece
+    const phraseCurve = barPos === 0 ? 1.06 : barPos === 4 ? 1.0 : barPos % 2 === 0 ? 0.94 : 0.85;
+    const swell = 0.94 + 0.1 * Math.sin((idx / 32) * Math.PI * 2);
+
+    // Left-hand deep pedal bass (downbeat anchor)
+    if (bassNote > 0) {
+      this.scheduleGrandPianoNote(
+        ctx,
+        bassNote,
+        time,
+        track.bassDecay,
+        track.bassGain * vol * swell,
+        'bass',
+        wet
+      );
+    }
+
+    // Left-hand flowing broken-chord arpeggio (gentle 6-12ms human roll)
+    if (arpNote > 0) {
+      const arpHumanDelay = 0.006 + (barPos % 4) * 0.0022;
+      const arpVel = track.arpGain * vol * (barPos === 0 ? 0.95 : 0.8 + (barPos % 4) * 0.04) * swell;
+      this.scheduleGrandPianoNote(ctx, arpNote, time + arpHumanDelay, track.arpDecay, arpVel, 'arp', wet);
+    }
+
+    // Inner-voice soft chordal harmony (subtle 9ms pianist chord roll)
+    if (harmonyNote > 0) {
+      this.scheduleGrandPianoNote(
+        ctx,
+        harmonyNote,
+        time + 0.009,
+        track.harmonyDecay ?? 1.8,
+        (track.harmonyGain ?? 0.034) * vol * phraseCurve * swell,
+        'harmony',
+        wet
+      );
+    }
+
+    // Singing right-hand grand piano melody (expressive presence & gentle rubato)
+    if (leadNote > 0) {
+      const melodyHumanDelay = barPos === 0 ? 0.012 : 0.003;
+      this.scheduleGrandPianoNote(
+        ctx,
+        leadNote,
+        time + melodyHumanDelay,
+        track.leadDecay,
+        track.leadGain * vol * phraseCurve * swell,
+        'melody',
+        wet
+      );
+    }
+
+    // =========================================================================
+    // SUBTLE CHAMBER FLUTE & EXPRESSIVE VIOLIN SECTION
+    // Bars 0–3: Pure intimate solo grand piano
+    // Bars 4–7: Delicate flute (or muted violin in shrine/tower) on sustained singing notes
+    // Bars 8–11: Warm legato chamber violin swells + whisper-soft flute answer on crests
+    // Bars 12–14: Gentle ensemble fade-out, returning to solo piano on Bar 15
+    // =========================================================================
+    const isLongMelodyNote = leadNote > 0 && nextLead === 0;
+    const holdSteps = isLongMelodyNote ? (nextLead2 === 0 ? 3.2 : 2.15) : 1.0;
+    const isViolinFirstTrack = track.id === 'ys_shrine_palace' || track.id === 'ys_tower_end';
+    const isExtraSoftNight = track.id === 'ys_night_nocturne' || track.id === 'ys_feena';
+    const chamberScale = isExtraSoftNight ? 0.84 : 1.0;
+
+    // Section B (Bars 4–7): Subtle solo chamber entrance on sustained lyrical notes
+    if (barIdx >= 4 && barIdx <= 7 && isLongMelodyNote) {
+      const dur = stepDur * holdSteps;
+      if (isViolinFirstTrack) {
+        this.scheduleChamberViolinNote(
+          ctx,
+          leadNote,
+          time + 0.025,
+          dur * 1.15,
+          0.02 * vol * chamberScale * swell,
+          wet
+        );
+      } else {
+        this.scheduleChamberFluteNote(
+          ctx,
+          leadNote,
+          time + 0.02,
+          dur * 1.08,
+          0.019 * vol * chamberScale * swell,
+          wet
+        );
+      }
+    }
+
+    // Section C (Bars 8–11): Warm chamber violin section carrying the soaring bridge + delicate flute echo
+    if (barIdx >= 8 && barIdx <= 11) {
+      // Sustained bowed violin harmony anchor on bar downbeats & mid-bar breaths
+      if (harmonyNote > 0 && (barPos === 0 || barPos === 4)) {
+        this.scheduleChamberViolinNote(
+          ctx,
+          harmonyNote,
+          time + 0.03,
+          stepDur * 4.1,
+          0.017 * vol * chamberScale * swell,
+          wet
+        );
+      }
+      // Subtle expressive violin doubling on long singing melody peaks
+      if (isLongMelodyNote && (barPos === 0 || barPos === 4)) {
+        this.scheduleChamberViolinNote(
+          ctx,
+          leadNote,
+          time + 0.022,
+          stepDur * (holdSteps + 0.4),
+          0.018 * vol * chamberScale * swell,
+          wet
+        );
+      }
+      // Delicate airy flute answer on bars 10–11 sustained phrases
+      if ((barIdx === 10 || barIdx === 11) && isLongMelodyNote && barPos >= 4) {
+        this.scheduleChamberFluteNote(
+          ctx,
+          leadNote,
+          time + 0.03,
+          stepDur * holdSteps * 1.05,
+          0.014 * vol * chamberScale * swell,
+          wet
+        );
+      }
+    }
+
+    // Section D (Bars 12–14): Tender receding chamber colors before solo piano resolution on Bar 15
+    if ((barIdx === 12 || barIdx === 13) && harmonyNote > 0 && barPos === 0) {
+      this.scheduleChamberViolinNote(
+        ctx,
+        harmonyNote,
+        time + 0.035,
+        stepDur * 4.6,
+        0.015 * vol * chamberScale * swell,
+        wet
+      );
+    }
+    if (barIdx === 14 && isLongMelodyNote && barPos <= 4) {
+      this.scheduleChamberFluteNote(
+        ctx,
+        leadNote,
+        time + 0.028,
+        stepDur * holdSteps * 1.12,
+        0.014 * vol * chamberScale * swell,
+        wet
+      );
+    }
+  }
+
   private scheduleStep(ctx: AudioContext, track: TrackPattern, idx: number, time: number): void {
+    if (track.pianoMode) {
+      this.schedulePianoStep(ctx, track, idx, time);
+      return;
+    }
+
     const vol = track.volume ?? 0.88;
     const leadNote = track.lead[idx % track.lead.length];
     const arpNote = track.arp[idx % track.arp.length];
     const bassNote = track.bass[idx % track.bass.length];
-    const drum = track.drums[idx % track.drums.length];
+    const drum = track.drums.length > 0 ? track.drums[idx % track.drums.length] : 0;
     const detune = track.detuneCents ?? 6;
 
     // Channel 1: Rich Lead Melody (main voice + subtle detuned chorus twin for full arcade cabinet warmth)
